@@ -1,0 +1,118 @@
+/* Chat Input Container – Compact Glassmorphic */
+.chat-container {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  padding: 6px 14px;
+  max-width: 600px;
+  width: 92%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  border-radius: 35px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  z-index: 999;
+  height: 60px;
+}
+
+/* Chat Text Area – Reduced Size */
+.chat-input {
+  flex-grow: 1;
+  font-size: 14px;
+  border: none;
+  outline: none;
+  padding: 8px 12px;
+  border-radius: 25px;
+  resize: none;
+  overflow: hidden;
+  min-height: 28px;
+  max-height: 50px;
+  line-height: 1.4;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  color: #222;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: height 0.2s ease;
+}
+
+.chat-input::placeholder {
+  color: rgba(34, 34, 34, 0.6);
+}
+
+/* Buttons – Slightly Smaller */
+.icon-btn {
+  width: 45px;
+  height: 45px;
+  min-width: 45px;
+  min-height: 45px;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #007bff;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.3s, box-shadow 0.3s;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  padding: 0;
+}
+
+.icon-btn:hover {
+  background: linear-gradient(135deg, #ff66b2, #eb0451);
+  box-shadow: 0 5px 14px rgba(235, 4, 81, 0.3);
+}
+
+.icon-btn:active {
+  transform: scale(1.08);
+}
+
+.icon-btn:focus {
+  outline: none;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .chat-container {
+    width: 95%;
+    height: 48px;
+    padding: 5px 12px;
+  }
+
+  .chat-input {
+    font-size: 13.5px;
+    padding: 7px 10px;
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-container {
+    width: 96%;
+    padding: 4px 10px;
+    bottom: 16px;
+    height: 46px;
+  }
+
+  .chat-input {
+    font-size: 13px;
+    min-height: 26px;
+  }
+
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+}
+
