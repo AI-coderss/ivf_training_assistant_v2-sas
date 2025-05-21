@@ -19,7 +19,7 @@ from uuid import uuid4
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"])
+CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com"])
 
 
 # Load Qdrant collection name
