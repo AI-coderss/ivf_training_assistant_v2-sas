@@ -75,8 +75,8 @@ chain_with_memory = RunnableWithMessageHistory(
     history_messages_key="chat_history"
 )
 
-@app.route("/chat", methods=["POST"])
-def chat():
+@app.route("/generate", methods=["POST"])
+def generate():
     data = request.json
     user_query = data.get("message", "")
     session_id = data.get("session_id", str(uuid4()))  # use UUID if not passed
