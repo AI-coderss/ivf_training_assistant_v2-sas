@@ -10,9 +10,10 @@
   background-color: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
-    transform: translateX(50%);
+  transform: translateX(50%);
   transition: max-height 0.3s ease-in-out;
   z-index: 1;
+  box-sizing: border-box;
 }
 
 /* Chat Content Scrollbar Styling */
@@ -49,6 +50,7 @@
   display: flex;
   align-items: flex-start;
   margin: 0.5rem 0;
+  padding: 0 1rem;
   animation: fadeIn 0.5s ease-in-out;
   transition: all 0.3s ease-in-out;
 }
@@ -63,17 +65,17 @@
 
 /* Chat Bubbles */
 .message-text {
-  max-width: 70%;
+  max-width: 80%;
   padding: 0.9rem 1rem;
   border-radius: 12px;
   font-size: 1rem;
-  line-height: 1.5;
+  line-height: 1.6;
   word-break: break-word;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .chat-message.bot .message-text {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   color: #000000;
   border-radius: 12px 12px 12px 0;
 }
@@ -86,8 +88,8 @@
 
 /* Avatar Styling */
 .avatar {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   margin-right: 10px;
   border-radius: 50%;
   overflow: hidden;
@@ -166,4 +168,38 @@
     transform: translateY(0);
   }
 }
+
+@media (max-width: 768px) {
+  .chat-content {
+    width: 90%;
+    transform: translateX(5%);
+    top: 70px;
+    bottom: 100px;
+  }
+
+  .chat-footer {
+    width: 90%;
+    transform: translateX(5%);
+    bottom: 10px;
+    padding: 0.5rem;
+  }
+
+  .message-text {
+    font-size: 0.85rem;
+    padding: 0.7rem 0.9rem;
+    line-height: 1.4;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    margin-right: 8px;
+  }
+
+  .toggle-button {
+    right: 20px;
+    font-size: 1.5rem;
+  }
+}
+
 
