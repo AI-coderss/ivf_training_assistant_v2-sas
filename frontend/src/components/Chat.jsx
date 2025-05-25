@@ -25,7 +25,7 @@ const Chat = () => {
       setLoading(true);
 
       try {
-        const res = await axios.post("https://ivf-backend-server.onrender.com/generate", {
+        const res = await axios.post("http://127.0.0.1:5050/generate", {
           input: data.text,
         });
 
@@ -50,7 +50,7 @@ const Chat = () => {
         const formData = new FormData();
         formData.append("audio", audioBlob, "recording.wav");
 
-        const responseRes = await axios.post("https://ivf-backend-server.onrender.com/generate", formData, {
+        const responseRes = await axios.post("http://127.0.0.1:5050/generate", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 

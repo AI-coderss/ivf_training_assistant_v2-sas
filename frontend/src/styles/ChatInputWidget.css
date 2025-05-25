@@ -16,7 +16,7 @@
   border-radius: 35px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
   z-index: 999;
-  height: 60px;
+  height: 70px;
 }
 
 /* Chat Text Area – Reduced Size */
@@ -29,7 +29,7 @@
   border-radius: 25px;
   resize: none;
   overflow: hidden;
-  min-height: 28px;
+  min-height: 45px;
   max-height: 50px;
   line-height: 1.4;
   background: rgba(255, 255, 255, 0.25);
