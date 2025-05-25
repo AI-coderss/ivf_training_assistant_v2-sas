@@ -1,6 +1,5 @@
 // ======== FRONTEND: Chat.js ========
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import "../styles/chat.css";
@@ -32,40 +31,42 @@ const Chat = () => {
       setLoading(true);
 
       try {
-        const res = await axios.post("https://ivf-backend-server.onrender.com/generate", {
-          message: data.text,
-          session_id: sessionId,
-        });
-        const { response } = res.data;
-        setChats((prev) => [...prev, { msg: response, who: "bot" }]);
-      } catch (err) {
-        console.error("Text error:", err);
-        setChats((prev) => [
-          ...prev,
-          { msg: "Sorry, I couldn't process your request. Please try again.", who: "bot" },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    } else if (data.audioFile) {
-      setLoading(true);
-      try {
-        const audioBlob = new Blob([new Uint8Array(data.audioFile)], { type: "audio/wav" });
-        const formData = new FormData();
-        formData.append("audio", audioBlob, "recording.wav");
-
-        const responseRes = await axios.post("https://ivf-backend-server.onrender.com/generate", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
+        const response = await fetch("https://ivf-backend-server.onrender.com/stream", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: data.text,
+            session_id: sessionId,
+          }),
         });
 
-        const { response } = responseRes.data;
-        setChats((prev) => [...prev, { msg: "[Voice Message]", who: "me" }]);
-        setChats((prev) => [...prev, { msg: response, who: "bot" }]);
+        if (!response.ok || !response.body) {
+          throw new Error("Failed to stream response");
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let aiMessage = "";
+        setChats((prev) => [...prev, { msg: "", who: "bot" }]);
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          aiMessage += decoder.decode(value, { stream: true });
+          // eslint-disable-next-line no-loop-func
+          setChats((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { msg: aiMessage, who: "bot" };
+            return updated;
+          });
+        }
       } catch (err) {
-        console.error("Audio error:", err);
+        console.error("Streaming error:", err);
         setChats((prev) => [
           ...prev,
-          { msg: "Sorry, I couldn't process your voice input. Please try again.", who: "bot" },
+          { msg: "Sorry, something went wrong with the streaming response.", who: "bot" },
         ]);
       } finally {
         setLoading(false);

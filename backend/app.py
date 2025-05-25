@@ -78,37 +78,27 @@ chain_with_memory = RunnableWithMessageHistory(
 )
 
 
-@app.route("/generate", methods=["POST"])
-def generate():
-    session_id = request.form.get("session_id") or request.args.get("session_id") or str(uuid4())
-
-    if request.content_type.startswith("multipart/form-data"):
-        audio_file = request.files.get("audio")
-        if not audio_file:
-            return jsonify({"response": "No audio file provided"}), 400
-
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp:
-            audio_path = temp.name
-            audio_file.save(audio_path)
-
-        with open(audio_path, "rb") as af:
-            transcript = openai.Audio.transcribe("whisper-1", af)["text"]
-        os.remove(audio_path)
-        user_query = transcript
-
-    else:
-        data = request.json
-        user_query = data.get("message", "")
+@app.route("/stream", methods=["POST"])
+def stream():
+    from flask import Response
+    data = request.json
+    session_id = data.get("session_id", str(uuid4()))
+    user_query = data.get("message")
 
     if not user_query:
-        return jsonify({"response": "No message provided"}), 400
+        return jsonify({"error": "No input message"}), 400
 
-    response = chain_with_memory.invoke(
-        {"input": user_query},
-        config={"configurable": {"session_id": session_id}},
-    )
+    def generate():
+        response = chain_with_memory.stream(
+            {"input": user_query},
+            config={"configurable": {"session_id": session_id}}
+        )
+        for chunk in response:
+            if "answer" in chunk:
+                yield chunk["answer"]
 
-    return jsonify({"response": response["answer"], "session_id": session_id})
+    return Response(generate(), content_type="text/plain")
+
 
 
 @app.route("/reset", methods=["POST"])
