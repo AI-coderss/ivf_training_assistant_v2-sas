@@ -1,70 +1,209 @@
-# Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+#  🧬 IVF Virtual Training Assistant
 
-## Available Scripts
+A multi-page, full-stack AI-powered web application designed to support the virtual training of IVF doctors and fellows at **Doctor Samir Abbas Hospital**.
 
-In the project directory, you can run:
+The platform combines speech-enabled chat, medical context understanding, educational content, summaries, quizzes, and a 3D avatar to deliver an engaging and intelligent training experience.
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 📌 Table of Contents
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Installation & Setup](#-installation--setup)
+  - [Backend Setup (Flask)](#1-backend-setup-flask)
+  - [Frontend Setup (React)](#2-frontend-setup-react)
+- [Environment Variables](#-environment-variables)
+- [Routing (Pages)](#-routing-pages)
+- [API Endpoints](#-api-endpoints)
+- [Screenshots](#-screenshots)
+- [Future Improvements](#-future-improvements)
+- [License](#-license)
+- [Contact](#-contact)
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🎯 Features
 
-### `npm run build`
+- 💬 **AI Chat Assistant** powered by OpenAI for IVF-focused discussions
+- 🎤 **Real-time Voice Recognition** via browser-native Web Speech API
+- ✍️ **Free-text & voice input** via an elegant input widget
+- 🧠 **Medical Prompt Engineering** from `backend/prompts/prompt.py`
+- 🪟 **Glassmorphic UI Design** with blurred panels and hover effects
+- 📖 **Summaries Page** for quick revision of key concepts
+- 🧪 **Quizzes Page** (Multiple-choice) for self-evaluation
+- 📚 **Content Page** with downloadable resources (videos, PDFs, etc.)
+- 🧍 **Avatar Page** to interact with a 3D virtual AI guide
+- 📱 **Fully Responsive** — supports tablets, desktops, and large phones
+- 🔄 **Multi-page Navigation** with animated active link indicator
+- 🪄 **Lottie Loader** animation during response generation
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 🧰 Tech Stack
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+| Layer        | Technologies                                                                 |
+|--------------|-------------------------------------------------------------------------------|
+| **Frontend** | React, React Router, CSS3, Lottie, Web Speech API, Material Icons            |
+| **Backend**  | Python, Flask, OpenAI API, dotenv                                             |
+| **AI Layer** | GPT-4o or gpt-3.5-turbo via `/generate` endpoint                             |
+| **Audio**    | `react-media-recorder` for audio capture and conversion to byte stream       |
+| **Design**   | Glassmorphism, mobile responsiveness, animated transitions                   |
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## 🧾 Project Structure
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+IVF\_ASSISTANT/
+│
+├── backend/
+│   ├── app.py                    # Flask server entrypoint
+│   ├── requirements.txt
+│   ├── prompts/
+│   │   └── prompt.py             # Prompt template logic
+│   └── .env                      # API key and config
+│
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/           # ChatInputWidget, Navbar, etc.
+│   │   ├── pages/                # Multi-page layout
+│   │   │   ├── ChatPage.jsx
+│   │   │   ├── QuizzesPage.jsx
+│   │   │   ├── SummariesPage.jsx
+│   │   │   ├── ContentPage.jsx
+│   │   │   └── AvatarPage.jsx
+│   │   ├── styles/              # Modular CSS for each component
+│   │   ├── App.js
+│   │   └── index.js
+│   ├── package.json
+│   └── README.md                # ← you're here
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+````
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 🛠 Installation & Setup
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 1. Backend Setup (Flask)
 
-### Code Splitting
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+````
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+#### Run the Flask server:
 
-### Analyzing the Bundle Size
+```bash
+python app.py
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+> Default: `http://localhost:5000`
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### 2. Frontend Setup (React)
 
-### Advanced Configuration
+```bash
+cd frontend
+npm install
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+> Runs on: `http://localhost:3000`
 
-### Deployment
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## 🔐 Environment Variables
 
-### `npm run build` fails to minify
+### `.env` (Backend):
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```env
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+> Don't forget to add `.env` to your `.gitignore`.
+
+---
+
+## 🌍 Routing (Pages)
+
+| Route        | File                | Purpose                           |
+| ------------ | ------------------- | --------------------------------- |
+| `/`          | `ChatPage.jsx`      | Main AI chat assistant            |
+| `/quizzes`   | `QuizzesPage.jsx`   | Multiple-choice IVF quizzes       |
+| `/summaries` | `SummariesPage.jsx` | Short explanations and key points |
+| `/content`   | `ContentPage.jsx`   | Books, videos, articles           |
+| `/avatar`    | `AvatarPage.jsx`    | 3D avatar conversation (coming)   |
+
+---
+
+## 🔌 API Endpoints
+
+| Method | Endpoint        | Description                        |
+| ------ | --------------- | ---------------------------------- |
+| POST   | `/generate`     | Core endpoint for OpenAI GPT calls |
+| POST   | `/audio` (opt.) | Accepts voice blob (if used)       |
+
+> All AI messages are routed through `/generate`.
+
+---
+
+## 📸 Screenshots
+
+> Add screenshots to `frontend/public/` and reference them here
+
+```
+📍 Chat Page
+![Chat](./public/screenshots/chat.png)
+
+📍 Avatar Page
+![Avatar](./public/screenshots/avatar.png)
+```
+
+---
+
+## 🔮 Future Enhancements
+
+* ✅ Real-time audio transcription with Whisper API
+* ✅ Persistent session history (save chats per doctor)
+* ✅ Admin dashboard to manage training content
+* ✅ Typing indicator for AI response
+* ✅ Text-to-speech responses for hands-free mode
+* ✅ PDF summary download per session
+* ✅ Medical quiz scoring and progress tracker
+
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License**.
+See [LICENSE](./LICENSE) for details.
+
+---
+
+## 🤝 Contributors
+
+* **Mohammed** – AI Developer, Chat UI, Prompt Engineering
+* **Dr. Samir Abbas Hospital** – Vision & Medical Supervision
+
+---
+
+## 📬 Contact
+
+For questions, improvements, or demo requests:
+
+📧 [Email](mohmmed.bahageel@dsah.sa)
+💼 [LinkedIn Profile](https://www.linkedin.com/in/mohammed-bahageel-94609b205)
+🌍 [Our Website](https://www.dsah.sa)
+
+
+
+
+
