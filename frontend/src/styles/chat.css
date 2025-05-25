@@ -82,7 +82,7 @@
   color: #000000;
   border-radius: 12px 12px 12px 0;
   margin-left: 8px;           /* NEW: adds spacing from avatar */
-  padding-left: 1rem;   
+  padding-left: 2rem;   
   
 }
 
@@ -177,8 +177,8 @@
 
 @media (max-width: 768px) {
   .chat-content {
-    width: 90%;
-    transform: translateX(5%);
+    width: 100%;
+    transform: translateX(-1%);
     top: 70px;
     bottom: 100px;
   }
@@ -208,4 +208,11 @@
   }
 }
 
-
+@media (max-width: 768px) {
+  .message-text {
+    width: 100%;
+  }
+  .chat-message.me .message-text {
+    transform: translateX(0);
+  }
+}
