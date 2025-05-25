@@ -3,31 +3,25 @@ import tempfile
 from uuid import uuid4
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response
-from prompts.prompt import engineeredprompt
 from flask_cors import CORS
+from prompts.prompt import engineeredprompt
+import openai
+import qdrant_client
 
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_qdrant import Qdrant
-from langchain.chains import create_history_aware_retriever, create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_community.chat_message_histories import ChatMessageHistory
 
-import qdrant_client
-import openai
-
-# Load env
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com"])
 
-# Memory store for session chat history
-store = {}
+# === Memory store for chat sessions ===
+chat_sessions = {}
+
+# === Qdrant Vector Store ===
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
 
-# Load Qdrant vector DB
 def get_vector_store():
     client = qdrant_client.QdrantClient(
         url=os.getenv("QDRANT_HOST"),
@@ -38,41 +32,19 @@ def get_vector_store():
 
 vector_store = get_vector_store()
 
-# Memory loader
-def get_memory(session_id: str):
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-    return store[session_id]
+# === Chat Model ===
+llm = ChatOpenAI(model="gpt-4")
 
-# RAG Setup
-def get_context_retriever_chain():
-    retriever = vector_store.as_retriever()
-    prompt = ChatPromptTemplate.from_messages([
-        MessagesPlaceholder("chat_history"),
-        ("user", "{input}"),
-        ("user", "Given the above conversation, generate a search query to look up in order to get information relevant to the conversation"),
-    ])
-    return create_history_aware_retriever(ChatOpenAI(), retriever, prompt)
+# === Helper: Build full message list ===
+def build_prompt_messages(history, user_input):
+    messages = [{"role": "system", "content": engineeredprompt}]
+    for entry in history:
+        messages.append({"role": "user", "content": entry["user"]})
+        messages.append({"role": "assistant", "content": entry["bot"]})
+    messages.append({"role": "user", "content": user_input})
+    return messages
 
-def get_conversational_rag_chain():
-    retriever_chain = get_context_retriever_chain()
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", engineeredprompt),
-        MessagesPlaceholder("chat_history"),
-        ("user", "{input}"),
-    ])
-    return create_retrieval_chain(retriever_chain, create_stuff_documents_chain(ChatOpenAI(), prompt))
-
-rag_chain = get_conversational_rag_chain()
-
-chain_with_memory = RunnableWithMessageHistory(
-    rag_chain,
-    lambda session_id: get_memory(session_id),
-    input_messages_key="input",
-    history_messages_key="chat_history"
-)
-
-# TEXT + AUDIO handler
+# === Handle /generate for both text and audio ===
 @app.route("/generate", methods=["POST"])
 def generate():
     session_id = request.form.get("session_id") or request.args.get("session_id")
@@ -82,9 +54,11 @@ def generate():
         audio_file = request.files.get("audio")
         if not audio_file:
             return jsonify({"response": "No audio file provided"}), 400
+
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp:
             audio_path = temp.name
             audio_file.save(audio_path)
+
         with open(audio_path, "rb") as af:
             transcript = openai.Audio.transcribe("whisper-1", af)["text"]
         os.remove(audio_path)
@@ -92,51 +66,69 @@ def generate():
     else:
         data = request.get_json()
 
-    if not data or not data.get("message"):
+    user_query = data.get("message", "")
+    session_id = session_id or data.get("session_id") or str(uuid4())
+    if not user_query:
         return jsonify({"response": "No input provided"}), 400
 
-    session_id = session_id or data.get("session_id") or str(uuid4())
-    user_query = data["message"]
+    chat_history = chat_sessions.get(session_id, [])
 
-    response = chain_with_memory.invoke(
-        {"input": user_query},
-        config={"configurable": {"session_id": session_id}}
-    )
+    # Build prompt from full history
+    messages = build_prompt_messages(chat_history, user_query)
 
-    return jsonify({
-        "response": response["answer"],
-        "session_id": session_id
+    # Get completion
+    response = llm.invoke(messages)
+    answer = response.content
+
+    # Save new turn in memory
+    chat_history.append({
+        "user": user_query,
+        "bot": answer
     })
+    chat_sessions[session_id] = chat_history
 
-# STREAMING endpoint (for live text)
+    return jsonify({"response": answer, "session_id": session_id})
+
+# === Stream endpoint ===
 @app.route("/stream", methods=["POST"])
 def stream():
     data = request.get_json()
     session_id = data.get("session_id", str(uuid4()))
-    user_query = data.get("message")
+    user_query = data.get("message", "")
 
     if not user_query:
-        return jsonify({"error": "No input message"}), 400
+        return jsonify({"error": "No input"}), 400
+
+    chat_history = chat_sessions.get(session_id, [])
+    messages = build_prompt_messages(chat_history, user_query)
 
     def generate():
-        response = chain_with_memory.stream(
-            {"input": user_query},
-            config={"configurable": {"session_id": session_id}}
-        )
-        for chunk in response:
-            if "answer" in chunk:
-                yield chunk["answer"]
+        chunks = llm.stream(messages)
+        answer = ""
+        for chunk in chunks:
+            token = chunk.content
+            if token:
+                answer += token
+                yield token
+
+        # Update history after full response
+        chat_history.append({
+            "user": user_query,
+            "bot": answer
+        })
+        chat_sessions[session_id] = chat_history
 
     return Response(generate(), content_type="text/plain")
 
-# Reset chat history
+# === Reset chat history ===
 @app.route("/reset", methods=["POST"])
 def reset():
     session_id = request.json.get("session_id")
-    if session_id and session_id in store:
-        del store[session_id]
-    return jsonify({"message": "Chat history reset"}), 200
+    if session_id in chat_sessions:
+        del chat_sessions[session_id]
+    return jsonify({"message": "Session reset"}), 200
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)
+
 
