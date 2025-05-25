@@ -57,10 +57,12 @@
 
 .chat-message.bot {
   justify-content: flex-start;
+  padding-left: 0.5rem;
 }
 
 .chat-message.me {
   justify-content: flex-end;
+  padding-right: 0.5rem;
 }
 
 /* Chat Bubbles */
@@ -72,12 +74,16 @@
   line-height: 1.6;
   word-break: break-word;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
 }
 
 .chat-message.bot .message-text {
   background: rgba(255, 255, 255, 0.85);
   color: #000000;
   border-radius: 12px 12px 12px 0;
+  margin-left: 8px;           /* NEW: adds spacing from avatar */
+  padding-left: 1rem;   
+  
 }
 
 .chat-message.me .message-text {
@@ -88,8 +94,8 @@
 
 /* Avatar Styling */
 .avatar {
-  width: 50px;
-  height: 50px;
+  width: 80px;
+  height: 80px;
   margin-right: 10px;
   border-radius: 50%;
   overflow: hidden;

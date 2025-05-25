@@ -81,7 +81,7 @@ const Chat = () => {
           <div key={index} className={`chat-message ${chat.who}`}>
             {chat.who === "bot" && (
               <figure className="avatar">
-                <img src="/ivf.jpg" alt="avatar" />
+                <img src="/avatar.gif" alt="avatar" />
               </figure>
             )}
             <div className="message-text">
@@ -93,7 +93,7 @@ const Chat = () => {
         {loading && (
           <div className="chat-message loading bot">
             <figure className="avatar">
-              <img src="/ivf.jpg" alt="avatar" />
+              <img src="/avatar.gif" alt="avatar" />
             </figure>
             <div style={{ padding: "5px", display: "flex", alignItems: "center" }}>
               <lottie-player
