@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import ChatInputWidget from "./ChatInputWidget";
+import ReactMarkdown from "react-markdown";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -82,7 +83,9 @@ const Chat = () => {
                 <img src="/ivf.jpg" alt="avatar" />
               </figure>
             )}
-            <div className="message-text">{chat.msg}</div>
+            <div className="message-text">
+              <ReactMarkdown>{chat.msg}</ReactMarkdown>
+            </div>
           </div>
         ))}
 
