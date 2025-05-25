@@ -1,9 +1,11 @@
+
 import os
+import tempfile
+from uuid import uuid4
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from prompts.prompt import engineeredprompt
-import qdrant_client
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.runnables import RunnableLambda
@@ -12,27 +14,24 @@ from langchain_qdrant import Qdrant
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.chat_message_histories import ChatMessageHistory
-from uuid import uuid4
+import qdrant_client
+import openai
 
-# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com"])
 
-
-# Load Qdrant collection name
+store = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
 
-# Memory storage (per-session example, simple in-memory store)
-store = {}
 
 def get_memory(session_id: str) -> ChatMessageHistory:
     if session_id not in store:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
 
-# Initialize vector store
+
 def get_vector_store():
     client = qdrant_client.QdrantClient(
         url=os.getenv("QDRANT_HOST"),
@@ -45,7 +44,9 @@ def get_vector_store():
         embeddings=embeddings,
     )
 
+
 vector_store = get_vector_store()
+
 
 def get_context_retriever_chain():
     retriever = vector_store.as_retriever()
@@ -56,40 +57,59 @@ def get_context_retriever_chain():
     ])
     return create_history_aware_retriever(ChatOpenAI(), retriever, prompt)
 
+
 def get_conversational_rag_chain():
     retriever_chain = get_context_retriever_chain()
     prompt = ChatPromptTemplate.from_messages([
         ("system", engineeredprompt),
         MessagesPlaceholder("chat_history"),
-        ("user", "{input}")
+        ("user", "{input}"),
     ])
     stuff_documents_chain = create_stuff_documents_chain(ChatOpenAI(), prompt)
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)
 
-# Wrap with memory handling
+
 rag_chain = get_conversational_rag_chain()
 chain_with_memory = RunnableWithMessageHistory(
     rag_chain,
     lambda session_id: get_memory(session_id),
     input_messages_key="input",
-    history_messages_key="chat_history"
+    history_messages_key="chat_history",
 )
+
 
 @app.route("/generate", methods=["POST"])
 def generate():
-    data = request.json
-    user_query = data.get("message", "")
-    session_id = data.get("session_id", str(uuid4()))  # use UUID if not passed
+    session_id = request.form.get("session_id") or request.args.get("session_id") or str(uuid4())
+
+    if request.content_type.startswith("multipart/form-data"):
+        audio_file = request.files.get("audio")
+        if not audio_file:
+            return jsonify({"response": "No audio file provided"}), 400
+
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp:
+            audio_path = temp.name
+            audio_file.save(audio_path)
+
+        with open(audio_path, "rb") as af:
+            transcript = openai.Audio.transcribe("whisper-1", af)["text"]
+        os.remove(audio_path)
+        user_query = transcript
+
+    else:
+        data = request.json
+        user_query = data.get("message", "")
 
     if not user_query:
         return jsonify({"response": "No message provided"}), 400
 
     response = chain_with_memory.invoke(
         {"input": user_query},
-        config={"configurable": {"session_id": session_id}}
+        config={"configurable": {"session_id": session_id}},
     )
 
     return jsonify({"response": response["answer"], "session_id": session_id})
+
 
 @app.route("/reset", methods=["POST"])
 def reset():
@@ -97,6 +117,7 @@ def reset():
     if session_id and session_id in store:
         del store[session_id]
     return jsonify({"message": "Chat history reset"}), 200
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)

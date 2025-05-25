@@ -1,3 +1,4 @@
+// ======== FRONTEND: Chat.js ========
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import ChatInputWidget from "./ChatInputWidget";
@@ -8,6 +9,11 @@ const Chat = () => {
     { msg: "Hi there! How can I assist you today?", who: "bot" },
   ]);
   const [loading, setLoading] = useState(false);
+  const [sessionId] = useState(() => {
+    const id = localStorage.getItem("sessionId") || crypto.randomUUID();
+    localStorage.setItem("sessionId", id);
+    return id;
+  });
   const chatContentRef = useRef(null);
 
   useEffect(() => {
@@ -26,9 +32,9 @@ const Chat = () => {
 
       try {
         const res = await axios.post("https://ivf-backend-server.onrender.com/generate", {
-          input: data.text,
+          message: data.text,
+          session_id: sessionId,
         });
-
         const { response } = res.data;
         setChats((prev) => [...prev, { msg: response, who: "bot" }]);
       } catch (err) {
@@ -42,11 +48,8 @@ const Chat = () => {
       }
     } else if (data.audioFile) {
       setLoading(true);
-
       try {
         const audioBlob = new Blob([new Uint8Array(data.audioFile)], { type: "audio/wav" });
-
-        // send to the same /generate endpoint, assuming it accepts audio input
         const formData = new FormData();
         formData.append("audio", audioBlob, "recording.wav");
 
