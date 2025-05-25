@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from prompts.prompt import engineeredprompt
-
 import qdrant_client
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
@@ -19,7 +18,7 @@ from uuid import uuid4
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"])
+CORS(app, origins=["http://localhost:3000", "https://ivfvirtualtrainingassistantdsah.onrender.com"])
 
 
 # Load Qdrant collection name
