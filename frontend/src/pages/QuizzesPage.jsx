@@ -34,7 +34,7 @@ const QuizzesPage = () => {
 
       setQuestions(data.questions);
       setQuizStarted(true);
-      setTimeLeft(600); // reset timer to 10 minutes
+      setTimeLeft(600); // Reset timer
       setTimerActive(true);
     } catch (err) {
       console.error("❌ Failed to fetch quiz:", err);
@@ -59,12 +59,25 @@ const QuizzesPage = () => {
   };
 
   const submitQuiz = () => {
+    let updatedAnswers = { ...answers };
+    let updatedFeedback = {};
     let score = 0;
+
     questions.forEach((q) => {
-      if (answers[q.id] === q.correct) {
+      // If question wasn't answered, mark as null
+      if (!(q.id in updatedAnswers)) {
+        updatedAnswers[q.id] = null;
+      }
+
+      updatedFeedback[q.id] = true;
+
+      if (updatedAnswers[q.id] === q.correct) {
         score++;
       }
     });
+
+    setAnswers(updatedAnswers);
+    setFeedbackShown(updatedFeedback);
     setScore(score);
     setShowResult(true);
     setTimerActive(false);
@@ -90,7 +103,7 @@ const QuizzesPage = () => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(interval);
-            submitQuiz(); // auto-submit when time runs out
+            submitQuiz();
             return 0;
           }
           return prev - 1;
@@ -214,6 +227,7 @@ const QuizzesPage = () => {
 };
 
 export default QuizzesPage;
+
 
 
 
