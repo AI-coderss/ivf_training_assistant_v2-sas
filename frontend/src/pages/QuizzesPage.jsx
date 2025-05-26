@@ -3,17 +3,16 @@ import "../styles/QuizzesPage.css";
 
 const QuizzesPage = () => {
   const [questions, setQuestions] = useState([]);
-  const [current, setCurrent] = useState(0);
-  const [selected, setSelected] = useState("");
+  const [answers, setAnswers] = useState({});
   const [score, setScore] = useState(0);
   const [quizStarted, setQuizStarted] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // 🆕 loading state
+  const [loading, setLoading] = useState(false);
 
   const startQuiz = async () => {
     setError("");
-    setLoading(true); // show loader
+    setLoading(true);
     try {
       const res = await fetch("https://ivf-backend-server.onrender.com/start-quiz", {
         method: "POST",
@@ -36,26 +35,31 @@ const QuizzesPage = () => {
       console.error("❌ Failed to fetch quiz:", err);
       setError("Failed to load quiz. Please try again.");
     } finally {
-      setLoading(false); // hide loader
+      setLoading(false);
     }
   };
 
-  const handleSubmit = () => {
-    const correct = questions[current].correct;
-    if (selected === correct) setScore(score + 1);
+  const handleAnswer = (questionId, selectedOption) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: selectedOption,
+    }));
+  };
 
-    if (current + 1 < questions.length) {
-      setCurrent(current + 1);
-      setSelected("");
-    } else {
-      setShowResult(true);
-    }
+  const submitQuiz = () => {
+    let score = 0;
+    questions.forEach((q) => {
+      if (answers[q.id] === q.correct) {
+        score++;
+      }
+    });
+    setScore(score);
+    setShowResult(true);
   };
 
   const restart = () => {
-    setCurrent(0);
+    setAnswers({});
     setScore(0);
-    setSelected("");
     setQuizStarted(false);
     setShowResult(false);
     setQuestions([]);
@@ -88,41 +92,42 @@ const QuizzesPage = () => {
           </button>
         </div>
       ) : (
-        <div className="question-box">
-          <h3>
-            Question {current + 1} of {questions.length}
-          </h3>
-          <p className="question-text">{questions[current].text}</p>
-          <ul className="options-list">
-            {questions[current].options.map((option, idx) => (
-              <li key={idx}>
-                <label className="option-label">
-                  <input
-                    type="radio"
-                    name={`question-${current}`}
-                    value={option}
-                    checked={selected === option}
-                    onChange={() => setSelected(option)}
-                  />
-                  {option}
-                </label>
-              </li>
-            ))}
-          </ul>
-          <button
-            className="next-button"
-            onClick={handleSubmit}
-            disabled={!selected}
-          >
-            {current + 1 === questions.length ? "Submit" : "Next"}
+        <form className="all-questions-form" onSubmit={(e) => { e.preventDefault(); submitQuiz(); }}>
+          {questions.map((q, index) => (
+            <div key={q.id} className="question-block">
+              <h4>
+                {index + 1}. {q.text}
+              </h4>
+              <ul className="options-list">
+                {q.options.map((option, idx) => (
+                  <li key={idx}>
+                    <label className="option-label">
+                      <input
+                        type="radio"
+                        name={`question-${q.id}`}
+                        value={option}
+                        checked={answers[q.id] === option}
+                        onChange={() => handleAnswer(q.id, option)}
+                      />
+                      {option}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          <button type="submit" className="submit-button" disabled={Object.keys(answers).length < questions.length}>
+            Submit Quiz
           </button>
-        </div>
+        </form>
       )}
     </div>
   );
 };
 
 export default QuizzesPage;
+
 
 
 
