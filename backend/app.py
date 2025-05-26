@@ -163,18 +163,22 @@ def start_quiz():
         session_id = request.json.get("session_id", str(uuid4()))
         topic = request.json.get("topic", "IVF")  # Default to IVF
 
-        rag_prompt = (
-            f"Generate 20 {topic}-related multiple-choice questions. "
-            "Each question should be structured as a JSON object like this:\n"
-            "{\n"
-            '  "id": "q1",\n'
-            '  "text": "Sample question?",\n'
-            '  "options": ["A", "B", "C", "D"],\n'
-            '  "correct": "B"\n'
-            "}\n"
-            "Return only a JSON array of 20 such questions without additional explanation."
-        )
+        rag_prompt = f"""
+                        You are an expert IVF training assistant. Generate exactly 20 IVF-related multiple-choice questions related to the {topic}.
+                        Each question must follow this JSON format (no extra commentary):
 
+                        [
+                        {{
+                            "id": "q1",
+                            "text": "What is the ideal temperature for embryo culture?",
+                            "options": ["33°C", "37°C", "40°C", "25°C"],
+                            "correct": "37°C"
+                        }},
+                        ... (19 more)
+                        ]
+
+                        Return a pure JSON array of 20 objects, no markdown, no intro text.
+                        """
         response = chain_with_memory.invoke(
             {"input": rag_prompt},
             config={"configurable": {"session_id": session_id}},
