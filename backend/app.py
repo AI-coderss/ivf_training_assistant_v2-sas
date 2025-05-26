@@ -156,58 +156,36 @@ def reset():
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
 
-# === /start-quiz endpoint ===
 @app.route("/start-quiz", methods=["POST"])
 def start_quiz():
     try:
         session_id = request.json.get("session_id", str(uuid4()))
-        topic = request.json.get("topic", "IVF")  # Default to IVF
+        topic = request.json.get("topic", "IVF")
 
-        rag_prompt = f"""
-                        You are an expert IVF training assistant. Generate exactly 20 IVF-related multiple-choice questions related to the {topic}.
-                        Each question must follow this JSON format (no extra commentary):
+        rag_prompt = (
+            f"Generate 20 {topic}-related multiple-choice questions in pure JSON format: "
+            "[{ \"id\": \"q1\", \"text\": \"...\", \"options\": [...], \"correct\": \"...\" }, ...]"
+        )
 
-                        [
-                        {{
-                            "id": "q1",
-                            "text": "What is the ideal temperature for embryo culture?",
-                            "options": ["33°C", "37°C", "40°C", "25°C"],
-                            "correct": "37°C"
-                        }},
-                        ... (19 more)
-                        ]
-
-                        Return a pure JSON array of 20 objects, no markdown, no intro text.
-                        """
         response = chain_with_memory.invoke(
             {"input": rag_prompt},
             config={"configurable": {"session_id": session_id}},
         )
+
         raw_answer = response["answer"]
+        print("RAG returned:", raw_answer)
 
-        # Try to parse JSON string into a Python list of questions
         import json
-        try:
-            questions = json.loads(raw_answer)
-        except json.JSONDecodeError:
-            return jsonify({
-                "error": "AI response could not be parsed as JSON. Ensure the RAG prompt enforces strict JSON format.",
-                "raw_answer": raw_answer
-            }), 500
+        questions = json.loads(raw_answer)
 
-        # Store context in memory for follow-ups (optional)
-        if session_id not in chat_sessions:
-            chat_sessions[session_id] = []
-        chat_sessions[session_id].append({"role": "user", "content": rag_prompt})
-        chat_sessions[session_id].append({"role": "assistant", "content": raw_answer})
-
-        return jsonify({
-            "questions": questions,
-            "session_id": session_id
-        })
+        return jsonify({ "questions": questions, "session_id": session_id })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print("❌ Error in /start-quiz:", str(e))
+        return jsonify({
+            "error": "Failed to generate quiz",
+            "details": str(e)
+        }), 500
 
 
 if __name__ == "__main__":
