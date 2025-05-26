@@ -1,4 +1,3 @@
-// ======== FRONTEND: Chat.js ========
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
@@ -89,22 +88,6 @@ const Chat = () => {
             </div>
           </div>
         ))}
-
-        {loading && (
-          <div className="chat-message loading bot">
-            <figure className="avatar">
-              <img src="/av.gif" alt="avatar" />
-            </figure>
-            <div style={{ padding: "5px", display: "flex", alignItems: "center" }}>
-              <lottie-player
-                src="https://lottie.host/d354a5c5-9a8b-456f-a7ed-e88fd09ce683/vYJTHMVdFJ.json"
-                style={{ width: "60px", height: "60px" }}
-                loop
-                autoplay
-              ></lottie-player>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="chat-footer">
