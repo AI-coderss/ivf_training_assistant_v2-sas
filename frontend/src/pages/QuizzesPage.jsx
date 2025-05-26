@@ -17,11 +17,14 @@ const QuizzesPage = () => {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("https://ivf-backend-server.onrender.com/start-quiz", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: "IVF" }),
-      });
+      const res = await fetch(
+        "https://ivf-backend-server.onrender.com/start-quiz",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic: "IVF" }),
+        }
+      );
 
       if (!res.ok) throw new Error("Server error: " + res.statusText);
 
@@ -82,6 +85,10 @@ const QuizzesPage = () => {
     setShowResult(true);
     setTimerActive(false);
   };
+  const getPassStatus = () => {
+    const percentage = (score / questions.length) * 100;
+    return percentage >= 50 ? "pass" : "fail";
+  };
 
   const restart = () => {
     setAnswers({});
@@ -112,7 +119,7 @@ const QuizzesPage = () => {
     }
 
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizStarted, showResult, timerActive]);
 
   return (
@@ -136,6 +143,9 @@ const QuizzesPage = () => {
           <p>
             You scored {score} out of {questions.length}
           </p>
+          <p className={getPassStatus() === "pass" ? "pass-text" : "fail-text"}>
+            {getPassStatus() === "pass" ? "✅ You Passed!" : "❌ You Failed."}
+          </p>
           <button className="restart-button" onClick={restart}>
             Try Again
           </button>
@@ -143,8 +153,11 @@ const QuizzesPage = () => {
       ) : (
         <div className="quiz-with-timer">
           <div className="timer-display">
-            ⏱ {Math.floor(timeLeft / 60).toString().padStart(2, "0")}:
-            {(timeLeft % 60).toString().padStart(2, "0")}
+            ⏱{" "}
+            {Math.floor(timeLeft / 60)
+              .toString()
+              .padStart(2, "0")}
+            :{(timeLeft % 60).toString().padStart(2, "0")}
           </div>
 
           <form
@@ -173,7 +186,10 @@ const QuizzesPage = () => {
                         if (option === selected && selected === q.correct) {
                           optionClass += " correct";
                           feedbackIcon = "✅";
-                        } else if (option === selected && selected !== q.correct) {
+                        } else if (
+                          option === selected &&
+                          selected !== q.correct
+                        ) {
                           optionClass += " incorrect";
                           feedbackIcon = "❌";
                         } else if (option === q.correct) {
@@ -194,7 +210,9 @@ const QuizzesPage = () => {
                             />
                             {option}{" "}
                             {feedbackIcon && (
-                              <span className="feedback-icon">{feedbackIcon}</span>
+                              <span className="feedback-icon">
+                                {feedbackIcon}
+                              </span>
                             )}
                           </label>
                         </li>
@@ -227,10 +245,3 @@ const QuizzesPage = () => {
 };
 
 export default QuizzesPage;
-
-
-
-
-
-
-
