@@ -84,7 +84,18 @@ const Chat = () => {
               </figure>
             )}
             <div className="message-text">
-              <ReactMarkdown>{chat.msg}</ReactMarkdown>
+              {chat.msg === "" && chat.who === "bot" ? (
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <lottie-player
+                    src="https://lottie.host/d354a5c5-9a8b-456f-a7ed-e88fd09ce683/vYJTHMVdFJ.json"
+                    style={{ width: "60px", height: "60px" }}
+                    loop
+                    autoplay
+                  ></lottie-player>
+                </div>
+              ) : (
+                <ReactMarkdown>{chat.msg}</ReactMarkdown>
+              )}
             </div>
           </div>
         ))}
