@@ -4,6 +4,7 @@ import "../styles/QuizzesPage.css";
 const QuizzesPage = () => {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
+  const [feedbackShown, setFeedbackShown] = useState({});
   const [score, setScore] = useState(0);
   const [quizStarted, setQuizStarted] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -40,9 +41,16 @@ const QuizzesPage = () => {
   };
 
   const handleAnswer = (questionId, selectedOption) => {
+    if (feedbackShown[questionId]) return;
+
     setAnswers((prev) => ({
       ...prev,
       [questionId]: selectedOption,
+    }));
+
+    setFeedbackShown((prev) => ({
+      ...prev,
+      [questionId]: true,
     }));
   };
 
@@ -63,6 +71,7 @@ const QuizzesPage = () => {
     setQuizStarted(false);
     setShowResult(false);
     setQuestions([]);
+    setFeedbackShown({});
     setError("");
   };
 
@@ -92,32 +101,74 @@ const QuizzesPage = () => {
           </button>
         </div>
       ) : (
-        <form className="all-questions-form" onSubmit={(e) => { e.preventDefault(); submitQuiz(); }}>
-          {questions.map((q, index) => (
-            <div key={q.id} className="question-block">
-              <h4>
-                {index + 1}. {q.text}
-              </h4>
-              <ul className="options-list">
-                {q.options.map((option, idx) => (
-                  <li key={idx}>
-                    <label className="option-label">
-                      <input
-                        type="radio"
-                        name={`question-${q.id}`}
-                        value={option}
-                        checked={answers[q.id] === option}
-                        onChange={() => handleAnswer(q.id, option)}
-                      />
-                      {option}
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <form
+          className="all-questions-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitQuiz();
+          }}
+        >
+          {questions.map((q, index) => {
+            const selected = answers[q.id];
+            const isCorrect = selected === q.correct;
+            const showFeedback = feedbackShown[q.id];
 
-          <button type="submit" className="submit-button" disabled={Object.keys(answers).length < questions.length}>
+            return (
+              <div key={q.id} className="question-block">
+                <h4>
+                  {index + 1}. {q.text}
+                </h4>
+                <ul className="options-list">
+                  {q.options.map((option, idx) => {
+                    let optionClass = "option-label";
+                    let feedbackIcon = null;
+
+                    if (showFeedback) {
+                      if (option === selected && selected === q.correct) {
+                        optionClass += " correct";
+                        feedbackIcon = "✅";
+                      } else if (option === selected && selected !== q.correct) {
+                        optionClass += " incorrect";
+                        feedbackIcon = "❌";
+                      } else if (option === q.correct) {
+                        optionClass += " correct";
+                      }
+                    }
+
+                    return (
+                      <li key={idx}>
+                        <label className={optionClass}>
+                          <input
+                            type="radio"
+                            name={`question-${q.id}`}
+                            value={option}
+                            disabled={showFeedback}
+                            checked={selected === option}
+                            onChange={() => handleAnswer(q.id, option)}
+                          />
+                          {option}{" "}
+                          {feedbackIcon && <span className="feedback-icon">{feedbackIcon}</span>}
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {showFeedback && (
+                  <div className="feedback-text">
+                    {isCorrect
+                      ? "Correct ✅"
+                      : `Incorrect ❌. Correct answer: ${q.correct}`}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={Object.keys(answers).length < questions.length}
+          >
             Submit Quiz
           </button>
         </form>
