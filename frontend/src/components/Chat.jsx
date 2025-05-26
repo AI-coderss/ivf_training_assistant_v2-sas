@@ -7,27 +7,25 @@ const Chat = () => {
   const [chats, setChats] = useState([
     { msg: "Hi there! How can I assist you today?", who: "bot" },
   ]);
-  const [loading, setLoading] = useState(false);
+
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
     localStorage.setItem("sessionId", id);
     return id;
   });
-  const chatContentRef = useRef(null);
 
+  const chatContentRef = useRef(null);
+  const scrollAnchorRef = useRef(null);
+
+  // ✅ Automatically scroll to bottom when messages update
   useEffect(() => {
-    if (chatContentRef.current) {
-      chatContentRef.current.scrollTo({
-        top: chatContentRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }
-  }, [chats, loading]);
+    scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chats]);
 
   const handleNewMessage = async (data) => {
     if (data.text) {
       setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
-      setLoading(true);
+   
 
       try {
         const response = await fetch("https://ivf-backend-server.onrender.com/stream", {
@@ -54,6 +52,7 @@ const Chat = () => {
           const { value, done } = await reader.read();
           if (done) break;
           aiMessage += decoder.decode(value, { stream: true });
+
           // eslint-disable-next-line no-loop-func
           setChats((prev) => {
             const updated = [...prev];
@@ -68,7 +67,7 @@ const Chat = () => {
           { msg: "Sorry, something went wrong with the streaming response.", who: "bot" },
         ]);
       } finally {
-        setLoading(false);
+       
       }
     }
   };
@@ -88,6 +87,7 @@ const Chat = () => {
             </div>
           </div>
         ))}
+        <div ref={scrollAnchorRef} /> {/* ✅ Invisible anchor for scrolling */}
       </div>
 
       <div className="chat-footer">
@@ -98,6 +98,7 @@ const Chat = () => {
 };
 
 export default Chat;
+
 
 
 
