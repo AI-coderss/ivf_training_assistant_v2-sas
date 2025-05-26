@@ -10,7 +10,7 @@ const QuizzesPage = () => {
   const startQuiz = async () => {
     setLoading(true);
     try {
-      const res = await fetch("https://ivfvirtualtrainingassistantdsah.onrender.com/start-quiz", {
+      const res = await fetch("https://ivf-backend-server.onrender.com/start-quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic: "IVF" }),
