@@ -223,3 +223,15 @@
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+
+.pass-text {
+  color: #28a745;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.fail-text {
+  color: #dc3545;
+  font-weight: bold;
+  margin-top: 10px;
+}
