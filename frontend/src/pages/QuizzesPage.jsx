@@ -1,97 +1,70 @@
 import React, { useState } from "react";
+import Quiz from "react-quiz-component";
 import "../styles/QuizzesPage.css";
 
 const QuizzesPage = () => {
-  const [questions, setQuestions] = useState([]);
-  const [current, setCurrent] = useState(0);
-  const [selected, setSelected] = useState("");
-  const [score, setScore] = useState(0);
+  const [quizData, setQuizData] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [quizStarted, setQuizStarted] = useState(false);
-  const [showResult, setShowResult] = useState(false);
 
   const startQuiz = async () => {
+    setLoading(true);
     try {
       const res = await fetch("https://ivfvirtualtrainingassistantdsah.onrender.com/start-quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic: "IVF" }),
       });
+
       const data = await res.json();
-      setQuestions(data.questions);
+
+      const formattedQuiz = {
+        quizTitle: "🧠 IVF Knowledge Quiz",
+        questions: data.questions.map((q) => ({
+          question: q.text,
+          questionType: "text",
+          answerSelectionType: "single",
+          answers: q.options,
+          correctAnswer: String(q.options.indexOf(q.correct) + 1),
+          messageForCorrectAnswer: "✅ Correct!",
+          messageForIncorrectAnswer: "❌ Incorrect. Try again.",
+          explanation: q.explanation || "",
+          point: "1",
+        })),
+      };
+
+      setQuizData(formattedQuiz);
       setQuizStarted(true);
-    } catch (err) {
-      console.error("Failed to fetch quiz:", err);
+    } catch (error) {
+      console.error("Failed to fetch quiz:", error);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleSubmit = () => {
-    const correct = questions[current].correct;
-    if (selected === correct) {
-      setScore(score + 1);
-    }
-    if (current + 1 < questions.length) {
-      setCurrent(current + 1);
-      setSelected("");
-    } else {
-      setShowResult(true);
-    }
-  };
-
-  const restart = () => {
-    setCurrent(0);
-    setScore(0);
-    setSelected("");
-    setQuizStarted(false);
-    setShowResult(false);
-    setQuestions([]);
   };
 
   return (
     <div className="quiz-container">
       <h2>IVF Knowledge Quizzes 🧠</h2>
-      {!quizStarted ? (
-        <button className="start-button" onClick={startQuiz}>
-          Start Quiz
+
+      {!quizStarted && (
+        <button className="start-button" onClick={startQuiz} disabled={loading}>
+          {loading ? "Loading..." : "Start Quiz"}
         </button>
-      ) : showResult ? (
-        <div className="result-box">
-          <h3>Quiz Completed 🎉</h3>
-          <p>
-            You scored {score} out of {questions.length}
-          </p>
-          <button className="restart-button" onClick={restart}>
-            Try Again
-          </button>
-        </div>
-      ) : (
-        <div className="question-box">
-          <h3>
-            Question {current + 1} of {questions.length}
-          </h3>
-          <p className="question-text">{questions[current].text}</p>
-          <ul className="options-list">
-            {questions[current].options.map((option, idx) => (
-              <li key={idx}>
-                <label className="option-label">
-                  <input
-                    type="radio"
-                    name="option"
-                    value={option}
-                    checked={selected === option}
-                    onChange={() => setSelected(option)}
-                  />
-                  {option}
-                </label>
-              </li>
-            ))}
-          </ul>
-          <button className="next-button" onClick={handleSubmit} disabled={!selected}>
-            {current + 1 === questions.length ? "Submit" : "Next"}
-          </button>
-        </div>
+      )}
+
+      {quizStarted && quizData && (
+        <Quiz
+          quiz={quizData}
+          shuffle={true}
+          showInstantFeedback={true}
+          continueTillCorrect={false}
+          onComplete={(result) => console.log("Quiz Finished:", result)}
+        />
       )}
     </div>
   );
 };
 
 export default QuizzesPage;
+
+
