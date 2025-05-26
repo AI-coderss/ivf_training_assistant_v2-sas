@@ -1,6 +1,9 @@
 import os
 import tempfile
 from uuid import uuid4
+import json
+import re
+from uuid import uuid4
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
@@ -162,31 +165,55 @@ def start_quiz():
         session_id = request.json.get("session_id", str(uuid4()))
         topic = request.json.get("topic", "IVF")
 
+        # 📌 Prompt AI to return strict JSON
         rag_prompt = (
-            f"Generate 20 {topic}-related multiple-choice questions in pure JSON format: "
-            "[{ \"id\": \"q1\", \"text\": \"...\", \"options\": [...], \"correct\": \"...\" }, ...]"
+            f"You are an IVF virtual training assistant. Generate exactly 20 multiple-choice questions on '{topic}'. "
+            "Each question must be a JSON object like this:\n"
+            '{ "id": "q1", "text": "...", "options": ["A", "B", "C", "D"], "correct": "B" }\n'
+            "Respond with only a JSON array of 20 such objects, no markdown, no text, no commentary."
         )
 
+        # 🧠 Invoke RAG
         response = chain_with_memory.invoke(
             {"input": rag_prompt},
             config={"configurable": {"session_id": session_id}},
         )
-
         raw_answer = response["answer"]
-        print("RAG returned:", raw_answer)
+        print("✅ AI response received")
 
-        import json
-        questions = json.loads(raw_answer)
+        # 🧽 Clean up markdown code fences if they exist
+        raw_cleaned = re.sub(r"```json|```", "", raw_answer).strip()
 
-        return jsonify({ "questions": questions, "session_id": session_id })
+        # 🧪 Try parsing the cleaned string as JSON
+        questions = json.loads(raw_cleaned)
+
+        # ✅ Basic format validation
+        if not isinstance(questions, list) or not all("text" in q and "options" in q and "correct" in q for q in questions):
+            raise ValueError("Parsed questions are not valid")
+
+        # 🧾 Log sample question
+        print("✅ Parsed question example:", questions[0])
+
+        # 🧠 Save to session memory (optional)
+        if session_id not in chat_sessions:
+            chat_sessions[session_id] = []
+        chat_sessions[session_id].append({"role": "user", "content": rag_prompt})
+        chat_sessions[session_id].append({"role": "assistant", "content": raw_answer})
+
+        # 🟢 Success response
+        return jsonify({
+            "questions": questions,
+            "session_id": session_id
+        })
 
     except Exception as e:
-        print("❌ Error in /start-quiz:", str(e))
+        print("❌ Failed to parse quiz questions:", str(e))
+        print("🛠 Raw AI output:", raw_answer if 'raw_answer' in locals() else "No output")
+
         return jsonify({
-            "error": "Failed to generate quiz",
+            "error": "Failed to generate valid quiz from AI response.",
             "details": str(e)
         }), 500
-
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)

@@ -8,27 +8,42 @@ const QuizzesPage = () => {
   const [score, setScore] = useState(0);
   const [quizStarted, setQuizStarted] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // 🆕 loading state
 
   const startQuiz = async () => {
+    setError("");
+    setLoading(true); // show loader
     try {
       const res = await fetch("https://ivf-backend-server.onrender.com/start-quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic: "IVF" }),
       });
+
+      if (!res.ok) throw new Error("Server error: " + res.statusText);
+
       const data = await res.json();
+      console.log("✅ Received quiz data:", data);
+
+      if (!data.questions || !Array.isArray(data.questions)) {
+        throw new Error("Invalid quiz data format received from server.");
+      }
+
       setQuestions(data.questions);
       setQuizStarted(true);
     } catch (err) {
-      console.error("Failed to fetch quiz:", err);
+      console.error("❌ Failed to fetch quiz:", err);
+      setError("Failed to load quiz. Please try again.");
+    } finally {
+      setLoading(false); // hide loader
     }
   };
 
   const handleSubmit = () => {
     const correct = questions[current].correct;
-    if (selected === correct) {
-      setScore(score + 1);
-    }
+    if (selected === correct) setScore(score + 1);
+
     if (current + 1 < questions.length) {
       setCurrent(current + 1);
       setSelected("");
@@ -44,12 +59,21 @@ const QuizzesPage = () => {
     setQuizStarted(false);
     setShowResult(false);
     setQuestions([]);
+    setError("");
   };
 
   return (
     <div className="quiz-container">
       <h2>IVF Knowledge Quizzes 🧠</h2>
-      {!quizStarted ? (
+
+      {error && <p className="error-text">{error}</p>}
+
+      {loading ? (
+        <div className="loading-box">
+          <div className="spinner"></div>
+          <p>Generating your quiz… please wait ⏳</p>
+        </div>
+      ) : !quizStarted ? (
         <button className="start-button" onClick={startQuiz}>
           Start Quiz
         </button>
@@ -75,7 +99,7 @@ const QuizzesPage = () => {
                 <label className="option-label">
                   <input
                     type="radio"
-                    name="option"
+                    name={`question-${current}`}
                     value={option}
                     checked={selected === option}
                     onChange={() => setSelected(option)}
@@ -85,7 +109,11 @@ const QuizzesPage = () => {
               </li>
             ))}
           </ul>
-          <button className="next-button" onClick={handleSubmit} disabled={!selected}>
+          <button
+            className="next-button"
+            onClick={handleSubmit}
+            disabled={!selected}
+          >
             {current + 1 === questions.length ? "Submit" : "Next"}
           </button>
         </div>
@@ -95,6 +123,7 @@ const QuizzesPage = () => {
 };
 
 export default QuizzesPage;
+
 
 
 
