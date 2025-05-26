@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../styles/QuizzesPage.css";
 
 const QuizzesPage = () => {
@@ -10,6 +10,8 @@ const QuizzesPage = () => {
   const [showResult, setShowResult] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
+  const [timerActive, setTimerActive] = useState(false);
 
   const startQuiz = async () => {
     setError("");
@@ -32,6 +34,8 @@ const QuizzesPage = () => {
 
       setQuestions(data.questions);
       setQuizStarted(true);
+      setTimeLeft(600); // reset timer to 10 minutes
+      setTimerActive(true);
     } catch (err) {
       console.error("❌ Failed to fetch quiz:", err);
       setError("Failed to load quiz. Please try again.");
@@ -63,6 +67,7 @@ const QuizzesPage = () => {
     });
     setScore(score);
     setShowResult(true);
+    setTimerActive(false);
   };
 
   const restart = () => {
@@ -73,7 +78,29 @@ const QuizzesPage = () => {
     setQuestions([]);
     setFeedbackShown({});
     setError("");
+    setTimeLeft(600);
+    setTimerActive(false);
   };
+
+  useEffect(() => {
+    let interval;
+
+    if (quizStarted && !showResult && timerActive) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            submitQuiz(); // auto-submit when time runs out
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizStarted, showResult, timerActive]);
 
   return (
     <div className="quiz-container">
@@ -101,83 +128,93 @@ const QuizzesPage = () => {
           </button>
         </div>
       ) : (
-        <form
-          className="all-questions-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submitQuiz();
-          }}
-        >
-          {questions.map((q, index) => {
-            const selected = answers[q.id];
-            const isCorrect = selected === q.correct;
-            const showFeedback = feedbackShown[q.id];
+        <div className="quiz-with-timer">
+          <div className="timer-display">
+            ⏱ {Math.floor(timeLeft / 60).toString().padStart(2, "0")}:
+            {(timeLeft % 60).toString().padStart(2, "0")}
+          </div>
 
-            return (
-              <div key={q.id} className="question-block">
-                <h4>
-                  {index + 1}. {q.text}
-                </h4>
-                <ul className="options-list">
-                  {q.options.map((option, idx) => {
-                    let optionClass = "option-label";
-                    let feedbackIcon = null;
-
-                    if (showFeedback) {
-                      if (option === selected && selected === q.correct) {
-                        optionClass += " correct";
-                        feedbackIcon = "✅";
-                      } else if (option === selected && selected !== q.correct) {
-                        optionClass += " incorrect";
-                        feedbackIcon = "❌";
-                      } else if (option === q.correct) {
-                        optionClass += " correct";
-                      }
-                    }
-
-                    return (
-                      <li key={idx}>
-                        <label className={optionClass}>
-                          <input
-                            type="radio"
-                            name={`question-${q.id}`}
-                            value={option}
-                            disabled={showFeedback}
-                            checked={selected === option}
-                            onChange={() => handleAnswer(q.id, option)}
-                          />
-                          {option}{" "}
-                          {feedbackIcon && <span className="feedback-icon">{feedbackIcon}</span>}
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-                {showFeedback && (
-                  <div className="feedback-text">
-                    {isCorrect
-                      ? "Correct ✅"
-                      : `Incorrect ❌. Correct answer: ${q.correct}`}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          <button
-            type="submit"
-            className="submit-button"
-            disabled={Object.keys(answers).length < questions.length}
+          <form
+            className="all-questions-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitQuiz();
+            }}
           >
-            Submit Quiz
-          </button>
-        </form>
+            {questions.map((q, index) => {
+              const selected = answers[q.id];
+              const isCorrect = selected === q.correct;
+              const showFeedback = feedbackShown[q.id];
+
+              return (
+                <div key={q.id} className="question-block">
+                  <h4>
+                    {index + 1}. {q.text}
+                  </h4>
+                  <ul className="options-list">
+                    {q.options.map((option, idx) => {
+                      let optionClass = "option-label";
+                      let feedbackIcon = null;
+
+                      if (showFeedback) {
+                        if (option === selected && selected === q.correct) {
+                          optionClass += " correct";
+                          feedbackIcon = "✅";
+                        } else if (option === selected && selected !== q.correct) {
+                          optionClass += " incorrect";
+                          feedbackIcon = "❌";
+                        } else if (option === q.correct) {
+                          optionClass += " correct";
+                        }
+                      }
+
+                      return (
+                        <li key={idx}>
+                          <label className={optionClass}>
+                            <input
+                              type="radio"
+                              name={`question-${q.id}`}
+                              value={option}
+                              disabled={showFeedback}
+                              checked={selected === option}
+                              onChange={() => handleAnswer(q.id, option)}
+                            />
+                            {option}{" "}
+                            {feedbackIcon && (
+                              <span className="feedback-icon">{feedbackIcon}</span>
+                            )}
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {showFeedback && (
+                    <div className="feedback-text">
+                      {isCorrect
+                        ? "Correct ✅"
+                        : `Incorrect ❌. Correct answer: ${q.correct}`}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <button
+              type="submit"
+              className="submit-button"
+              disabled={Object.keys(answers).length < questions.length}
+            >
+              Submit Quiz
+            </button>
+          </form>
+        </div>
       )}
     </div>
   );
 };
 
 export default QuizzesPage;
+
 
 
 
