@@ -156,6 +156,56 @@ def reset():
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
 
+# === /start-quiz endpoint ===
+@app.route("/start-quiz", methods=["POST"])
+def start_quiz():
+    try:
+        session_id = request.json.get("session_id", str(uuid4()))
+        topic = request.json.get("topic", "IVF")  # Default to IVF
+
+        rag_prompt = (
+            f"Generate 20 {topic}-related multiple-choice questions. "
+            "Each question should be structured as a JSON object like this:\n"
+            "{\n"
+            '  "id": "q1",\n'
+            '  "text": "Sample question?",\n'
+            '  "options": ["A", "B", "C", "D"],\n'
+            '  "correct": "B"\n'
+            "}\n"
+            "Return only a JSON array of 20 such questions without additional explanation."
+        )
+
+        response = chain_with_memory.invoke(
+            {"input": rag_prompt},
+            config={"configurable": {"session_id": session_id}},
+        )
+        raw_answer = response["answer"]
+
+        # Try to parse JSON string into a Python list of questions
+        import json
+        try:
+            questions = json.loads(raw_answer)
+        except json.JSONDecodeError:
+            return jsonify({
+                "error": "AI response could not be parsed as JSON. Ensure the RAG prompt enforces strict JSON format.",
+                "raw_answer": raw_answer
+            }), 500
+
+        # Store context in memory for follow-ups (optional)
+        if session_id not in chat_sessions:
+            chat_sessions[session_id] = []
+        chat_sessions[session_id].append({"role": "user", "content": rag_prompt})
+        chat_sessions[session_id].append({"role": "assistant", "content": raw_answer})
+
+        return jsonify({
+            "questions": questions,
+            "session_id": session_id
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)
 
