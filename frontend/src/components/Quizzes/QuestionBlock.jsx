@@ -1,6 +1,5 @@
 import React from "react";
 
-
 const QuestionBlock = ({ question, index, selected, correct, showFeedback, handleAnswer }) => {
   return (
     <div className="question-block">
@@ -22,7 +21,9 @@ const QuestionBlock = ({ question, index, selected, correct, showFeedback, handl
             } else if (isUserAnswer && !isCorrectAnswer) {
               optionClass += " incorrect";
               feedbackIcon = "❌";
-            } else if (!isUserAnswer && isCorrectAnswer) {
+            }
+
+            if (!isUserAnswer && isCorrectAnswer) {
               optionClass += " correct";
             }
           }
@@ -38,10 +39,8 @@ const QuestionBlock = ({ question, index, selected, correct, showFeedback, handl
                   checked={selected === option}
                   onChange={() => handleAnswer(question.id, option)}
                 />
-                {option}{" "}
-                {feedbackIcon && (
-                  <span className="feedback-icon">{feedbackIcon}</span>
-                )}
+                {option}
+                {feedbackIcon && <span className="feedback-icon">{feedbackIcon}</span>}
               </label>
             </li>
           );
@@ -60,4 +59,5 @@ const QuestionBlock = ({ question, index, selected, correct, showFeedback, handl
 };
 
 export default QuestionBlock;
+
 
