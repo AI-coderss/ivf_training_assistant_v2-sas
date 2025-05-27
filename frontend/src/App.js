@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route,Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import "./App.css";
 import ChatPage from "./pages/ChatPage";
@@ -14,11 +14,15 @@ function App() {
     <Router>
       <Navbar />
       <Routes>
-        <Route path="/" element={<ChatPage />} />
-        <Route path="/quizzes" element={<QuizzesPage />} />
-        <Route path="/summaries" element={<SummariesPage />} />
-        <Route path="/content" element={<ContentPage />} />
-        <Route path="/avatar" element={<AvatarPage />} />
+          <Route path="/" element={<Navigate to="/chat" replace />} />
+          {/* Explicit routes */}
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/quizzes" element={<QuizzesPage />} />
+          <Route path="/summaries" element={<SummariesPage />} />
+          <Route path="/content" element={<ContentPage />} />
+          <Route path="/avatar" element={<AvatarPage />} />
+          {/* Fallback: unmatched routes go back to home or a 404 page */}
+          <Route path="*" element={<Navigate to="/chat" replace />} />
       </Routes>
     </Router>
   );
