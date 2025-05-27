@@ -18,7 +18,8 @@ const QuizzesPage = () => {
   const [timeLeft, setTimeLeft] = useState(600);
   const [timerActive, setTimerActive] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
-  const [feedbackPrompt, setFeedbackPrompt] = useState(""); // ✅ for ChatBot AI prompt
+  const [feedbackPrompt, setFeedbackPrompt] = useState("");
+  const [assessmentPrompt, setAssessmentPrompt] = useState("");
 
   const [previousPerformance, setPreviousPerformance] = useState(() => {
     const stored = localStorage.getItem("quizPerformance");
@@ -77,8 +78,34 @@ const QuizzesPage = () => {
 
   const handleAnswer = (questionId, selectedOption) => {
     if (feedbackShown[questionId]) return;
-    setAnswers((prev) => ({ ...prev, [questionId]: selectedOption }));
+
+    const newAnswers = { ...answers, [questionId]: selectedOption };
+    setAnswers(newAnswers);
     setFeedbackShown((prev) => ({ ...prev, [questionId]: true }));
+
+    const wrongSoFar = questions.filter(
+      (q) => newAnswers[q.id] && newAnswers[q.id] !== q.correct
+    );
+
+    if (wrongSoFar.length >= 5 && !showChatbot) {
+      setShowChatbot(true);
+      const feedbackText = `
+The trainee made several mistakes during the IVF quiz. Here are some examples:
+
+${wrongSoFar.map(q =>
+  `Q: ${q.text}
+Answered: ${newAnswers[q.id]}
+Correct: ${q.correct}`
+).join("\n\n")}
+
+Please offer:
+- Brief feedback
+- Targeted advice
+- Topics to revisit
+      `.trim();
+
+      setFeedbackPrompt(feedbackText);
+    }
   };
 
   const submitQuiz = () => {
@@ -86,28 +113,6 @@ const QuizzesPage = () => {
     let updatedFeedback = {};
     let score = 0;
     let newPerformance = { ...previousPerformance };
-
-    const wrong = questions.filter((q) => updatedAnswers[q.id] !== q.correct);
-    if (wrong.length >= 5) {
-      setShowChatbot(true);
-
-      const feedbackText = `
-The trainee made mistakes in the following IVF questions:
-
-${wrong.map(q =>
-  `Q: ${q.text}
-Answered: ${updatedAnswers[q.id] || "No answer"}
-Correct: ${q.correct}`
-).join("\n\n")}
-
-Based on these mistakes, please provide:
-- A short summary of weak areas
-- Suggested topics to review
-- Encouragement to help improve
-      `.trim();
-
-      setFeedbackPrompt(feedbackText);
-    }
 
     questions.forEach((q) => {
       const isCorrect = updatedAnswers[q.id] === q.correct;
@@ -122,11 +127,29 @@ Based on these mistakes, please provide:
       if (isCorrect) score++;
     });
 
+    // ✅ Generate full post-submission assessment
+    const fullAssessment = `
+The trainee has completed the IVF quiz. Here is their performance:
+
+${questions.map(q =>
+  `Q: ${q.text}
+Answered: ${updatedAnswers[q.id] || "No answer"}
+Correct: ${q.correct}`
+).join("\n\n")}
+
+Generate:
+- Overall strengths and weaknesses
+- Recommended review areas
+- Encouraging feedback
+    `.trim();
+
+    setAssessmentPrompt(fullAssessment);
     setAnswers(updatedAnswers);
     setFeedbackShown(updatedFeedback);
     setScore(score);
     setPreviousPerformance(newPerformance);
     localStorage.setItem("quizPerformance", JSON.stringify(newPerformance));
+    setShowChatbot(true); // ✅ always show after submission
     setShowResult(true);
     setTimerActive(false);
   };
@@ -148,6 +171,7 @@ Based on these mistakes, please provide:
     setTimerActive(false);
     setShowChatbot(false);
     setFeedbackPrompt("");
+    setAssessmentPrompt("");
   };
 
   useEffect(() => {
@@ -191,7 +215,7 @@ Based on these mistakes, please provide:
             Medium {Math.round((previousPerformance.medium.correct / (previousPerformance.medium.total || 1)) * 100)}%, 
             Hard {Math.round((previousPerformance.hard.correct / (previousPerformance.hard.total || 1)) * 100)}%
           </p>
-          {showChatbot && <ChatBot open={true} initialMessage={feedbackPrompt} />}
+          {showChatbot && <ChatBot open={true} initialMessage={assessmentPrompt || feedbackPrompt} />}
           <button className="restart-button" onClick={restart}>Try Again</button>
         </>
       ) : (
@@ -230,6 +254,7 @@ Based on these mistakes, please provide:
 };
 
 export default QuizzesPage;
+
 
 
 

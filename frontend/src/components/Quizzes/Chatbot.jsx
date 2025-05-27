@@ -71,7 +71,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
 
     try {
       const response = await fetch(
-        "https://ai-platform-dsah-backend-chatbot.onrender.com/stream",
+        "https://ivf-backend-server.onrender.com/quiz-feedback-stream",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
