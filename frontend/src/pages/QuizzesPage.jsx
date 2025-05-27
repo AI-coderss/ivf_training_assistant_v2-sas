@@ -27,7 +27,6 @@ const QuizzesPage = () => {
     const { easy, medium } = previousPerformance;
     const easyAccuracy = easy.total > 0 ? easy.correct / easy.total : 0;
     const mediumAccuracy = medium.total > 0 ? medium.correct / medium.total : 0;
-
     if (easyAccuracy >= 0.7 && mediumAccuracy >= 0.7) return "hard";
     if (easyAccuracy >= 0.7) return "medium";
     return "easy";
@@ -46,17 +45,27 @@ const QuizzesPage = () => {
       });
 
       if (!res.ok) throw new Error("Server error: " + res.statusText);
-
       const data = await res.json();
       if (!data.questions || !Array.isArray(data.questions)) {
         throw new Error("Invalid quiz data format received from server.");
       }
 
-      setQuestions(data.questions);
+      // ✅ Fix: convert "A"/"B"/"C"/"D" → actual correct label
+      const letterMap = { A: 0, B: 1, C: 2, D: 3 };
+      const processedQuestions = data.questions.map((q) => {
+        const correctIndex = letterMap[q.correct?.trim()?.toUpperCase()];
+        return {
+          ...q,
+          correct: q.options[correctIndex] || "",
+        };
+      });
+
+      setQuestions(processedQuestions);
       setQuizStarted(true);
       setTimeLeft(600);
       setTimerActive(true);
     } catch (err) {
+      console.error("Quiz fetch error:", err);
       setError("Failed to load quiz. Please try again.");
     } finally {
       setLoading(false);
@@ -79,15 +88,10 @@ const QuizzesPage = () => {
       const isCorrect = updatedAnswers[q.id] === q.correct;
       const level = q.difficulty || "easy";
 
-      if (!(q.id in updatedAnswers)) {
-        updatedAnswers[q.id] = null;
-      }
-
+      if (!(q.id in updatedAnswers)) updatedAnswers[q.id] = null;
       updatedFeedback[q.id] = true;
 
-      if (!newPerformance[level]) {
-        newPerformance[level] = { correct: 0, total: 0 };
-      }
+      if (!newPerformance[level]) newPerformance[level] = { correct: 0, total: 0 };
       newPerformance[level].total += 1;
       if (isCorrect) newPerformance[level].correct += 1;
 
@@ -198,5 +202,6 @@ const QuizzesPage = () => {
 };
 
 export default QuizzesPage;
+
 
 
