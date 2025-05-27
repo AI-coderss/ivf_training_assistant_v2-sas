@@ -37,9 +37,9 @@ const QuestionBlock = ({ question, index, selected, showFeedback, handleAnswer }
                   checked={selected === option}
                   onChange={() => handleAnswer(question.id, option)}
                 />
-                {option}{" "}
+                {option}
                 {feedbackIcon && (
-                  <span className="feedback-icon">{feedbackIcon}</span>
+                  <span className="feedback-icon"> {feedbackIcon}</span>
                 )}
               </label>
             </li>
@@ -58,3 +58,4 @@ const QuestionBlock = ({ question, index, selected, showFeedback, handleAnswer }
 };
 
 export default QuestionBlock;
+
