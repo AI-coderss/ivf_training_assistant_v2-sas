@@ -1,4 +1,5 @@
 import React from "react";
+import "../../styles/QuizzesPage.css";
 
 const QuestionBlock = ({ question, index, selected, correct, showFeedback, handleAnswer }) => {
   return (
@@ -11,20 +12,16 @@ const QuestionBlock = ({ question, index, selected, correct, showFeedback, handl
           let optionClass = "option-label";
           let feedbackIcon = null;
 
-          if (showFeedback) {
-            const isUserAnswer = option === selected;
-            const isCorrectAnswer = option === correct;
+          const isUserAnswer = selected === option;
+          const isCorrectAnswer = correct === option;
 
-            if (isUserAnswer && isCorrectAnswer) {
+          if (showFeedback) {
+            if (isCorrectAnswer) {
               optionClass += " correct";
-              feedbackIcon = "✅";
-            } else if (isUserAnswer && !isCorrectAnswer) {
+              if (isUserAnswer) feedbackIcon = "✅";
+            } else if (isUserAnswer) {
               optionClass += " incorrect";
               feedbackIcon = "❌";
-            }
-
-            if (!isUserAnswer && isCorrectAnswer) {
-              optionClass += " correct";
             }
           }
 
@@ -36,11 +33,13 @@ const QuestionBlock = ({ question, index, selected, correct, showFeedback, handl
                   name={`question-${question.id}`}
                   value={option}
                   disabled={showFeedback}
-                  checked={selected === option}
+                  checked={isUserAnswer}
                   onChange={() => handleAnswer(question.id, option)}
                 />
                 {option}
-                {feedbackIcon && <span className="feedback-icon">{feedbackIcon}</span>}
+                {feedbackIcon && (
+                  <span className="feedback-icon">{feedbackIcon}</span>
+                )}
               </label>
             </li>
           );
@@ -59,5 +58,6 @@ const QuestionBlock = ({ question, index, selected, correct, showFeedback, handl
 };
 
 export default QuestionBlock;
+
 
 
