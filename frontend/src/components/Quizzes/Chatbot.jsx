@@ -25,7 +25,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
       setLoading(true);
       const fetchFeedback = async () => {
         try {
-          const response = await fetch("https://ivf-backend-server.onrender.com/quiz-feedback", {
+          const response = await fetch("https://ivf-backend-server.onrender.com/quiz-feedback-stream", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt: initialMessage, session_id: sessionId }),
@@ -71,7 +71,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
 
     try {
       const response = await fetch(
-        "https://ivf-backend-server.onrender.com/quiz-feedback",
+        "https://ivf-backend-server.onrender.com/quiz-feedback-stream",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
