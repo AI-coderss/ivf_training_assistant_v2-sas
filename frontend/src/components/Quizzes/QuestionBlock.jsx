@@ -1,9 +1,7 @@
 import React from "react";
-import "../../styles/QuizzesPage.css";
 
-const QuestionBlock = ({ question, index, selected, showFeedback, handleAnswer }) => {
-  const isCorrect = selected === question.correct;
 
+const QuestionBlock = ({ question, index, selected, correct, showFeedback, handleAnswer }) => {
   return (
     <div className="question-block">
       <h4>
@@ -15,13 +13,16 @@ const QuestionBlock = ({ question, index, selected, showFeedback, handleAnswer }
           let feedbackIcon = null;
 
           if (showFeedback) {
-            if (option === selected && selected === question.correct) {
+            const isUserAnswer = option === selected;
+            const isCorrectAnswer = option === correct;
+
+            if (isUserAnswer && isCorrectAnswer) {
               optionClass += " correct";
               feedbackIcon = "✅";
-            } else if (option === selected && selected !== question.correct) {
+            } else if (isUserAnswer && !isCorrectAnswer) {
               optionClass += " incorrect";
               feedbackIcon = "❌";
-            } else if (option === question.correct) {
+            } else if (!isUserAnswer && isCorrectAnswer) {
               optionClass += " correct";
             }
           }
@@ -37,20 +38,21 @@ const QuestionBlock = ({ question, index, selected, showFeedback, handleAnswer }
                   checked={selected === option}
                   onChange={() => handleAnswer(question.id, option)}
                 />
-                {option}
+                {option}{" "}
                 {feedbackIcon && (
-                  <span className="feedback-icon"> {feedbackIcon}</span>
+                  <span className="feedback-icon">{feedbackIcon}</span>
                 )}
               </label>
             </li>
           );
         })}
       </ul>
+
       {showFeedback && (
         <div className="feedback-text">
-          {isCorrect
+          {selected === correct
             ? "Correct ✅"
-            : `Incorrect ❌. Correct answer: ${question.correct}`}
+            : `Incorrect ❌. Correct answer: ${correct}`}
         </div>
       )}
     </div>
