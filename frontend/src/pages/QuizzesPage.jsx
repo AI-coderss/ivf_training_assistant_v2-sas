@@ -1,4 +1,3 @@
-// File: components/Quizzes/QuizzesPage.jsx
 import React, { useState, useEffect } from "react";
 import "../styles/QuizzesPage.css";
 import TimerDisplay from "../components/Quizzes/TimerDisplay";
@@ -17,14 +16,33 @@ const QuizzesPage = () => {
   const [timeLeft, setTimeLeft] = useState(600);
   const [timerActive, setTimerActive] = useState(false);
 
+  const [previousPerformance, setPreviousPerformance] = useState(() => {
+    const stored = localStorage.getItem("quizPerformance");
+    return stored
+      ? JSON.parse(stored)
+      : { easy: { correct: 0, total: 0 }, medium: { correct: 0, total: 0 }, hard: { correct: 0, total: 0 } };
+  });
+
+  const chooseDifficulty = () => {
+    const { easy, medium } = previousPerformance;
+    const easyAccuracy = easy.total > 0 ? easy.correct / easy.total : 0;
+    const mediumAccuracy = medium.total > 0 ? medium.correct / medium.total : 0;
+
+    if (easyAccuracy >= 0.7 && mediumAccuracy >= 0.7) return "hard";
+    if (easyAccuracy >= 0.7) return "medium";
+    return "easy";
+  };
+
   const startQuiz = async () => {
     setError("");
     setLoading(true);
+    const difficulty = chooseDifficulty();
+
     try {
       const res = await fetch("https://ivf-backend-server.onrender.com/start-quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: "IVF" }),
+        body: JSON.stringify({ topic: "IVF", difficulty }),
       });
 
       if (!res.ok) throw new Error("Server error: " + res.statusText);
@@ -55,18 +73,32 @@ const QuizzesPage = () => {
     let updatedAnswers = { ...answers };
     let updatedFeedback = {};
     let score = 0;
+    let newPerformance = { ...previousPerformance };
 
     questions.forEach((q) => {
+      const isCorrect = updatedAnswers[q.id] === q.correct;
+      const level = q.difficulty || "easy";
+
       if (!(q.id in updatedAnswers)) {
         updatedAnswers[q.id] = null;
       }
+
       updatedFeedback[q.id] = true;
-      if (updatedAnswers[q.id] === q.correct) score++;
+
+      if (!newPerformance[level]) {
+        newPerformance[level] = { correct: 0, total: 0 };
+      }
+      newPerformance[level].total += 1;
+      if (isCorrect) newPerformance[level].correct += 1;
+
+      if (isCorrect) score++;
     });
 
     setAnswers(updatedAnswers);
     setFeedbackShown(updatedFeedback);
     setScore(score);
+    setPreviousPerformance(newPerformance);
+    localStorage.setItem("quizPerformance", JSON.stringify(newPerformance));
     setShowResult(true);
     setTimerActive(false);
   };
@@ -123,6 +155,11 @@ const QuizzesPage = () => {
       ) : showResult ? (
         <>
           <ResultSummary score={score} total={questions.length} getPassStatus={getPassStatus} />
+          <p className="performance-summary">
+            Accuracy: Easy {Math.round((previousPerformance.easy.correct / (previousPerformance.easy.total || 1)) * 100)}%, 
+            Medium {Math.round((previousPerformance.medium.correct / (previousPerformance.medium.total || 1)) * 100)}%, 
+            Hard {Math.round((previousPerformance.hard.correct / (previousPerformance.hard.total || 1)) * 100)}%
+          </p>
           <button className="restart-button" onClick={restart}>Try Again</button>
         </>
       ) : (
@@ -141,6 +178,7 @@ const QuizzesPage = () => {
                 question={q}
                 index={index}
                 selected={answers[q.id]}
+                correct={q.correct}
                 showFeedback={feedbackShown[q.id]}
                 handleAnswer={handleAnswer}
               />
@@ -160,4 +198,5 @@ const QuizzesPage = () => {
 };
 
 export default QuizzesPage;
+
 

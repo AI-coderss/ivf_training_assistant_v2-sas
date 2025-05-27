@@ -164,16 +164,17 @@ def start_quiz():
     try:
         session_id = request.json.get("session_id", str(uuid4()))
         topic = request.json.get("topic", "IVF")
+        difficulty = request.json.get("difficulty", "mixed")  # ✅ new param
 
-        # 📌 Prompt AI to return strict JSON
         rag_prompt = (
             f"You are an IVF virtual training assistant. Generate exactly 20 multiple-choice questions on '{topic}'. "
-            "Each question must be a JSON object like this:\n"
-            '{ "id": "q1", "text": "...", "options": ["A", "B", "C", "D"], "correct": "B" }\n'
-            "Respond with only a JSON array of 20 such objects, no markdown, no text, no commentary."
+            f"Each question must reflect '{difficulty}' difficulty level. Return them strictly as a JSON array. "
+            "Each object must follow this format:\n"
+            '{ "id": "q1", "text": "...", "options": ["A", "B", "C", "D"], "correct": "B", "difficulty": "easy" }\n'
+            "Respond ONLY with valid JSON — no markdown, commentary, or explanations."
         )
 
-        # 🧠 Invoke RAG
+        # 🧠 Ask AI via RAG
         response = chain_with_memory.invoke(
             {"input": rag_prompt},
             config={"configurable": {"session_id": session_id}},
@@ -181,26 +182,24 @@ def start_quiz():
         raw_answer = response["answer"]
         print("✅ AI response received")
 
-        # 🧽 Clean up markdown code fences if they exist
+        # 🔍 Clean and parse JSON safely
         raw_cleaned = re.sub(r"```json|```", "", raw_answer).strip()
-
-        # 🧪 Try parsing the cleaned string as JSON
         questions = json.loads(raw_cleaned)
 
-        # ✅ Basic format validation
-        if not isinstance(questions, list) or not all("text" in q and "options" in q and "correct" in q for q in questions):
-            raise ValueError("Parsed questions are not valid")
+        # ✅ Validate structure
+        if not isinstance(questions, list) or not all(
+            "text" in q and "options" in q and "correct" in q and "difficulty" in q for q in questions
+        ):
+            raise ValueError("Parsed questions are not valid or missing difficulty field.")
 
-        # 🧾 Log sample question
         print("✅ Parsed question example:", questions[0])
 
-        # 🧠 Save to session memory (optional)
+        # 💾 Save history (optional)
         if session_id not in chat_sessions:
             chat_sessions[session_id] = []
         chat_sessions[session_id].append({"role": "user", "content": rag_prompt})
         chat_sessions[session_id].append({"role": "assistant", "content": raw_answer})
 
-        # 🟢 Success response
         return jsonify({
             "questions": questions,
             "session_id": session_id
@@ -214,6 +213,7 @@ def start_quiz():
             "error": "Failed to generate valid quiz from AI response.",
             "details": str(e)
         }), 500
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)
