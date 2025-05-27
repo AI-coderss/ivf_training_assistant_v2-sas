@@ -3,6 +3,8 @@ import "../styles/QuizzesPage.css";
 import TimerDisplay from "../components/Quizzes/TimerDisplay";
 import QuestionBlock from "../components/Quizzes/QuestionBlock";
 import ResultSummary from "../components/Quizzes/ResultSummary";
+import Badge from "../components/Quizzes/Badge";
+
 
 const QuizzesPage = () => {
   const [questions, setQuestions] = useState([]);
@@ -159,6 +161,7 @@ const QuizzesPage = () => {
       ) : showResult ? (
         <>
           <ResultSummary score={score} total={questions.length} getPassStatus={getPassStatus} />
+          {(score / questions.length) * 100 >= 80 && <Badge />}
           <p className="performance-summary">
             Accuracy: Easy {Math.round((previousPerformance.easy.correct / (previousPerformance.easy.total || 1)) * 100)}%, 
             Medium {Math.round((previousPerformance.medium.correct / (previousPerformance.medium.total || 1)) * 100)}%, 
