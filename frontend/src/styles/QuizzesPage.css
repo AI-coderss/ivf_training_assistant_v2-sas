@@ -235,3 +235,48 @@
   font-weight: bold;
   margin-top: 10px;
 }
+
+.timer-display {
+  position: absolute;
+  top: -60px;
+  left: 0;
+  padding: 8px 14px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #007bff;
+  background: #eef6ff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+/* Make timer responsive on mobile */
+@media (max-width: 768px) {
+  .timer-display {
+    position: static;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 16px;
+  }
+
+  .quiz-with-timer {
+    padding-top: 10px;
+  }
+}
+@media (max-width: 768px) {
+  .question-block {
+    padding: 16px;
+    font-size: 14px;
+  }
+
+  .option-label {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .submit-button {
+    width: 100%;
+    font-size: 16px;
+  }
+}
