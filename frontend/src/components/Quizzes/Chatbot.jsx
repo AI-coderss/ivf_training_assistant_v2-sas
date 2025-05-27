@@ -14,70 +14,70 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
     return id;
   });
 
-  // Auto-open logic
+  // Auto-open
   useEffect(() => {
     if (forceOpen) setOpen(true);
   }, [forceOpen]);
 
-  // 🧠 Stream initial AI feedback if provided
+  // Stream AI feedback at mount
   useEffect(() => {
-    if (initialMessage) {
-      setLoading(true);
-      const fetchFeedback = async () => {
-        try {
-          const response = await fetch("https://ivf-backend-server.onrender.com/quiz-feedback-stream", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: initialMessage, session_id: sessionId }),
+    if (!initialMessage || !sessionId) return;
+
+    const fetchFeedback = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("https://ivf-backend-server.onrender.com/quiz-feedback-stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: initialMessage,
+            session_id: sessionId
+          })
+        });
+
+        if (!response.ok || !response.body) throw new Error("Stream error");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let full = "";
+        setMessages([{ type: "bot", text: "" }]);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          full += decoder.decode(value, { stream: true });
+
+          // eslint-disable-next-line no-loop-func
+          setMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { type: "bot", text: full };
+            return updated;
           });
-
-          if (!response.ok || !response.body) throw new Error("Stream error");
-
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
-          let full = "";
-          setMessages((prev) => [...prev, { type: "bot", text: "" }]);
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            full += decoder.decode(value, { stream: true });
-
-            // eslint-disable-next-line no-loop-func
-            setMessages((prev) => {
-              const updated = [...prev];
-              updated[updated.length - 1] = { type: "bot", text: full };
-              return updated;
-            });
-          }
-        } catch (err) {
-          setMessages((prev) => [...prev, { type: "bot", text: "⚠️ Failed to load feedback." }]);
-        } finally {
-          setLoading(false);
         }
-      };
-      fetchFeedback();
-    } else {
-      setMessages([{ type: "bot", text: "Hi! Ask me anything about these AI tools." }]);
-    }
+      } catch (err) {
+        setMessages([{ type: "bot", text: "⚠️ Failed to load feedback from AI." }]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedback();
   }, [initialMessage, sessionId]);
 
+  // Chat input
   const handleSendMessage = async ({ text }) => {
-    if (!text?.trim()) return;
+    if (!text?.trim() || !sessionId) return;
 
     const userMsg = { type: "user", text };
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "https://ivf-backend-server.onrender.com/quiz-feedback-stream",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, session_id: sessionId })
-        }
-      );
+      const response = await fetch("https://ivf-backend-server.onrender.com/quiz-feedback-stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, session_id: sessionId })
+      });
 
       if (!response.ok || !response.body) throw new Error("Streaming failed");
 
@@ -99,16 +99,14 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
         });
       }
     } catch (err) {
-      console.error(err);
-      setMessages((prev) => [
-        ...prev,
-        { type: "bot", text: "⚠️ Error streaming response." }
-      ]);
+      console.error("Streaming failed:", err);
+      setMessages((prev) => [...prev, { type: "bot", text: "⚠️ Error: AI Assistant is temporarily unavailable." }]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Auto scroll
   useLayoutEffect(() => {
     if (chatBodyRef.current) {
       requestAnimationFrame(() => {
@@ -151,7 +149,9 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
                   margin: msg.type === "user" ? "6px" : "0px 15px",
                   borderRadius: "14px",
                   fontSize: "14px",
-                  lineHeight: 1.4,
+                  lineHeight: 1.6,
+                  textAlign: "justify", // ✅ improve readability
+                  whiteSpace: "pre-wrap"
                 }}
               >
                 {msg.type === "bot" ? (
@@ -179,4 +179,5 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
 };
 
 export default ChatBot;
+
 

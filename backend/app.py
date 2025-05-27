@@ -213,60 +213,48 @@ def start_quiz():
             "error": "Failed to generate valid quiz from AI response.",
             "details": str(e)
         }), 500
-@app.route("/quiz-feedback", methods=["POST"])
-def quiz_feedback():
-    try:
-        data = request.get_json()
-        questions = data.get("questions", [])
-        answers = data.get("answers", {})
-
-        wrong = [q for q in questions if answers.get(q["id"]) != q["correct"]]
-
-        if not wrong:
-            return jsonify({"feedback": "You're doing great! No mistakes detected."})
-
-        summary_prompt = (
-            "The trainee made mistakes on the following IVF questions:\n\n" +
-            "\n\n".join([
-                f"- Q: {q['text']}\n  Answered: {answers.get(q['id'])}\n  Correct: {q['correct']}"
-                for q in wrong
-            ]) +
-            "\n\nPlease generate a short feedback summary, list key topics to review, and encourage the trainee."
-        )
-
-        # Use streaming for frontend feedback
-        def stream_feedback():
-            for chunk in chain_with_memory.stream(
-                {"input": summary_prompt},
-                config={"configurable": {"session_id": str(uuid4())}}
-            ):
-                yield chunk.get("answer", "")
-
-        return Response(stream_feedback(), content_type="text/plain")
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
     
 @app.route("/quiz-feedback-stream", methods=["POST"])
 def quiz_feedback_stream():
     try:
-        body = request.get_json()
-        prompt = body.get("prompt", "")
-        session_id = body.get("session_id", str(uuid4()))
+        data = request.get_json()
+        session_id = data.get("session_id", str(uuid4()))
 
-        if not prompt.strip():
-            return jsonify({"error": "Prompt is empty"}), 400
+        # Case 1: Custom prompt (user or feedbackPrompt input)
+        prompt = data.get("prompt") or data.get("message")
 
-        # Stream the AI's feedback response
-        def generate_stream():
+        # Case 2: Dynamic prompt built from question/answer diff
+        questions = data.get("questions", [])
+        answers = data.get("answers", {})
+        if not prompt and questions and answers:
+            wrong = [q for q in questions if answers.get(q["id"]) != q["correct"]]
+            if not wrong:
+                return jsonify({"feedback": "You're doing great! No mistakes detected."})
+
+            prompt = (
+                "The trainee made mistakes on the following IVF questions:\n\n" +
+                "\n\n".join([
+                    f"- Q: {q['text']}\n  Answered: {answers.get(q['id']) or 'No answer'}\n  Correct: {q['correct']}"
+                    for q in wrong
+                ]) +
+                "\n\nPlease generate a concise feedback summary including:\n"
+                "- Strengths if applicable\n"
+                "- Topics to review\n"
+                "- Encouraging message to help the trainee improve"
+            )
+
+        # If still no valid prompt
+        if not prompt or not prompt.strip():
+            return jsonify({"error": "Prompt or QA input missing"}), 400
+
+        def stream_response():
             for chunk in chain_with_memory.stream(
                 {"input": prompt},
                 config={"configurable": {"session_id": session_id}}
             ):
-                token = chunk.get("answer", "")
-                yield token
+                yield chunk.get("answer", "")
 
-        return Response(generate_stream(), content_type="text/plain")
+        return Response(stream_response(), content_type="text/plain")
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
