@@ -42,7 +42,30 @@
   cursor: pointer;
   padding: 0;
 }
-
+.chat-msg.bot {
+  text-align: justify;           /* ⬅ proper paragraph alignment */
+  white-space: pre-wrap;         /* ⬅ respect newlines */
+  line-height: 1.6;              /* ⬅ improve readability */
+  font-size: 14.5px;             /* ⬅ slightly larger */
+  background-color: #f1f6fd;
+  color: #222;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin: 8px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.chat-msg.user {
+  text-align: justify;           /* ⬅ proper paragraph alignment */
+  white-space: pre-wrap;         /* ⬅ respect newlines */
+  line-height: 1.6;              /* ⬅ improve readability */
+  font-size: 14.5px;             /* ⬅ slightly larger */
+  background-color: #007bff;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin: 8px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
 /* Tablet */
 @media (max-width: 768px) {
   .chat-toggle {
