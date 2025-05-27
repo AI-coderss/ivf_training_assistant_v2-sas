@@ -213,7 +213,63 @@ def start_quiz():
             "error": "Failed to generate valid quiz from AI response.",
             "details": str(e)
         }), 500
+@app.route("/quiz-feedback", methods=["POST"])
+def quiz_feedback():
+    try:
+        data = request.get_json()
+        questions = data.get("questions", [])
+        answers = data.get("answers", {})
 
+        wrong = [q for q in questions if answers.get(q["id"]) != q["correct"]]
+
+        if not wrong:
+            return jsonify({"feedback": "You're doing great! No mistakes detected."})
+
+        summary_prompt = (
+            "The trainee made mistakes on the following IVF questions:\n\n" +
+            "\n\n".join([
+                f"- Q: {q['text']}\n  Answered: {answers.get(q['id'])}\n  Correct: {q['correct']}"
+                for q in wrong
+            ]) +
+            "\n\nPlease generate a short feedback summary, list key topics to review, and encourage the trainee."
+        )
+
+        # Use streaming for frontend feedback
+        def stream_feedback():
+            for chunk in chain_with_memory.stream(
+                {"input": summary_prompt},
+                config={"configurable": {"session_id": str(uuid4())}}
+            ):
+                yield chunk.get("answer", "")
+
+        return Response(stream_feedback(), content_type="text/plain")
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route("/quiz-feedback-stream", methods=["POST"])
+def quiz_feedback_stream():
+    try:
+        body = request.get_json()
+        prompt = body.get("prompt", "")
+        session_id = body.get("session_id", str(uuid4()))
+
+        if not prompt.strip():
+            return jsonify({"error": "Prompt is empty"}), 400
+
+        # Stream the AI's feedback response
+        def generate_stream():
+            for chunk in chain_with_memory.stream(
+                {"input": prompt},
+                config={"configurable": {"session_id": session_id}}
+            ):
+                token = chunk.get("answer", "")
+                yield token
+
+        return Response(generate_stream(), content_type="text/plain")
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)

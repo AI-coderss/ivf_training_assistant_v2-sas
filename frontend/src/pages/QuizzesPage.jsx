@@ -4,7 +4,7 @@ import TimerDisplay from "../components/Quizzes/TimerDisplay";
 import QuestionBlock from "../components/Quizzes/QuestionBlock";
 import ResultSummary from "../components/Quizzes/ResultSummary";
 import Badge from "../components/Quizzes/Badge";
-
+import ChatBot from "../components/Quizzes/Chatbot";
 
 const QuizzesPage = () => {
   const [questions, setQuestions] = useState([]);
@@ -17,6 +17,8 @@ const QuizzesPage = () => {
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600);
   const [timerActive, setTimerActive] = useState(false);
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [feedbackPrompt, setFeedbackPrompt] = useState(""); // ✅ for ChatBot AI prompt
 
   const [previousPerformance, setPreviousPerformance] = useState(() => {
     const stored = localStorage.getItem("quizPerformance");
@@ -52,7 +54,6 @@ const QuizzesPage = () => {
         throw new Error("Invalid quiz data format received from server.");
       }
 
-      // ✅ Fix: convert "A"/"B"/"C"/"D" → actual correct label
       const letterMap = { A: 0, B: 1, C: 2, D: 3 };
       const processedQuestions = data.questions.map((q) => {
         const correctIndex = letterMap[q.correct?.trim()?.toUpperCase()];
@@ -86,6 +87,28 @@ const QuizzesPage = () => {
     let score = 0;
     let newPerformance = { ...previousPerformance };
 
+    const wrong = questions.filter((q) => updatedAnswers[q.id] !== q.correct);
+    if (wrong.length >= 5) {
+      setShowChatbot(true);
+
+      const feedbackText = `
+The trainee made mistakes in the following IVF questions:
+
+${wrong.map(q =>
+  `Q: ${q.text}
+Answered: ${updatedAnswers[q.id] || "No answer"}
+Correct: ${q.correct}`
+).join("\n\n")}
+
+Based on these mistakes, please provide:
+- A short summary of weak areas
+- Suggested topics to review
+- Encouragement to help improve
+      `.trim();
+
+      setFeedbackPrompt(feedbackText);
+    }
+
     questions.forEach((q) => {
       const isCorrect = updatedAnswers[q.id] === q.correct;
       const level = q.difficulty || "easy";
@@ -96,7 +119,6 @@ const QuizzesPage = () => {
       if (!newPerformance[level]) newPerformance[level] = { correct: 0, total: 0 };
       newPerformance[level].total += 1;
       if (isCorrect) newPerformance[level].correct += 1;
-
       if (isCorrect) score++;
     });
 
@@ -124,6 +146,8 @@ const QuizzesPage = () => {
     setError("");
     setTimeLeft(600);
     setTimerActive(false);
+    setShowChatbot(false);
+    setFeedbackPrompt("");
   };
 
   useEffect(() => {
@@ -167,6 +191,7 @@ const QuizzesPage = () => {
             Medium {Math.round((previousPerformance.medium.correct / (previousPerformance.medium.total || 1)) * 100)}%, 
             Hard {Math.round((previousPerformance.hard.correct / (previousPerformance.hard.total || 1)) * 100)}%
           </p>
+          {showChatbot && <ChatBot open={true} initialMessage={feedbackPrompt} />}
           <button className="restart-button" onClick={restart}>Try Again</button>
         </>
       ) : (
@@ -205,6 +230,8 @@ const QuizzesPage = () => {
 };
 
 export default QuizzesPage;
+
+
 
 
 
