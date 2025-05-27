@@ -1,5 +1,5 @@
 import React from "react";
-import "../../styles/QuizzesPage.css";
+import "../../styles/QuizzesPage.css"; // Assuming you have a CSS file for styling
 
 const QuestionBlock = ({ question, index, selected, correct, showFeedback, handleAnswer }) => {
   return (
