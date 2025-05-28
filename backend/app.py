@@ -219,37 +219,27 @@ def quiz_feedback_stream():
     try:
         data = request.get_json()
         session_id = data.get("session_id", str(uuid4()))
+        prompt = data.get("prompt") or data.get("message", "").strip()
+        context_items = data.get("context", [])  # 💡 Injected Q&A context from frontend
 
-        # Case 1: Custom prompt (user or feedbackPrompt input)
-        prompt = data.get("prompt") or data.get("message")
+        # Build context string from failed Q&A
+        context_string = "\n".join([
+            f"Q: {item['text']}\nUser Answer: {item['userAnswer']}\nCorrect Answer: {item['correct']}"
+            for item in context_items
+        ]) if context_items else ""
 
-        # Case 2: Dynamic prompt built from question/answer diff
-        questions = data.get("questions", [])
-        answers = data.get("answers", {})
-        if not prompt and questions and answers:
-            wrong = [q for q in questions if answers.get(q["id"]) != q["correct"]]
-            if not wrong:
-                return jsonify({"feedback": "You're doing great! No mistakes detected."})
+        if not prompt:
+            return jsonify({"error": "Missing prompt or message"}), 400
 
-            prompt = (
-                "The trainee made mistakes on the following IVF questions:\n\n" +
-                "\n\n".join([
-                    f"- Q: {q['text']}\n  Answered: {answers.get(q['id']) or 'No answer'}\n  Correct: {q['correct']}"
-                    for q in wrong
-                ]) +
-                "\n\nPlease generate a concise feedback summary including:\n"
-                "- Strengths if applicable\n"
-                "- Topics to review\n"
-                "- Encouraging message to help the trainee improve"
-            )
-
-        # If still no valid prompt
-        if not prompt or not prompt.strip():
-            return jsonify({"error": "Prompt or QA input missing"}), 400
+        # Final input includes both context and question
+        full_prompt = (
+            f"You are a helpful IVF tutor. The following questions were answered incorrectly by the trainee:\n\n"
+            f"{context_string}\n\nNow answer this question:\n{prompt}"
+        )
 
         def stream_response():
             for chunk in chain_with_memory.stream(
-                {"input": prompt},
+                {"input": full_prompt},
                 config={"configurable": {"session_id": session_id}}
             ):
                 yield chunk.get("answer", "")

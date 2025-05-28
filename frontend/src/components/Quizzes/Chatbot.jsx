@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import ChatInputWidget from "../ChatInputWidget";
 import "../../styles/Chatbot.css";
 
-const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
+const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = "" }) => {
   const [open, setOpen] = useState(forceOpen);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
     if (forceOpen) setOpen(true);
   }, [forceOpen]);
 
-  // Stream AI feedback at mount
+  // Stream initial AI feedback with errorContext
   useEffect(() => {
     if (!initialMessage || !sessionId) return;
 
@@ -30,7 +30,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            message: initialMessage,
+            message: `${initialMessage}\n\nUse the following mistakes to guide your personalized answers:\n${errorContext}`,
             session_id: sessionId
           })
         });
@@ -62,9 +62,9 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
     };
 
     fetchFeedback();
-  }, [initialMessage, sessionId]);
+  }, [initialMessage, errorContext, sessionId]);
 
-  // Chat input
+  // Handle user chat input
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim() || !sessionId) return;
 
@@ -76,7 +76,10 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
       const response = await fetch("https://ivf-backend-server.onrender.com/quiz-feedback-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, session_id: sessionId })
+        body: JSON.stringify({
+          message: `${errorContext}\n\nUser asked: ${text}`,
+          session_id: sessionId
+        })
       });
 
       if (!response.ok || !response.body) throw new Error("Streaming failed");
@@ -100,13 +103,16 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
       }
     } catch (err) {
       console.error("Streaming failed:", err);
-      setMessages((prev) => [...prev, { type: "bot", text: "⚠️ Error: AI Assistant is temporarily unavailable." }]);
+      setMessages((prev) => [
+        ...prev,
+        { type: "bot", text: "⚠️ Error: AI Assistant is temporarily unavailable." }
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Auto scroll
+  // Auto scroll to latest message
   useLayoutEffect(() => {
     if (chatBodyRef.current) {
       requestAnimationFrame(() => {
@@ -150,15 +156,11 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
                   borderRadius: "14px",
                   fontSize: "14px",
                   lineHeight: 1.6,
-                  textAlign: "justify", // ✅ improve readability
+                  textAlign: "justify",
                   whiteSpace: "pre-wrap"
                 }}
               >
-                {msg.type === "bot" ? (
-                  <ReactMarkdown>{msg.text}</ReactMarkdown>
-                ) : (
-                  msg.text
-                )}
+                {msg.type === "bot" ? <ReactMarkdown>{msg.text}</ReactMarkdown> : msg.text}
               </div>
             ))}
 
@@ -179,5 +181,6 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "" }) => {
 };
 
 export default ChatBot;
+
 
 
