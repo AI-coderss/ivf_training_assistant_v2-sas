@@ -370,3 +370,19 @@
   background-color: #bfdbfe;
   color: #1e40af;
 }
+
+.predefined-question-btn {
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: 12px;
+  background: #e0f0ff;
+  border: 1px solid #a2c5f5;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.predefined-question-btn.fading {
+  opacity: 0;
+  transform: scale(0.95);
+}

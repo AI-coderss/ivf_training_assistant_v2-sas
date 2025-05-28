@@ -8,6 +8,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", predefinedQuest
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [queuedQuestions, setQueuedQuestions] = useState(predefinedQuestions || []);
+  const [fadingQuestion, setFadingQuestion] = useState(null);
   const chatBodyRef = useRef(null);
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("chatbot-session") || crypto.randomUUID();
@@ -104,8 +105,12 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", predefinedQuest
   };
 
   const handlePredefinedClick = (question) => {
-    setQueuedQuestions(prev => prev.filter(q => q !== question));
-    handleSendMessage({ text: question });
+    setFadingQuestion(question);
+    setTimeout(() => {
+      setQueuedQuestions(prev => prev.filter(q => q !== question));
+      setFadingQuestion(null);
+      handleSendMessage({ text: question });
+    }, 300); // Match with CSS animation duration
   };
 
   useLayoutEffect(() => {
@@ -178,15 +183,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", predefinedQuest
                   <button
                     key={i}
                     onClick={() => handlePredefinedClick(q)}
-                    style={{
-                      padding: "8px 12px",
-                      margin: "4px",
-                      borderRadius: "12px",
-                      background: "#e0f0ff",
-                      border: "1px solid #a2c5f5",
-                      fontSize: "13px",
-                      cursor: "pointer",
-                    }}
+                    className={`predefined-question-btn ${fadingQuestion === q ? "fading" : ""}`}
                   >
                     {q}
                   </button>
@@ -203,6 +200,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", predefinedQuest
 };
 
 export default ChatBot;
+
 
 
 
