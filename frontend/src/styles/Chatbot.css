@@ -17,14 +17,14 @@
   position: fixed;
   bottom: 80px;
   right: 20px;
-  width: 450px;                /* 🔼 increased width */
+  width: 450px;
   height: 600px;
-  background: rgba(255, 255, 255, 0.15);  /* semi-transparent */
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 20px;
-  backdrop-filter: blur(2px);           /* 🔥 glass effect */
-  -webkit-backdrop-filter: blur(2px);   /* Safari support */
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   display: flex;
   flex-direction: column;
   z-index: 999;
@@ -43,10 +43,10 @@
   padding: 0;
 }
 .chat-msg.bot {
-  text-align: justify;           /* ⬅ proper paragraph alignment */
-  white-space: pre-wrap;         /* ⬅ respect newlines */
-  line-height: 1.6;              /* ⬅ improve readability */
-  font-size: 14.5px;             /* ⬅ slightly larger */
+  text-align: justify;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 14.5px;
   background-color: #f1f6fd;
   color: #222;
   padding: 10px 14px;
@@ -55,10 +55,10 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 .chat-msg.user {
-  text-align: justify;           /* ⬅ proper paragraph alignment */
-  white-space: pre-wrap;         /* ⬅ respect newlines */
-  line-height: 1.6;              /* ⬅ improve readability */
-  font-size: 14.5px;             /* ⬅ slightly larger */
+  text-align: justify;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 14.5px;
   background-color: #007bff;
   color: white;
   padding: 10px 14px;
@@ -125,13 +125,13 @@
 }
 
 .chat-body {
-  flex-grow: 1; /* was 2 or fixed before */
+  flex-grow: 1;
   overflow-y: auto;
   width: 100%;
   padding: 0 8px;
   margin-bottom: 10px;
   scroll-behavior: smooth;
-  min-height: 0; /* Important for flex containers */
+  min-height: 0;
 }
 
 .chat-body::-webkit-scrollbar {
@@ -294,14 +294,14 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  font-size: 20px; /* slightly larger for better centering */
+  font-size: 20px;
   font-weight: bold;
   z-index: 1001;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  line-height: 1; /* ensures vertical centering */
-  padding: 0;     /* removes extra space */
-  display: none; /* default hidden */
+  line-height: 1;
+  padding: 0;
+  display: none;
 }
 
 /* Adjust chat-toggle vertical position based on screen height */
@@ -322,20 +322,20 @@
     display: block;
   }
   .chat-body {
-  flex-grow: 1; /* was 2 or fixed before */
+  flex-grow: 1;
   overflow-y: auto;
   width: 100%;
   padding: 0 8px;
   margin-bottom: 10px;
   scroll-behavior: smooth;
-  min-height: 0; /* Important for flex containers */
+  min-height: 0;
 }
   .chat-box {
     width: 95% !important;
     bottom: 10px;
     left: 2.5%;
-    height: 80vh; /* Adjusted for better mobile view */
-    max-height: 600px; /* Ensures it doesn't exceed a certain height */
+    height: 80vh;
+    max-height: 600px;
     padding-bottom: 80px;
   }
 }
@@ -345,15 +345,15 @@
   flex-direction: column;
   gap: 8px;
   background: #f8f9ff;
-  border-bottom: 1px solid #e0e7ff;
+  border-bottom: 1px solid #007bff;
   max-height: 200px;
   overflow-y: auto;
 }
 
 .predefined-question {
-  background: #eef2ff;
-  color: #1e40af;
-  border: 1px solid #c7d2fe;
+  background: #007bff;
+  color: #007bff;
+  border: 1px solid #007bff;
   border-radius: 12px;
   padding: 8px 12px;
   text-align: left;
@@ -363,12 +363,12 @@
 }
 
 .predefined-question:hover {
-  background-color: #dbeafe;
-  color: #1d4ed8;
+  background-color: #007bff;
+  color: #007bff;
 }
 .predefined-question:active {
-  background-color: #bfdbfe;
-  color: #1e40af;
+  background-color: #007bff;
+  color: #007bff;
 }
 
 .predefined-question-btn {
@@ -379,10 +379,20 @@
   border: 1px solid #a2c5f5;
   font-size: 13px;
   cursor: pointer;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 0 transparent;
 }
+
+.predefined-question-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  background-color: #d4e9ff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 
 .predefined-question-btn.fading {
   opacity: 0;
   transform: scale(0.95);
 }
+
+
