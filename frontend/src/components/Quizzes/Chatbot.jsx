@@ -138,7 +138,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", predefinedQuest
       {open && (
         <div className="chat-box">
           <div className="chat-header" style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}>
-            AI Assistant
+            AI Assistant Quiz Feedback
           </div>
 
           <div className="chat-body" ref={chatBodyRef}>
