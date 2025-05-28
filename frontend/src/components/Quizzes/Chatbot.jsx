@@ -3,10 +3,11 @@ import ReactMarkdown from "react-markdown";
 import ChatInputWidget from "../ChatInputWidget";
 import "../../styles/Chatbot.css";
 
-const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = "" }) => {
+const ChatBot = ({ open: forceOpen = false, initialMessage = "", predefinedQuestions = [] }) => {
   const [open, setOpen] = useState(forceOpen);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [queuedQuestions, setQueuedQuestions] = useState(predefinedQuestions || []);
   const chatBodyRef = useRef(null);
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("chatbot-session") || crypto.randomUUID();
@@ -14,12 +15,10 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = 
     return id;
   });
 
-  // Auto-open
   useEffect(() => {
     if (forceOpen) setOpen(true);
   }, [forceOpen]);
 
-  // Stream initial AI feedback with errorContext
   useEffect(() => {
     if (!initialMessage || !sessionId) return;
 
@@ -30,7 +29,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = 
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            message: `${initialMessage}\n\nUse the following mistakes to guide your personalized answers:\n${errorContext}`,
+            message: initialMessage,
             session_id: sessionId
           })
         });
@@ -46,9 +45,8 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = 
           const { done, value } = await reader.read();
           if (done) break;
           full += decoder.decode(value, { stream: true });
-
           // eslint-disable-next-line no-loop-func
-          setMessages((prev) => {
+          setMessages(prev => {
             const updated = [...prev];
             updated[updated.length - 1] = { type: "bot", text: full };
             return updated;
@@ -62,9 +60,8 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = 
     };
 
     fetchFeedback();
-  }, [initialMessage, errorContext, sessionId]);
+  }, [initialMessage, sessionId]);
 
-  // Handle user chat input
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim() || !sessionId) return;
 
@@ -76,10 +73,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = 
       const response = await fetch("https://ivf-backend-server.onrender.com/quiz-feedback-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: `${errorContext}\n\nUser asked: ${text}`,
-          session_id: sessionId
-        })
+        body: JSON.stringify({ message: text, session_id: sessionId })
       });
 
       if (!response.ok || !response.body) throw new Error("Streaming failed");
@@ -103,16 +97,17 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = 
       }
     } catch (err) {
       console.error("Streaming failed:", err);
-      setMessages((prev) => [
-        ...prev,
-        { type: "bot", text: "⚠️ Error: AI Assistant is temporarily unavailable." }
-      ]);
+      setMessages((prev) => [...prev, { type: "bot", text: "⚠️ Error: AI Assistant is temporarily unavailable." }]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Auto scroll to latest message
+  const handlePredefinedClick = (question) => {
+    setQueuedQuestions(prev => prev.filter(q => q !== question));
+    handleSendMessage({ text: question });
+  };
+
   useLayoutEffect(() => {
     if (chatBodyRef.current) {
       requestAnimationFrame(() => {
@@ -160,7 +155,11 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = 
                   whiteSpace: "pre-wrap"
                 }}
               >
-                {msg.type === "bot" ? <ReactMarkdown>{msg.text}</ReactMarkdown> : msg.text}
+                {msg.type === "bot" ? (
+                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                ) : (
+                  msg.text
+                )}
               </div>
             ))}
 
@@ -169,6 +168,29 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = 
                 <span className="dot"></span>
                 <span className="dot"></span>
                 <span className="dot"></span>
+              </div>
+            )}
+
+            {queuedQuestions.length > 0 && (
+              <div className="predefined-questions">
+                <p style={{ marginTop: "10px", fontWeight: 600 }}>Suggested Questions:</p>
+                {queuedQuestions.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handlePredefinedClick(q)}
+                    style={{
+                      padding: "8px 12px",
+                      margin: "4px",
+                      borderRadius: "12px",
+                      background: "#e0f0ff",
+                      border: "1px solid #a2c5f5",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {q}
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -181,6 +203,7 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", errorContext = 
 };
 
 export default ChatBot;
+
 
 
 
