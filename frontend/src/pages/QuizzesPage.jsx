@@ -5,6 +5,7 @@ import QuestionBlock from "../components/Quizzes/QuestionBlock";
 import ResultSummary from "../components/Quizzes/ResultSummary";
 import Badge from "../components/Quizzes/Badge";
 import ChatBot from "../components/Quizzes/Chatbot";
+import Dashboard from "../components/Quizzes/Dashboard";
 
 
 
@@ -202,6 +203,7 @@ Based on these mistakes, please provide:
             Medium {Math.round((previousPerformance.medium.correct / (previousPerformance.medium.total || 1)) * 100)}%, 
             Hard {Math.round((previousPerformance.hard.correct / (previousPerformance.hard.total || 1)) * 100)}%
           </p>
+          <Dashboard/>
           {showChatbot && <ChatBot open={true} initialMessage={feedbackPrompt} predefinedQuestions={predefinedQuestions} />}
           <button className="restart-button" onClick={restart}>Try Again</button>
         </>
