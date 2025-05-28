@@ -1,6 +1,7 @@
 import os
 import tempfile
 from uuid import uuid4
+from datetime import datetime
 import json
 import re
 from uuid import uuid4
@@ -246,6 +247,45 @@ def quiz_feedback_stream():
 
         return Response(stream_response(), content_type="text/plain")
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+performance_log = []
+
+@app.route("/submit-quiz", methods=["POST"])
+def submit_quiz():
+    try:
+        data = request.get_json()
+        attempt_number = len(performance_log) + 1
+        entry = {
+            "attempt": attempt_number,
+            "score": data.get("score", 0),
+            "correct": data.get("correct", 0),
+            "duration": data.get("duration_minutes", 0),
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
+        }
+        performance_log.append(entry)
+        return jsonify({"status": "success", "attempt": attempt_number}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/quiz-performance", methods=["GET"])
+def quiz_performance():
+    try:
+        attempts = [entry["attempt"] for entry in performance_log]
+        scores = [entry["score"] for entry in performance_log]
+        correct = [entry["correct"] for entry in performance_log]
+        durations = [entry["duration"] for entry in performance_log]
+        timestamps = [entry["timestamp"] for entry in performance_log]
+
+        return jsonify({
+            "attempt": attempts,
+            "score": scores,
+            "correct_answers": correct,
+            "duration_minutes": durations,
+            "timestamp": timestamps
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
