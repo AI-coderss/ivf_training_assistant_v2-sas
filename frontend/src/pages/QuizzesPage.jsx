@@ -18,7 +18,8 @@ const QuizzesPage = () => {
   const [timeLeft, setTimeLeft] = useState(600);
   const [timerActive, setTimerActive] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
-  const [feedbackPrompt, setFeedbackPrompt] = useState(""); // ✅ for ChatBot AI prompt
+  const [feedbackPrompt, setFeedbackPrompt] = useState("");
+  const [predefinedQuestions, setPredefinedQuestions] = useState([]);
 
   const [previousPerformance, setPreviousPerformance] = useState(() => {
     const stored = localStorage.getItem("quizPerformance");
@@ -88,6 +89,7 @@ const QuizzesPage = () => {
     let newPerformance = { ...previousPerformance };
 
     const wrong = questions.filter((q) => updatedAnswers[q.id] !== q.correct);
+
     if (wrong.length >= 5) {
       setShowChatbot(true);
 
@@ -107,6 +109,12 @@ Based on these mistakes, please provide:
       `.trim();
 
       setFeedbackPrompt(feedbackText);
+
+      const predefined = [
+        "Given my performance, what concepts should I focus on?",
+        ...wrong.map(q => `Why was my answer to "${q.text}" incorrect?`)
+      ];
+      setPredefinedQuestions(predefined);
     }
 
     questions.forEach((q) => {
@@ -148,6 +156,7 @@ Based on these mistakes, please provide:
     setTimerActive(false);
     setShowChatbot(false);
     setFeedbackPrompt("");
+    setPredefinedQuestions([]);
   };
 
   useEffect(() => {
@@ -191,7 +200,7 @@ Based on these mistakes, please provide:
             Medium {Math.round((previousPerformance.medium.correct / (previousPerformance.medium.total || 1)) * 100)}%, 
             Hard {Math.round((previousPerformance.hard.correct / (previousPerformance.hard.total || 1)) * 100)}%
           </p>
-          {showChatbot && <ChatBot open={true} initialMessage={feedbackPrompt} />}
+          {showChatbot && <ChatBot open={true} initialMessage={feedbackPrompt} predefinedQuestions={predefinedQuestions} />}
           <button className="restart-button" onClick={restart}>Try Again</button>
         </>
       ) : (
@@ -230,6 +239,7 @@ Based on these mistakes, please provide:
 };
 
 export default QuizzesPage;
+
 
 
 
