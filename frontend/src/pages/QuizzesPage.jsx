@@ -6,8 +6,6 @@ import ResultSummary from "../components/Quizzes/ResultSummary";
 import Badge from "../components/Quizzes/Badge";
 import ChatBot from "../components/Quizzes/Chatbot";
 
-
-
 const QuizzesPage = () => {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
@@ -94,7 +92,6 @@ const QuizzesPage = () => {
 
     if (wrong.length >= 5) {
       setShowChatbot(true);
-
       const feedbackText = `
 The trainee made mistakes in the following IVF questions:
 
@@ -206,35 +203,42 @@ Based on these mistakes, please provide:
           <button className="restart-button" onClick={restart}>Try Again</button>
         </>
       ) : (
-        <div className="quiz-with-timer">
-          <TimerDisplay timeLeft={timeLeft} />
-          <form
-            className="all-questions-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitQuiz();
-            }}
-          >
-            {questions.map((q, index) => (
-              <QuestionBlock
-                key={q.id}
-                question={q}
-                index={index}
-                selected={answers[q.id]}
-                correct={q.correct}
-                showFeedback={feedbackShown[q.id]}
-                handleAnswer={handleAnswer}
-              />
-            ))}
-            <button
-              type="submit"
-              className="submit-button"
-              disabled={Object.keys(answers).length < questions.length}
+        <>
+          {/* Sticky Timer at the Top */}
+          <div className="sticky-timer-wrapper">
+            <TimerDisplay timeLeft={timeLeft} />
+          </div>
+
+          {/* Questions Below Timer */}
+          <div className="quiz-with-timer">
+            <form
+              className="all-questions-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitQuiz();
+              }}
             >
-              Submit Quiz
-            </button>
-          </form>
-        </div>
+              {questions.map((q, index) => (
+                <QuestionBlock
+                  key={q.id}
+                  question={q}
+                  index={index}
+                  selected={answers[q.id]}
+                  correct={q.correct}
+                  showFeedback={feedbackShown[q.id]}
+                  handleAnswer={handleAnswer}
+                />
+              ))}
+              <button
+                type="submit"
+                className="submit-button"
+                disabled={Object.keys(answers).length < questions.length}
+              >
+                Submit Quiz
+              </button>
+            </form>
+          </div>
+        </>
       )}
     </div>
   );

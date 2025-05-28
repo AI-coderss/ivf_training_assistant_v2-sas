@@ -240,25 +240,29 @@
   font-weight: bold;
   margin-top: 10px;
 }
-.timer-display {
+.sticky-timer-wrapper {
   position: sticky;
   top: 0;
-  left: 0;
-  width: 100%;
-  padding: 12px 14px;
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.timer-display {
+  padding: 10px 20px;
   font-size: 18px;
   font-weight: bold;
   color: #007bff;
-  background: rgba(255, 255, 255, 0.15); /* transparent white */
-  backdrop-filter: blur(10px);           /* glass effect */
-  -webkit-backdrop-filter: blur(10px);   /* Safari support */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  z-index: 999;
-  transition: all 0.3s ease;
-  border-radius: 0 0 12px 12px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
+
+
 /* Responsive on mobile */
 @media (max-width: 768px) {
   .timer-display {
