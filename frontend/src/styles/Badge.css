@@ -40,7 +40,7 @@
 }
 
 main {
-  background: var(--color-gray-900);
+  background: white;
   color: var(--color-gray-100);
   font-family: "Inter", sans-serif;
   height: 100vh;
