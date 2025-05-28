@@ -138,9 +138,8 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", predefinedQuest
       {open && (
         <div className="chat-box">
           <div className="chat-header" style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}>
-            AI Assistant Quiz Feedback
+            AI-Powered Quiz Feedback & Review ✨
           </div>
-
           <div className="chat-body" ref={chatBodyRef}>
             {messages.map((msg, idx) => (
               <div
@@ -200,7 +199,6 @@ const ChatBot = ({ open: forceOpen = false, initialMessage = "", predefinedQuest
 };
 
 export default ChatBot;
-
 
 
 
