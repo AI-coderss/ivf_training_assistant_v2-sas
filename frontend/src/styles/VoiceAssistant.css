@@ -1,0 +1,163 @@
+.voice-assistant {
+  position: fixed;
+  right: 0;
+  top: 80px; /* Positioned below the assumed 80px header */
+  width: 28%; /* Slightly increased width for better content display */
+  max-width: 450px; /* Set a max-width */
+  height: calc(80vh - 80px); /* Fill remaining viewport height */
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.3); /* Slightly more opaque for better visibility */
+  backdrop-filter: blur(0.5px); /* Increased blur for stronger visual separation */
+  -webkit-backdrop-filter: blur(0.5px);
+  border-left: 1px solid rgba(255, 255, 255, 0.4); /* Stronger border for clarity */
+  color: #ffffff;
+  box-shadow: -6px 0 16px rgba(0, 0, 0, 0.2); /* Deeper shadow */
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  margin-top: 0; /* No margin-top needed as 'top' property handles vertical positioning */
+  /* Add padding-top to make space for the orb which is absolutely positioned */
+  padding-top: 60px; /* Adjust based on orb size and desired spacing */
+}
+
+.assistant-orb {
+  position: absolute;
+  top: 30%; /* Center vertically */
+  left: 50%;
+  transform: translate(-50%, -50%); /* Center horizontally and pull half its height up */
+  width: 180px; /* Adjust size as needed for your GIF */
+  height: 180px; /* Adjust size as needed for your GIF */
+  border-radius: 50%; /* Make it circular */
+  object-fit: cover; /* Ensures the GIF covers the circle */
+  z-index: 1001; /* Ensure it's above other elements in the assistant */
+}
+
+
+.assistant-content {
+  flex: 1;
+  overflow-y: auto; /* Enable scrolling for content if it overflows */
+  padding-right: 10px; /* Add some padding for scrollbar */
+  color: #333; /* Ensure content is visible */
+  margin-top: 10px; /* Add a bit more space below the orb if content is too close */
+}
+
+.assistant-footer {
+  display: flex;
+  justify-content: space-around; /* Changed to space-around for better spacing */
+  align-items: center;
+  margin-top: 20px; /* Increased margin-top */
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2); /* Subtle separator */
+}
+
+.mic-icon-btn {
+  background-color: #007BFF;
+  color: white;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center the icon inside the button */
+  border: none;
+  border-radius: 50%;
+  padding: 0; /* Removed padding as width/height define size */
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  font-size: 1.2rem; /* Larger icon */
+  position: relative;
+  overflow: visible;
+}
+
+.mic-icon-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 70px;
+  height: 70px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid #007BFF;
+  opacity: 0.5;
+  pointer-events: none;
+  animation: mic-radiate 1.2s infinite;
+}
+
+@keyframes mic-radiate {
+  0% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 0.2;
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+}
+
+.mic-icon-btn:hover {
+  background-color: #0069d9; /* Slightly darker blue on hover */
+  transform: translateY(-2px);
+}
+
+.close-btn {
+  padding: 12px 18px;
+   /* Slightly increased padding */
+  ;
+  color: white;
+  background-color: #ffa3a3; /* Changed to a more noticeable red */
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center the icon inside the button */
+  border: none;
+  border-radius: 50%; /* Slightly increased border-radius */
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  font-size: 1rem;
+}
+
+.close-btn:hover {
+  background-color: #dc2626;
+  transform: translateY(-2px);
+}
+
+/* 📱 Responsive */
+@media (max-width: 1024px) {
+  .voice-assistant {
+    position: static; /* Change to static for smaller screens */
+    width: 100%;
+    max-width: none; /* Remove max-width */
+    height: auto; /* Allow height to adjust */
+    padding: 16px;
+    padding-top: 60px; /* Maintain space for orb even in static position */
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+    backdrop-filter: none; /* Remove blur on smaller screens if it causes issues */
+    -webkit-backdrop-filter: none;
+  }
+
+  .assistant-orb {
+    /* Adjust position for static layout on smaller screens if needed,
+       but for now, it should work fine relative to the static parent. */
+   display: none;
+  }
+
+  .assistant-footer {
+    justify-content: space-around;
+    margin-top: 1rem;
+  }
+
+  .mic-icon-btn,
+  .close-btn {
+    padding: 10px;
+  }
+}

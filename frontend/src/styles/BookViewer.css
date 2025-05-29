@@ -1,0 +1,44 @@
+.book-viewer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 5px;
+  box-sizing: border-box;
+}
+
+.flipbook-frame {
+  /* Increased Width and Height */
+  width: 100%; /* Increased from 90% */
+  height: 850px; /* Increased from 800px */
+  border: none;
+  border-radius: 10px;
+  background-color: transparent;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .flipbook-frame {
+    height: 650px; /* Adjusted for larger screens */
+    width: 98%;
+  }
+}
+
+@media (max-width: 768px) {
+  .flipbook-frame {
+    height: 550px; /* Adjusted for tablets */
+    width: 98%;
+  }
+}
+
+@media (max-width: 480px) {
+  .flipbook-frame {
+    height: 450px; /* Adjusted for mobile */
+    width: 100%;
+  }
+}
+
+
+
+
