@@ -1,7 +1,7 @@
 import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import ChatInputWidget from "../ChatInputWidget";
-import "../../styles/Chatbot.css";
+import "../../styles/Quizzes/Chatbot.css";
 
 const ChatBot = ({ open: forceOpen = false, initialMessage = "", predefinedQuestions = [] }) => {
   const [open, setOpen] = useState(forceOpen);

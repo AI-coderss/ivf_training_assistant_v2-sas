@@ -1,5 +1,5 @@
 import React from "react";
-import "../../styles/BookViewer.css";
+import "../../styles/content/BookViewer.css";
 
 const BookViewer = ({ selectedBookUrl }) => {
   return (

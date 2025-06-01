@@ -1,0 +1,205 @@
+.voice-assistant {
+  position: fixed;
+  right: 0;
+  top: 80px; /* Positioned below the assumed 80px header */
+  width: 28%; /* Slightly increased width for better content display */
+  max-width: 450px; /* Set a max-width */
+  height: calc(80vh - 80px); /* Fill remaining viewport height */
+  padding: 20px; /* General padding */
+  background: rgba(255, 255, 255, 0.3); /* Slightly more opaque for better visibility */
+  backdrop-filter: blur(0.5px); /* Increased blur for stronger visual separation */
+  -webkit-backdrop-filter: blur(0.5px);
+  border-left: 1px solid rgba(255, 255, 255, 0.4); /* Stronger border for clarity */
+  color: #ffffff;
+  box-shadow: -6px 0 16px rgba(0, 0, 0, 0.2); /* Deeper shadow */
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  /* justify-content: space-between; *//* We might not need this if footer is just for mic */
+  box-sizing: border-box;
+  margin-top: 0;
+  /* padding-top is adjusted to ensure content clears the new close button and potential orb */
+  padding-top: 70px; /* Increased to make space for close button + orb considerations */
+  /* Add padding-bottom to ensure content doesn't go under the mic button */
+  padding-bottom: 80px; /* Adjust based on mic button size and desired spacing */
+}
+
+.assistant-orb {
+  position: absolute;
+  top: 30%; /* Center vertically */
+  left: 50%;
+  transform: translate(-50%, -50%); /* Center horizontally and pull half its height up */
+  width: 180px; /* Adjust size as needed for your GIF */
+  height: 180px; /* Adjust size as needed for your GIF */
+  border-radius: 50%; /* Make it circular */
+  object-fit: cover; /* Ensures the GIF covers the circle */
+  z-index: 1001; /* Ensure it's above other elements in the assistant */
+}
+
+.assistant-content {
+  flex: 1;
+  overflow-y: auto; /* Enable scrolling for content if it overflows */
+  padding-right: 10px; /* Add some padding for scrollbar */
+  color: #333; /* Ensure content is visible */
+  /* margin-top: 10px; */ /* May not be needed depending on orb and padding-top of parent */
+}
+
+/* Assistant Footer might not be needed if mic is absolutely positioned,
+   or it might contain other elements. If it was only for the mic and close button,
+   and both are now absolutely positioned, you might be able to remove or repurpose it. */
+.assistant-footer {
+  /* display: flex; */ /* Original flex properties might not be relevant */
+  /* justify-content: space-around; */
+  /* align-items: center; */
+  /* margin-top: 20px; */ /* May not be needed */
+  /* padding-top: 10px; */
+  /* border-top: 1px solid rgba(255, 255, 255, 0.2); */ /* Subtle separator */
+  /* This element might become a container for other footer items or be removed */
+  /* For now, let's assume it might still exist for other purposes or can be cleaned up later */
+  width: 100%; /* Ensure it takes width if still used for other non-positioned items */
+  position: relative; /* If you have other items in footer to position relatively */
+}
+
+.mic-icon-btn {
+  background-color: #007BFF;
+  color: white;
+  width: 60px; /* Slightly larger for prominence */
+  height: 60px; /* Slightly larger for prominence */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  font-size: 1.5rem; /* Larger icon */
+  position: absolute;   /* MODIFIED */
+  bottom: 20px;         /* MODIFIED - Adjust as needed */
+  left: 50%;            /* MODIFIED */
+  transform: translateX(-50%); /* MODIFIED - To center it */
+  z-index: 1005;        /* MODIFIED - Ensure it's above content */
+  overflow: visible;
+}
+
+.mic-icon-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 80px; /* Adjusted for new button size */
+  height: 80px; /* Adjusted for new button size */
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid #007BFF;
+  opacity: 0.5;
+  pointer-events: none;
+  animation: mic-radiate 1.2s infinite;
+}
+
+@keyframes mic-radiate {
+  0% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 0.2;
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+}
+
+.mic-icon-btn:hover {
+  background-color: #0069d9;
+  transform: translateX(-50%) translateY(-2px); /* MODIFIED - Maintain X transform */
+}
+
+.close-btn {
+  /* padding: 12px 18px; */ /* Padding is less relevant with fixed size */
+  color: white;
+  background-color: #ffa3a3;
+  width: 40px;  /* Adjusted size */
+  height: 40px; /* Adjusted size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  font-size: 1rem;
+  position: absolute; /* MODIFIED */
+  top: 15px;          /* MODIFIED - Adjust as needed (respecting parent padding) */
+  right: 15px;         /* MODIFIED - Adjust as needed (respecting parent padding) */
+  z-index: 1005;       /* MODIFIED - Ensure it's above content and orb */
+}
+
+.close-btn:hover {
+  background-color: #dc2626;
+  transform: translateY(-2px);
+}
+
+/* 📱 Responsive */
+@media (max-width: 1024px) {
+  .voice-assistant {
+    position: static;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    padding: 16px;
+    /* padding-top for static needs to consider where close button will be */
+    /* If close button remains absolute, its context changes. */
+    /* For static, you might need a different strategy or make parent relative. */
+    padding-top: 60px; /* Re-evaluate this based on mobile layout */
+    padding-bottom: 70px; /* Re-evaluate for mic button */
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    /* If .voice-assistant is static, you may want to make it relative
+       if you intend to keep child buttons absolutely positioned *to it*. */
+    /* position: relative; /* Consider this for mobile if buttons are still absolute */
+  }
+
+  .assistant-orb {
+    display: none;
+  }
+
+  .assistant-footer {
+    /* Adjust footer for mobile if it's still in use */
+    justify-content: space-around;
+    margin-top: 1rem;
+  }
+
+  .mic-icon-btn {
+    /* For mobile, if .voice-assistant is static, absolute positioning will be
+       relative to the viewport or nearest positioned ancestor.
+       You might want to revert to a flow layout or center it differently. */
+    /* Example: Make it part of the flow again */
+    position: static; /* Revert from absolute */
+    transform: none;  /* Clear transform */
+    margin: 20px auto 10px auto; /* Center block element */
+    /* Or, if you keep it absolute and make .voice-assistant relative: */
+    /* bottom: 10px; left: 50%; transform: translateX(-50%); */
+  }
+
+
+  .close-btn {
+    /* For mobile, top-right of a static full-width block.
+       If .voice-assistant becomes 'relative' in media query, this works: */
+    /* top: 10px; */
+    /* right: 10px; */
+    /* Or use a flex approach if it's part of a header bar */
+    /* For simplicity, let's assume for now it might also become static flow
+       or you make .voice-assistant relative in the media query */
+    position: absolute; /* Keep it absolute for this example, assuming parent becomes relative or you want it viewport-relative */
+    top: 10px;          /* Adjust for mobile */
+    right: 10px;         /* Adjust for mobile */
+
+  }
+}

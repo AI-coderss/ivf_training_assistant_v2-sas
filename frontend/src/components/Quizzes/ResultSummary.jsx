@@ -1,5 +1,5 @@
 import React from "react";
-import "../../styles/QuizzesPage.css";
+import "../../styles/Quizzes/QuizzesPage.css";
 
 const ResultSummary = ({ score, total }) => {
   const percentage = (score / total) * 100;

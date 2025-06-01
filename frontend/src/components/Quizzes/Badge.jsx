@@ -1,5 +1,5 @@
 import React from "react";
-import "../../styles/Badge.css"; // Make sure this file holds the CSS you shared
+import "../../styles/Quizzes/Badge.css"; // Make sure this file holds the CSS you shared
 
 const Badge = () => {
   return (

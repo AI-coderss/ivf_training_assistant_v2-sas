@@ -1,5 +1,5 @@
 import React from "react";
-import "../../styles/QuizzesPage.css";
+import "../../styles/Quizzes/QuizzesPage.css";
 
 const TimerDisplay = ({ timeLeft }) => {
   const minutes = Math.floor(timeLeft / 60)

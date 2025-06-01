@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "../styles/ContentPage.css";
+import "../styles/content/ContentPage.css";
 import BookViewer from "../components/content/BookViewer";
 import VoiceAssistant from "../components/content/VoiceAssistant";
 import BookShelf from "../components/content/BookShelf";

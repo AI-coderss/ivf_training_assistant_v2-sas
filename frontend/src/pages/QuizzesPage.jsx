@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "../styles/QuizzesPage.css";
+import "../styles/Quizzes/QuizzesPage.css";
 import TimerDisplay from "../components/Quizzes/TimerDisplay";
 import QuestionBlock from "../components/Quizzes/QuestionBlock";
 import ResultSummary from "../components/Quizzes/ResultSummary";

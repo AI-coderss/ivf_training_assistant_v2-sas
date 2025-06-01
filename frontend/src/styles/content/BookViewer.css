@@ -11,7 +11,7 @@
 .flipbook-frame {
   /* Increased Width and Height */
   width: 100%; /* Increased from 90% */
-  height: 850px; /* Increased from 800px */
+  height: 900px; /* Increased from 800px */
   border: none;
   border-radius: 10px;
   background-color: transparent;

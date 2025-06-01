@@ -1,6 +1,6 @@
 // src/components/content/BookShelf.jsx
 import React from "react";
-import "../../styles/BookShelf.css";
+import "../../styles/content/BookShelf.css";
 
 // Book image paths are in /public/images/
 const books = [

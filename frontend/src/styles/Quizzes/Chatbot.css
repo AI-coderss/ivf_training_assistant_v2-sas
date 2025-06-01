@@ -59,7 +59,7 @@
   white-space: pre-wrap;
   line-height: 1.6;
   font-size: 14.5px;
-  background-color: #007BFF;
+  background-color: #2790ff;
   color: white;
   padding: 10px 14px;
   border-radius: 12px;
@@ -116,7 +116,7 @@
 }
 
 .chat-header {
-  background-color: #0778f1;
+  background-color: #2d8df5;
   color: white;
   padding: 10px;
   font-weight: bold;
@@ -153,7 +153,7 @@
 .chat-input button {
   padding: 8px 12px;
   border: none;
-  background-color: #007BFF;
+  background-color:#2d8df5;
   color: white;
   border-bottom-right-radius: 10px;
   cursor: pointer;
@@ -162,7 +162,7 @@
   font-size: 1.2rem;
   background: none;
   border: none;
-  color: #007BFF;
+  color: #2d8df5;
   padding: 0 10px;
   cursor: pointer;
 }
@@ -202,7 +202,7 @@
 .dot {
   width: 8px;
   height: 8px;
-  background-color: #007BFF;
+  background-color: #2d8df5;
   border-radius: 50%;
   animation: dot-blink 1.2s infinite ease-in-out;
 }
@@ -288,7 +288,7 @@
   bottom: calc(100% - min(22vh, 180px));
   left: 50%;
   transform: translateX(-50%);
-  background: #007BFF;
+  background: #2d8df5;
   color: #fffdfd;
   border: none;
   width: 36px;
@@ -345,15 +345,15 @@
   flex-direction: column;
   gap: 8px;
   background: #f8f9ff;
-  border-bottom: 1px solid #007BFF;
+  border-bottom: 1px solid #2d8df5;
   max-height: 200px;
   overflow-y: auto;
 }
 
 .predefined-question {
-  background: #007BFF;
-  color: #007BFF;
-  border: 1px solid #007BFF;
+  background: #2d8df5;
+  color: #2d8df5;
+  border: 1px solid #2d8df5;
   border-radius: 12px;
   padding: 8px 12px;
   text-align: left;
@@ -363,12 +363,12 @@
 }
 
 .predefined-question:hover {
-  background-color: #007BFF;
-  color: #007BFF;
+  background-color: #2d8df5;
+  color: #2d8df5;
 }
 .predefined-question:active {
-  background-color: #007BFF;
-  color: #007BFF;
+  background-color: #2d8df5;
+  color: #2d8df5;
 }
 
 .predefined-question-btn {

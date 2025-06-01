@@ -1,5 +1,5 @@
 import React from "react";
-import "../../styles/VoiceAssistant.css";
+import "../../styles/content/VoiceAssistant.css";
 import { FaMicrophoneAlt } from "react-icons/fa";
 
 const VoiceAssistant = ({ isVisible, onClose }) => {
