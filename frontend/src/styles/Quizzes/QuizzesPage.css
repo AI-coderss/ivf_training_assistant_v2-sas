@@ -210,7 +210,8 @@
   z-index: 1050;        /* High z-index to keep it above other content */
   display: flex;          /* To center the timer-display child */
   justify-content: center;/* Centers the .timer-display horizontally */
-  padding: 8px 0;       /* Adds some vertical padding within the wrapper (adjust as needed) */
+  padding: 8px 0; 
+  margin-top: 30px;      /* Adds some vertical padding within the wrapper (adjust as needed) */
   /* The background and backdrop-filter are on .timer-display,
      but you could add a background to the wrapper if you want the entire bar to have one.
      e.g., background-color: rgba(240, 240, 240, 0.8); */
@@ -227,7 +228,8 @@
   -webkit-backdrop-filter: blur(10px);
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12); /* Slightly adjusted shadow */
-  border: 1px solid rgba(255, 255, 255, 0.3);  /* Slightly more opaque border */
+  border: 1px solid rgba(255, 255, 255, 0.3); 
+  margin-top: 30px; /* Slightly more opaque border */
   /* No 'position' property needed here; its layout is handled by the flex parent */
 }
 
