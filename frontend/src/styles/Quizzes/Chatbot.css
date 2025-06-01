@@ -116,7 +116,7 @@
 }
 
 .chat-header {
-  background-color: #2d8df5;
+  background-color: #2790ff;
   color: white;
   padding: 10px;
   font-weight: bold;
@@ -162,7 +162,7 @@
   font-size: 1.2rem;
   background: none;
   border: none;
-  color: #2d8df5;
+  color:  #2790ff;
   padding: 0 10px;
   cursor: pointer;
 }
@@ -202,7 +202,7 @@
 .dot {
   width: 8px;
   height: 8px;
-  background-color: #2d8df5;
+  background-color:  #2790ff;
   border-radius: 50%;
   animation: dot-blink 1.2s infinite ease-in-out;
 }
@@ -288,7 +288,7 @@
   bottom: calc(100% - min(22vh, 180px));
   left: 50%;
   transform: translateX(-50%);
-  background: #2d8df5;
+  background: #2790ff;
   color: #fffdfd;
   border: none;
   width: 36px;
@@ -345,15 +345,15 @@
   flex-direction: column;
   gap: 8px;
   background: #f8f9ff;
-  border-bottom: 1px solid #2d8df5;
+  border-bottom: 1px solid #2790ff;
   max-height: 200px;
   overflow-y: auto;
 }
 
 .predefined-question {
-  background: #2d8df5;
-  color: #2d8df5;
-  border: 1px solid #2d8df5;
+  background: #2790ff;
+  color: #2790ff;
+  border: 1px solid #2790ff;
   border-radius: 12px;
   padding: 8px 12px;
   text-align: left;
@@ -363,12 +363,12 @@
 }
 
 .predefined-question:hover {
-  background-color: #2d8df5;
-  color: #2d8df5;
+  background-color: #2790ff;
+  color: #ffffff;
 }
 .predefined-question:active {
-  background-color: #2d8df5;
-  color: #2d8df5;
+  background-color:  #2790ff;
+  color: #ffffff; 
 }
 
 .predefined-question-btn {
