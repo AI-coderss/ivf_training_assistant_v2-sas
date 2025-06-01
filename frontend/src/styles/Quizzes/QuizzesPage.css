@@ -224,8 +224,8 @@
   font-weight: bold;
   color: #007bff; /* Ensure this has good contrast with your page/wrapper background */
   background: rgba(255, 255, 255, 0.25); /* Slightly more opaque for readability */
-  backdrop-filter: blur(2px);          /* Adjusted blur for performance/preference */
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(1px);        /* Adjusted blur for performance/preference */
+  -webkit-backdrop-filter: blur(1px);
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12); /* Slightly adjusted shadow */
   border: 1px solid rgba(255, 255, 255, 0.3); 
