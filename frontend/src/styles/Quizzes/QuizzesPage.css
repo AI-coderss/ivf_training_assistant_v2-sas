@@ -173,18 +173,7 @@
   position: relative;
 }
 
-.timer-display {
-  position: absolute;
-  top: -60px;
-  left: 0;
-  font-size: 16px;
-  font-weight: bold;
-  color: #007bff;
-  background: #eef6ff;
-  padding: 8px 12px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
+
 
 .correct {
   background-color: #e6f9e6;
@@ -213,7 +202,7 @@
 }
 
 /* Wrapper for the timer, this will be fixed to the top */
-.fixed-timer-wrapper { /* Renamed from .sticky-timer-wrapper for clarity */
+.sticky-timer-wrapper { /* Renamed from .sticky-timer-wrapper for clarity */
   position: fixed;      /* Key change: Makes the element fixed to the viewport */
   top: 0;               /* Positions it at the very top */
   left: 0;              /* Aligns to the left edge */
