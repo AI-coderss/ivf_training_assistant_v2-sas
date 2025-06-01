@@ -212,23 +212,58 @@
   font-weight: bold;
 }
 
+/* Wrapper for the timer, this will be fixed to the top */
+.fixed-timer-wrapper { /* Renamed from .sticky-timer-wrapper for clarity */
+  position: fixed;      /* Key change: Makes the element fixed to the viewport */
+  top: 0;               /* Positions it at the very top */
+  left: 0;              /* Aligns to the left edge */
+  width: 100%;          /* Makes the wrapper span the full viewport width */
+  z-index: 1050;        /* High z-index to keep it above other content */
+  display: flex;          /* To center the timer-display child */
+  justify-content: center;/* Centers the .timer-display horizontally */
+  padding: 8px 0;       /* Adds some vertical padding within the wrapper (adjust as needed) */
+  /* The background and backdrop-filter are on .timer-display,
+     but you could add a background to the wrapper if you want the entire bar to have one.
+     e.g., background-color: rgba(240, 240, 240, 0.8); */
+}
+
+/* The actual timer display element, styled as per your preferred styles */
+.timer-display {
+  padding: 10px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #007bff; /* Ensure this has good contrast with your page/wrapper background */
+  background: rgba(255, 255, 255, 0.25); /* Slightly more opaque for readability */
+  backdrop-filter: blur(10px);          /* Adjusted blur for performance/preference */
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12); /* Slightly adjusted shadow */
+  border: 1px solid rgba(255, 255, 255, 0.3);  /* Slightly more opaque border */
+  /* No 'position' property needed here; its layout is handled by the flex parent */
+}
+
+/*
+   IMPORTANT: You need to add a margin-top to your main quiz content
+   to prevent it from being hidden underneath the fixed timer.
+   Create a class for your main quiz area or apply this to an existing one.
+*/
+.quiz-content-area { /* Apply this class to the main container of your quiz questions */
+  margin-top: 70px;   /* Adjust this value based on the actual height of .fixed-timer-wrapper.
+                         Calculate: .fixed-timer-wrapper padding + .timer-display height.
+                         E.g., if .timer-display is ~40px high and wrapper padding is 8px top/bottom,
+                         total is ~56px. 70px gives a bit of space. */
+}
+
+/*
+   Your existing .quiz-with-timer can remain as is if it's used
+   for other purposes within your quiz structure.
+   It's no longer directly responsible for the timer's fixed positioning.
+*/
 .quiz-with-timer {
   position: relative;
 }
 
-.timer-display {
-  position: absolute;
-  top: -60px;
-  left: 0;
-  font-size: 16px;
-  font-weight: bold;
-  color: #007bff;
-  background: #eef6ff;
-  padding: 8px 12px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
+/* Pass/Fail text styles (unrelated to timer positioning, kept for completeness) */
 .pass-text {
   color: #28a745;
   font-weight: bold;
@@ -240,29 +275,12 @@
   font-weight: bold;
   margin-top: 10px;
 }
-.sticky-timer-wrapper {
-  position: sticky;
-  top: 0;
-  z-index: 999;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
-}
 
-.timer-display {
-  padding: 10px 20px;
-  font-size: 18px;
-  font-weight: bold;
-  color: #007bff;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-
+/*
+  The older CSS for .timer-display with `position: absolute; top: -60px;`
+  and the `.sticky-timer-wrapper` with `position: sticky;`
+  should be removed or commented out to avoid conflicts with this new fixed positioning.
+*/
 /* Responsive on mobile */
 @media (max-width: 768px) {
   .timer-display {
