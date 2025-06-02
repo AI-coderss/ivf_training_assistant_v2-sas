@@ -1,0 +1,180 @@
+/* src/styles/content/Chatbot.css */
+.chatbot-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 370px; /* Increased width */
+  max-height: 80vh; /* Max height */
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 10px; /* Softer corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* More pronounced shadow */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+  font-family: 'Arial', sans-serif; /* Consistent font */
+  transition: all 0.3s ease-in-out;
+}
+
+.chatbot-widget.closed {
+  height: 50px; /* Height of the toggle button when closed */
+  width: 200px; /* Width of the toggle button */
+  overflow: hidden;
+}
+
+.chatbot-toggle-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px; /* Pill shape */
+  cursor: pointer;
+  font-size: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1001; /* Above the widget if it's also fixed but hidden */
+}
+
+.chatbot-toggle-button:hover {
+  background-color: #0056b3;
+}
+
+
+.chatbot-header {
+  background-color: #007bff; /* Theme color */
+  color: white;
+  padding: 12px 15px; /* Adjusted padding */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #0056b3; /* Darker border for contrast */
+}
+
+.chatbot-header h3 {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 600; /* Slightly bolder */
+}
+
+.chatbot-header .close-button,
+.chatbot-header .reset-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2em; /* Larger icon */
+  cursor: pointer;
+  padding: 5px;
+}
+.chatbot-header .reset-button {
+  font-size: 0.9em;
+  margin-right: 10px; /* Space between reset and close */
+  padding: 6px 10px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.2); /* Subtle background */
+}
+.chatbot-header .reset-button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+
+.chatbot-messages {
+  flex-grow: 1;
+  padding: 15px; /* More padding */
+  overflow-y: auto;
+  background-color: #f9f9f9; /* Light background for messages area */
+  min-height: 200px; /* Ensure it has some height even if empty */
+}
+
+.message-container {
+  margin-bottom: 12px; /* Spacing between messages */
+  display: flex;
+}
+
+.message-bubble {
+  padding: 10px 15px; /* Comfortable padding */
+  border-radius: 18px; /* More rounded */
+  max-width: 80%;
+  word-wrap: break-word;
+  line-height: 1.5; /* Better readability */
+}
+
+.user-message .message-bubble {
+  background-color: #007bff; /* User message color */
+  color: white;
+  margin-left: auto; /* Align to right */
+  border-bottom-right-radius: 5px; /* Differentiate user bubble */
+}
+
+.bot-message .message-bubble {
+  background-color: #e9ecef; /* Bot message color */
+  color: #333; /* Darker text for bot */
+  border-bottom-left-radius: 5px; /* Differentiate bot bubble */
+}
+
+.message-sender {
+  font-size: 0.8em;
+  color: #777;
+  margin-bottom: 4px;
+}
+
+.user-message .message-sender {
+  text-align: right;
+}
+
+.bot-message .message-sender {
+  text-align: left;
+}
+
+
+.chatbot-input-area {
+  display: flex;
+  padding: 12px; /* Generous padding */
+  border-top: 1px solid #ddd;
+  background-color: #fff; /* Ensure it's distinct */
+}
+
+.chatbot-input-area input {
+  flex-grow: 1;
+  padding: 10px 12px; /* Comfortable input padding */
+  border: 1px solid #ccc;
+  border-radius: 20px; /* Pill-shaped input */
+  margin-right: 10px;
+  font-size: 1em;
+}
+
+.chatbot-input-area button {
+  padding: 10px 18px; /* Balanced button padding */
+  background-color: #28a745; /* Send button color */
+  color: white;
+  border: none;
+  border-radius: 20px; /* Pill-shaped button */
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.2s;
+}
+
+.chatbot-input-area button:hover {
+  background-color: #218838;
+}
+
+.chatbot-input-area button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+.chatbot-status {
+  padding: 8px 15px;
+  font-size: 0.9em;
+  color: #555;
+  background-color: #f0f0f0; /* Light status bar */
+  text-align: center;
+}
+
+.error-message {
+  color: red;
+  padding: 10px;
+  text-align: center;
+}
