@@ -166,13 +166,22 @@ def start_quiz():
         session_id = request.json.get("session_id", str(uuid4()))
         topic = request.json.get("topic", "IVF")
         difficulty = request.json.get("difficulty", "mixed")  # ✅ new param
+         # Ensure difficulty is one of the expected values if necessary, though RAG might handle variations.
+        allowed_difficulties = ['basic', 'medium', 'advanced']
+        if difficulty not in allowed_difficulties:
+            # You could default to 'basic' or raise an error.
+            # For now, let's assume the AI can handle the term if it's slightly off,
+            # or frontend guarantees correct terms.
+            print(f"Warning: Received unexpected difficulty '{difficulty}'. Proceeding with it.")
 
         rag_prompt = (
             f"You are an IVF virtual training assistant. Generate exactly 20 multiple-choice questions on '{topic}'. "
-            f"Each question must reflect '{difficulty}' difficulty level. Return them strictly as a JSON array. "
+            f"Each question must reflect '{difficulty}' difficulty level (where levels can be basic, medium, or advanced). " # Added context for AI
+            "Return them strictly as a JSON array. "
             "Each object must follow this format:\n"
-            '{ "id": "q1", "text": "...", "options": ["A", "B", "C", "D"], "correct": "B", "difficulty": "easy" }\n'
-            "Respond ONLY with valid JSON — no markdown, commentary, or explanations."
+            # The example 'difficulty' value is illustrative; the AI should use the requested '{difficulty}' from the prompt.
+            '{ "id": "q1", "text": "Sample question text...", "options": ["Option A", "Option B", "Option C", "Option D"], "correct": "B", "difficulty": "' + difficulty + '" }\n' 
+            "Respond ONLY with valid JSON — no markdown, commentary, or explanations. Ensure the 'difficulty' field in each question object accurately reflects the requested level: " + difficulty + "."
         )
 
         # 🧠 Ask AI via RAG
