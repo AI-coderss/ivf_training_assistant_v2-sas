@@ -1,0 +1,49 @@
+/* src/styles/Summary/SummariesPage.css */
+
+.summary-page {
+    padding: 2.5rem;
+    background-color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;           /* Prevent scroll */
+    scrollbar-width: none; 
+    min-height: 100vh;     /* Firefox: hide scrollbar */
+}
+
+.summary-page::-webkit-scrollbar {
+    display: none;              /* Chrome/Safari: hide scrollbar */
+}
+
+.summary-page h2 {
+  margin-bottom: 0.5rem;
+}
+
+.summary-page p {
+  margin-bottom: 2rem;
+  color: #555;
+}
+
+.summary-sections {
+  display: flex;
+  flex-direction: row; /* 👉 horizontal layout */
+  gap: 1.5rem;
+  justify-content: space-between;
+}
+
+/* Equal width for each section */
+.section {
+  flex: 1;
+  padding: 0.5rem;
+  background: transparent; /* ❌ remove background */
+  border: none;            /* ❌ remove borders */
+  box-shadow: none;        /* ❌ remove shadows */
+  border-radius: 0;        /* ❌ remove radius */
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Remove old color-indicating class styles */
+.bookshelf-section,
+.chat-section,
+.podcast-section {
+  border-left: none;
+}

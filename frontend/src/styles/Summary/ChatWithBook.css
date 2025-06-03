@@ -1,0 +1,46 @@
+/* src/styles/Summary/ChatWithBook.css */
+.chat-with-book {
+  display: flex;
+  flex-direction: column;
+  height: 800px;
+    width: 650px;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #ffffff;
+}
+
+.chat-title {
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+.chat-messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  padding-right: 0.5rem;
+}
+
+.chat-msg {
+  margin-bottom: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  max-width: 90%;
+  line-height: 1.4;
+}
+
+.chat-msg.user {
+  align-self: flex-end;
+  background-color: #e1f5fe;
+}
+
+.chat-msg.assistant {
+  align-self: flex-start;
+  background-color: #f1f8e9;
+}
+
+.chat-msg.system {
+  text-align: center;
+  font-style: italic;
+  color: #888;
+}
