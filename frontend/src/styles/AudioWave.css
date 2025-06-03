@@ -1,0 +1,22 @@
+.audio-wave-container {
+     margin-top: 20px; /* Adjust spacing as needed */
+     display: flex;
+     justify-content: center;
+     align-items: center;
+   }
+   
+   #audio-wave-svg {
+     width: 100%;
+     max-width: 600px; /* Adjust max-width as needed */
+     height: auto;
+     z-index: 1;
+   }
+   
+   /* Ensure the SVG is not covering other elements */
+   #mainSVG {
+     position: relative;
+     z-index: 1;
+     width: 100%;
+     height: auto;
+     visibility: visible;
+   }
