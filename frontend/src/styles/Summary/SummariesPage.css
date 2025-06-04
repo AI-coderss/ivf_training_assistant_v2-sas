@@ -1,43 +1,50 @@
 /* src/styles/Summary/SummariesPage.css */
 
 .summary-page {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: 2rem;
-  padding: 2rem;
+  display: flex; /* Enables flexbox for its direct children */
+  flex-direction: column; /* If there's a header above summary-sections, for example */
+  padding: 1rem; /* Overall padding for the page, can be adjusted or removed */
   background-color: #f3f4f8;
   height: 100vh;
   overflow: hidden;
+  box-sizing: border-box; /* Ensures padding doesn't add to height/width */
 }
 
 .summary-sections {
   display: flex;
-  flex-direction: row;
-  gap: 2rem;
+  flex-direction: row; /* Arranges bookshelf, chat, podcast in a row */
+  gap: 1rem; /* Space between the three main sections. Adjust from 0.5rem to 1.5rem as preferred, or 0 if no gap. */
   width: 100%;
+  height: 100%; /* Takes full available height from .summary-page */
 }
 
 /* Left = Books */
 .section.bookshelf-section {
-  flex: 0 0 20%;
-  overflow-y: auto;
-  scrollbar-width: none;
+  flex: 0 0 10%; /* Bookshelf takes 10% of the width, doesn't grow or shrink */
+  overflow-y: auto; /* Allows scrolling within the bookshelf if content overflows */
+  scrollbar-width: none; /* Hides scrollbar for Firefox */
+  height: 100%; /* Takes full height of its parent (.summary-sections) */
+  /* min-width: 180px; /* Optional: consider a min-width if 10% can become too narrow for book display */
 }
 
 .section.bookshelf-section::-webkit-scrollbar {
-  display: none;
+  display: none; /* Hides scrollbar for WebKit browsers */
 }
 
 /* Center = Chat */
 .section.chat-section {
-  flex: 1;
-  display: flex;
+  flex: 0 0 72%; /* Chat UI takes 75% of the width */
+  display: flex; /* Uses flexbox for its internal layout (e.g., chat messages, input) */
   flex-direction: column;
-  background: transparent;
+  background: transparent; /* The section itself is transparent; chat UI has its own background */
+  height: 100%;
 }
 
 /* Right = Podcasts or Media */
 .section.podcast-section {
-  flex: 0 0 20%;
+  flex: 0 0 15%; /* Podcast player takes the remaining 15% of the width */
+  height: 100%;
+  /* Add styling for the podcast player container here if needed */
+  /* e.g., padding, display: flex, align-items: center, justify-content: center */
+  /* overflow-y: auto; /* If podcast content might overflow */
 }
