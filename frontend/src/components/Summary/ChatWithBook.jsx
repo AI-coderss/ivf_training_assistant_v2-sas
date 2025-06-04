@@ -1,3 +1,4 @@
+/* eslint-disable no-loop-func */
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "../ChatInputWidget";
 import "../../styles/Summary/ChatWithBook.css";
@@ -76,13 +77,9 @@ const ChatWithBook = ({ book }) => {
   const handleSendMessage = async (message) => {
     if (!book || !readyToChat) return;
 
-    const userMessage = {
-      role: "user",
-      content: message.text || message,
-      isSuggested: !message.text, // if clicked from suggested
-    };
+    const text = message.text || message;
 
-    setChatHistory((prev) => [...prev, userMessage]);
+    setChatHistory((prev) => [...prev, { role: "user", content: text }]);
     setLoading(true);
 
     try {
@@ -92,7 +89,7 @@ const ChatWithBook = ({ book }) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            message: userMessage.content,
+            message: text,
             user_id: userId,
           }),
         }
@@ -106,7 +103,6 @@ const ChatWithBook = ({ book }) => {
         const { value, done } = await reader.read();
         if (done) break;
         result += decoder.decode(value);
-        // eslint-disable-next-line no-loop-func
         setChatHistory((prev) => [
           ...prev.slice(0, -1),
           { role: "assistant", content: result },
@@ -125,14 +121,14 @@ const ChatWithBook = ({ book }) => {
 
   const handleSuggestedClick = (question) => {
     if (!readyToChat) return;
-    handleSendMessage(question);
+    handleSendMessage({ text: question });
     setSuggestedQuestions((prev) => prev.filter((q) => q !== question));
   };
 
   return (
     <div className="chat-with-book">
       <h4 className="chat-title">
-        💬 Chat With: {book ? book.title : "Select a book to start"}
+        💬 Chat With: {book ? book.title : "Select a book"}
       </h4>
 
       {uploading && (
@@ -143,20 +139,19 @@ const ChatWithBook = ({ book }) => {
 
       <div className="chat-messages" ref={chatRef}>
         {chatHistory.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`chat-msg ${msg.role} ${
-              msg.isSuggested ? "suggested" : ""
-            }`}
-          >
+          <div key={idx} className={`chat-msg ${msg.role} fade-in`}>
             <span>{msg.content}</span>
           </div>
         ))}
-        {loading && <div className="chat-msg assistant">⏳ Thinking...</div>}
+        {loading && (
+          <div className="chat-msg assistant fade-in">
+            <span>⏳ Thinking...</span>
+          </div>
+        )}
       </div>
 
       {readyToChat && suggestedQuestions.length > 0 && (
-        <div className="suggested-questions">
+        <div className="suggested-questions neumorphic-panel">
           <p className="suggestion-title">💡 Suggested Questions:</p>
           <div className="suggestion-buttons">
             {suggestedQuestions.map((q, i) => (
