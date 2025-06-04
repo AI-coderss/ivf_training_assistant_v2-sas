@@ -11,7 +11,6 @@ from langchain_core.messages import AIMessage, HumanMessage
 from dotenv import load_dotenv
 import os
 import tempfile
-import base64
 from openai import OpenAI
 
 load_dotenv()
@@ -23,12 +22,22 @@ chat_histories = {}
 vector_stores = {}
 client = OpenAI()
 
+# ✅ Chunking configuration
+chunk_size = 1000
+chunk_overlap = 300
+
+def get_chunks(documents):
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
+    )
+    return text_splitter.split_documents(documents)
+
 def get_vectorestore_from_path(file_path):
     loader = PyPDFLoader(file_path)
     documents = loader.load()
-    text_splitter = RecursiveCharacterTextSplitter()
-    doc_chunks = text_splitter.split_documents(documents)
-    return FAISS.from_documents(doc_chunks, OpenAIEmbeddings())
+    chunks = get_chunks(documents)
+    return FAISS.from_documents(chunks, OpenAIEmbeddings())
 
 def get_context_retriever_chain(vector_store):
     llm = ChatOpenAI()
@@ -59,14 +68,14 @@ def upload_pdf():
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
             file.save(tmp.name)
 
-            # Step 1: Build vector store from PDF
+            # ✅ Step 1: Chunking before embedding
             vector_store = get_vectorestore_from_path(tmp.name)
             vector_stores[user_id] = vector_store
             chat_histories[user_id] = [
                 AIMessage(content="Hello! I'm your book assistant. How can I help you today?")
             ]
 
-            # Step 2: Generate suggested questions using RAG
+            # ✅ Step 2: Generate suggested questions using RAG
             retriever_chain = get_context_retriever_chain(vector_store)
             conversation_chain = get_conversational_rag_chain(retriever_chain)
 
@@ -78,7 +87,7 @@ def upload_pdf():
             suggestions = response.get("answer", "").split("\n")
             questions = [q.strip("•- 1234567890.") for q in suggestions if q.strip()]
 
-            # Step 3: Return signal to frontend that embedding is complete
+            # ✅ Step 3: Return signal to frontend
             return jsonify({
                 "embedding_done": True,
                 "message": "Embedding completed successfully.",
@@ -125,6 +134,6 @@ def reset_chat():
     vector_stores.pop(user_id, None)
     return jsonify({"message": "Session reset."})
 
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
