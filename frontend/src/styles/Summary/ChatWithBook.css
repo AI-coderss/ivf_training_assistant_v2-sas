@@ -88,7 +88,7 @@
 
 /* Suggested Questions at Bottom */
 .suggested-questions {
-  margin-top: 0.5rem;
+  margin-top: auto; /* MODIFIED: Pushes this container down in the flex column of .chat-content */
   margin-bottom: 1rem;
   padding: 0.75rem;
   background: #fff;
@@ -143,6 +143,7 @@
   height: 100px;
   font-size: 0.95rem;
   color: #666;
+  margin: auto; /* MODIFIED: Centers the loader within its parent container (e.g., .chat-content) */
 }
 
 /* Typing dots animation */
@@ -179,7 +180,7 @@
   margin-top: 1rem;
   padding-top: 1rem;
   background-color: #f0f2f5;
-  border-top: 1px solid #ddd;
+  border-top: none; /* MODIFIED: Removed the grey line */
   z-index: 3;
 }
 .chat-footer .chat-input-container {

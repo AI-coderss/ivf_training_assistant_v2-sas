@@ -16,6 +16,7 @@
   gap: 1rem; /* Space between the three main sections. Adjust from 0.5rem to 1.5rem as preferred, or 0 if no gap. */
   width: 100%;
   height: 100%; /* Takes full available height from .summary-page */
+  justify-content: center; /* MODIFIED: Centers the group of sections horizontally */
 }
 
 /* Left = Books */
@@ -33,11 +34,12 @@
 
 /* Center = Chat */
 .section.chat-section {
-  flex: 0 0 72%; /* Chat UI takes 75% of the width */
+  flex: 0 0 72%; /* Chat UI takes 72% of the width */
   display: flex; /* Uses flexbox for its internal layout (e.g., chat messages, input) */
   flex-direction: column;
   background: transparent; /* The section itself is transparent; chat UI has its own background */
   height: 100%;
+  position: relative; /* Added in case absolutely positioned elements inside need a reference, e.g. a full-overlay loader */
 }
 
 /* Right = Podcasts or Media */
