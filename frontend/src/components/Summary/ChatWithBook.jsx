@@ -1,36 +1,33 @@
 /* eslint-disable no-loop-func */
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "../ChatInputWidget";
+import ReactMarkdown from "react-markdown";
 import "../../styles/Summary/ChatWithBook.css";
 
 const ChatWithBook = ({ book }) => {
-  const [chatHistory, setChatHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [readyToChat, setReadyToChat] = useState(false);
+  const [chats, setChats] = useState([]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
-  const chatRef = useRef(null);
+  const [readyToChat, setReadyToChat] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef(null);
   const userId = "default_user";
 
   const scrollToBottom = () => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [chatHistory, loading]);
+  }, [chats, loading]);
 
   useEffect(() => {
     if (book) {
-      setChatHistory([
+      setChats([
         {
-          role: "system",
-          content: `📚 You are now chatting with "${book.title}".`,
+          who: "system",
+          msg: `📚 You are now chatting with "${book.title}".`,
         },
       ]);
-      setUploading(true);
       setReadyToChat(false);
       setSuggestedQuestions([]);
 
@@ -59,27 +56,20 @@ const ChatWithBook = ({ book }) => {
         })
         .catch((err) => {
           console.error("❌ Upload failed:", err);
-          setChatHistory((prev) => [
+          setChats((prev) => [
             ...prev,
             {
-              role: "assistant",
-              content:
-                "❌ Failed to load book content. Please try again later.",
+              who: "bot",
+              msg: "❌ Failed to load book content. Please try again later.",
             },
           ]);
-        })
-        .finally(() => {
-          setUploading(false);
         });
     }
   }, [book]);
 
-  const handleSendMessage = async (message) => {
-    if (!book || !readyToChat) return;
-
-    const text = message.text || message;
-
-    setChatHistory((prev) => [...prev, { role: "user", content: text }]);
+  const handleSendMessage = async (text) => {
+    const userMsg = { who: "me", msg: text };
+    setChats((prev) => [...prev, userMsg]);
     setLoading(true);
 
     try {
@@ -96,62 +86,70 @@ const ChatWithBook = ({ book }) => {
       );
 
       const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let result = "";
+      const decoder = new TextDecoder();
+      let botMessage = "";
+      setChats((prev) => [...prev, { who: "bot", msg: "" }]);
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        result += decoder.decode(value);
-        setChatHistory((prev) => [
-          ...prev.slice(0, -1),
-          { role: "assistant", content: result },
-        ]);
+        botMessage += decoder.decode(value, { stream: true });
+        setChats((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { who: "bot", msg: botMessage };
+          return updated;
+        });
       }
-    } catch (error) {
-      console.error("Chat error:", error);
-      setChatHistory((prev) => [
+    } catch (err) {
+      console.error("Streaming error:", err);
+      setChats((prev) => [
         ...prev,
-        { role: "assistant", content: "❌ Failed to fetch response." },
+        { who: "bot", msg: "❌ Failed to fetch response." },
       ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSuggestedClick = (question) => {
+  const handleSuggestedClick = (q) => {
     if (!readyToChat) return;
-    handleSendMessage({ text: question });
-    setSuggestedQuestions((prev) => prev.filter((q) => q !== question));
+    setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
+    handleSendMessage(q);
   };
 
   return (
-    <div className="chat-with-book">
-      <h4 className="chat-title">
-        💬 Chat With: {book ? book.title : "Select a book"}
-      </h4>
+    <div className="chat-glass-container">
+      <div className="chat-header">
+        💬 Chat With: {book ? book.title : "Select a book to start"}
+      </div>
 
-      {uploading && (
-        <div className="loader-overlay">
-          <div className="loader"></div>
-        </div>
-      )}
-
-      <div className="chat-messages" ref={chatRef}>
-        {chatHistory.map((msg, idx) => (
-          <div key={idx} className={`chat-msg ${msg.role} fade-in`}>
-            <span>{msg.content}</span>
+      <div className="chat-content">
+        {chats.map((chat, idx) => (
+          <div key={idx} className={`chat-message ${chat.who}`}>
+            {chat.who === "bot" && (
+              <figure className="avatar">
+                <img src="/av.gif" alt="AI Avatar" />
+              </figure>
+            )}
+            <div className="message-text glass-fade">
+              <ReactMarkdown>{chat.msg}</ReactMarkdown>
+            </div>
           </div>
         ))}
+
         {loading && (
-          <div className="chat-msg assistant fade-in">
-            <span>⏳ Thinking...</span>
+          <div className="chat-message bot">
+            <figure className="avatar">
+              <img src="/av.gif" alt="AI Avatar" />
+            </figure>
+            <div className="message-text glass-fade">⏳ Thinking...</div>
           </div>
         )}
+        <div ref={chatEndRef} />
       </div>
 
       {readyToChat && suggestedQuestions.length > 0 && (
-        <div className="suggested-questions neumorphic-panel">
+        <div className="suggested-questions">
           <p className="suggestion-title">💡 Suggested Questions:</p>
           <div className="suggestion-buttons">
             {suggestedQuestions.map((q, i) => (
@@ -167,7 +165,9 @@ const ChatWithBook = ({ book }) => {
         </div>
       )}
 
-      {readyToChat && <ChatInputWidget onSendMessage={handleSendMessage} />}
+      <div className="chat-footer">
+        <ChatInputWidget onSendMessage={handleSendMessage} />
+      </div>
     </div>
   );
 };
