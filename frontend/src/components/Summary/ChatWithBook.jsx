@@ -1,4 +1,3 @@
-/* eslint-disable no-loop-func */
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "../ChatInputWidget";
 import "../../styles/Summary/ChatWithBook.css";
@@ -10,7 +9,7 @@ const ChatWithBook = ({ book }) => {
   const [readyToChat, setReadyToChat] = useState(false);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const chatRef = useRef(null);
-  const userId = "default_user"; // For now, static. You can replace with dynamic ID.
+  const userId = "default_user";
 
   const scrollToBottom = () => {
     if (chatRef.current) {
@@ -75,22 +74,12 @@ const ChatWithBook = ({ book }) => {
   }, [book]);
 
   const handleSendMessage = async (message) => {
-    if (!book) return;
-
-    if (!readyToChat) {
-      setChatHistory((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "⏳ Please wait while the book is being prepared...",
-        },
-      ]);
-      return;
-    }
+    if (!book || !readyToChat) return;
 
     const userMessage = {
       role: "user",
       content: message.text || message,
+      isSuggested: !message.text, // if clicked from suggested
     };
 
     setChatHistory((prev) => [...prev, userMessage]);
@@ -117,6 +106,7 @@ const ChatWithBook = ({ book }) => {
         const { value, done } = await reader.read();
         if (done) break;
         result += decoder.decode(value);
+        // eslint-disable-next-line no-loop-func
         setChatHistory((prev) => [
           ...prev.slice(0, -1),
           { role: "assistant", content: result },
@@ -148,13 +138,17 @@ const ChatWithBook = ({ book }) => {
       {uploading && (
         <div className="loader-overlay">
           <div className="loader"></div>
-          <p>⏳ Preparing your book... Please wait</p>
         </div>
       )}
 
       <div className="chat-messages" ref={chatRef}>
         {chatHistory.map((msg, idx) => (
-          <div key={idx} className={`chat-msg ${msg.role}`}>
+          <div
+            key={idx}
+            className={`chat-msg ${msg.role} ${
+              msg.isSuggested ? "suggested" : ""
+            }`}
+          >
             <span>{msg.content}</span>
           </div>
         ))}
@@ -178,13 +172,7 @@ const ChatWithBook = ({ book }) => {
         </div>
       )}
 
-      {readyToChat ? (
-        <ChatInputWidget onSendMessage={handleSendMessage} />
-      ) : (
-        <div className="chat-msg assistant">
-          ⏳ Please wait while the book is being prepared...
-        </div>
-      )}
+      {readyToChat && <ChatInputWidget onSendMessage={handleSendMessage} />}
     </div>
   );
 };
