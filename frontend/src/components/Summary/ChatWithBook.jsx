@@ -1,3 +1,4 @@
+/* eslint-disable no-loop-func */
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "../ChatInputWidget";
 import "../../styles/Summary/ChatWithBook.css";
@@ -9,7 +10,7 @@ const ChatWithBook = ({ book }) => {
   const [readyToChat, setReadyToChat] = useState(false);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const chatRef = useRef(null);
-  const userId = "default_user";
+  const userId = "default_user"; // For now, static. You can replace with dynamic ID.
 
   const scrollToBottom = () => {
     if (chatRef.current) {
@@ -39,21 +40,32 @@ const ChatWithBook = ({ book }) => {
           const formData = new FormData();
           formData.append("file", blob, book.title + ".pdf");
           formData.append("user_id", userId);
-          return fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/upload", {
-            method: "POST",
-            body: formData,
-          });
+          return fetch(
+            "https://chat-with-your-books-server.onrender.com/chatwithbooks/upload",
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
         })
         .then((res) => res.json())
         .then((data) => {
-          setSuggestedQuestions(data.suggested_questions || []);
-          setReadyToChat(true);
+          if (data.embedding_done) {
+            setSuggestedQuestions(data.suggested_questions || []);
+            setReadyToChat(true);
+          } else {
+            throw new Error(data.error || "Embedding failed");
+          }
         })
         .catch((err) => {
           console.error("❌ Upload failed:", err);
           setChatHistory((prev) => [
             ...prev,
-            { role: "assistant", content: "❌ Failed to load book content." },
+            {
+              role: "assistant",
+              content:
+                "❌ Failed to load book content. Please try again later.",
+            },
           ]);
         })
         .finally(() => {
@@ -78,7 +90,7 @@ const ChatWithBook = ({ book }) => {
 
     const userMessage = {
       role: "user",
-      content: message.text || message, // handle string or object
+      content: message.text || message,
     };
 
     setChatHistory((prev) => [...prev, userMessage]);
@@ -105,7 +117,6 @@ const ChatWithBook = ({ book }) => {
         const { value, done } = await reader.read();
         if (done) break;
         result += decoder.decode(value);
-        // eslint-disable-next-line no-loop-func
         setChatHistory((prev) => [
           ...prev.slice(0, -1),
           { role: "assistant", content: result },
@@ -179,4 +190,3 @@ const ChatWithBook = ({ book }) => {
 };
 
 export default ChatWithBook;
-

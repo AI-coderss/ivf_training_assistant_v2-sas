@@ -58,29 +58,40 @@ def upload_pdf():
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
             file.save(tmp.name)
+
+            # Step 1: Build vector store from PDF
             vector_store = get_vectorestore_from_path(tmp.name)
             vector_stores[user_id] = vector_store
-            chat_histories[user_id] = [AIMessage(content="Hello! I'm your book assistant. How can I help you today?")]
+            chat_histories[user_id] = [
+                AIMessage(content="Hello! I'm your book assistant. How can I help you today?")
+            ]
 
-            # 🔧 Generate questions using actual vector content
+            # Step 2: Generate suggested questions using RAG
             retriever_chain = get_context_retriever_chain(vector_store)
             conversation_chain = get_conversational_rag_chain(retriever_chain)
 
             response = conversation_chain.invoke({
                 "chat_history": [],
-                "input": "Suggest 5 important questions to understand this book."
+                "input": "Suggest 5 questions to understand this book better."
             })
 
             suggestions = response.get("answer", "").split("\n")
             questions = [q.strip("•- 1234567890.") for q in suggestions if q.strip()]
+
+            # Step 3: Return signal to frontend that embedding is complete
             return jsonify({
-                "message": "File uploaded and vector store created.",
+                "embedding_done": True,
+                "message": "Embedding completed successfully.",
                 "suggested_questions": questions[:5]
-            })
+            }), 200
 
     except Exception as e:
         print(f"[ERROR] Upload failed: {e}")
-        return jsonify({"error": "Upload failed", "details": str(e)}), 500
+        return jsonify({
+            "embedding_done": False,
+            "error": "Embedding or question generation failed.",
+            "details": str(e)
+        }), 500
 
 @app.route('/chatwithbooks/message', methods=['POST'])
 def chat_message():
