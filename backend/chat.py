@@ -17,7 +17,7 @@ from openai import OpenAI
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["*"])
+CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com"])
 
 chat_histories = {}
 vector_stores = {}
