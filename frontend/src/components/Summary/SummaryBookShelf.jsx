@@ -8,31 +8,31 @@ const summarizableBooks = [
     id: 1,
     title: "Practical Manual Of In Vitro Fertilization",
     image: "/images/manual.png",
-    pdfUrl: "/pdfs/Practical_Manual_Of_In_Vitro_Fertilization.pdf",
+    pdfUrl: "/pdfs/manual.pdf",
   },
   {
     id: 2,
     title: "Fertility Cryopreservation",
     image: "/images/cryopreservation.png",
-    pdfUrl: "/pdfs/Fertility_Cryopreservation.pdf",
+    pdfUrl: "/pdfs/cryopreservation.pdf",
   },
   {
     id: 3,
     title: "The Ethics Of IVF",
     image: "/images/ethics.png",
-    pdfUrl: "/pdfs/The_Ethics_Of_IVF.pdf",
+    pdfUrl: "/pdfs/ethics.pdf",
   },
   {
     id: 4,
     title: "Boston Handbook Of Infertility",
     image: "/images/bostonIvf.png",
-    pdfUrl: "/pdfs/Boston_Handbook_Of_Infertility.pdf",
+    pdfUrl: "/pdfs/boston.pdf",
   },
   {
     id: 5,
     title: "How to prepare endometrium ",
     image: "/images/endo.png",
-    pdfUrl: "/pdfs/How_to_prepare_endometrium.pdf",
+    pdfUrl: "/pdfs/endo.pdf",
   },
 ];
 

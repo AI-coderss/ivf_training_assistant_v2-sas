@@ -54,12 +54,24 @@ def get_conversational_rag_chain(retriever_chain):
 def upload_pdf():
     file = request.files['file']
     user_id = request.form.get("user_id", "default_user")
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         file.save(tmp.name)
         vector_store = get_vectorestore_from_path(tmp.name)
         vector_stores[user_id] = vector_store
         chat_histories[user_id] = [AIMessage(content="Hello! I'm your book assistant. How can I help you today?")]
-    return jsonify({"message": "File uploaded and vector store created."})
+
+        # Suggest 3-5 questions from context
+        sample_question_prompt = ChatOpenAI().invoke(
+            "Based on the content of this book, suggest 5 questions a student might ask to understand it better."
+        )
+        suggestions = [q.strip("•- ") for q in sample_question_prompt.content.split('\n') if q.strip()]
+
+    return jsonify({
+        "message": "File uploaded and vector store created.",
+        "suggested_questions": suggestions[:5]
+    })
+
 
 @app.route('/chatwithbooks/message', methods=['POST'])
 def chat_message():
