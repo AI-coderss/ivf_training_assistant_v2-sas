@@ -126,10 +126,6 @@ const ChatWithBook = ({ book }) => {
 
   return (
     <div className="chat-glass-container">
-      <div className="chat-header">
-        💬 Chat With: {book ? book.title : "Select a book to start"}
-      </div>
-
       <div className="chat-content">
         {chats.map((chat, idx) => (
           <div key={idx} className={`chat-message ${chat.who}`}>
@@ -156,7 +152,6 @@ const ChatWithBook = ({ book }) => {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Loader between embedding & suggested question rendering */}
       {uploading && (
         <div className="embedding-loader">
           <div className="typing-dots">
@@ -193,4 +188,5 @@ const ChatWithBook = ({ book }) => {
 };
 
 export default ChatWithBook;
+
 

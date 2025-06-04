@@ -1,50 +1,58 @@
-/* ChatWithBooks.css */
-
 .chat-glass-container {
   display: flex;
   flex-direction: column;
-  height: 100%; /* Fills .section.chat-section */
+  height: 100%;
   width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 18px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
   padding: 1rem;
-  overflow: hidden; /* Important to contain children like blurred backdrop */
-  box-sizing: border-box; /* Ensure padding is included in width/height */
+  box-sizing: border-box;
 }
 
+/* Top header */
 .chat-header {
-  font-size: 1.3rem;
-  margin-top: 2rem;
+  font-size: 1.2rem;
   font-weight: bold;
-  color: #333; /* Or a color that suits the glassmorphism, e.g., a light grey or white if text is on a darker blur */
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  flex-shrink: 0; /* Prevent header from shrinking */
+  color: #222;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Scrollable message area */
 .chat-content {
-  flex: 2; /* Allows this section to grow and take available space */
+  flex: 1;
   overflow-y: auto;
+  margin-top: 1rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding-right: 0.25rem;
   scroll-behavior: smooth;
 }
 
+/* Scrollbar */
+.chat-content::-webkit-scrollbar {
+  width: 8px;
+}
+.chat-content::-webkit-scrollbar-thumb {
+  background-color: rgba(150, 150, 150, 0.25);
+  border-radius: 10px;
+}
+
+/* Chat bubbles */
 .chat-message {
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
-  animation: fadeIn 0.4s ease-in;
+  animation: fadeIn 0.3s ease-in;
 }
-
 .chat-message.me {
   justify-content: flex-end;
 }
-
 .chat-message.bot {
   justify-content: flex-start;
 }
@@ -57,67 +65,46 @@
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
-  background-color: #ffffff; /* Solid background for readability over potentially blurred bg */
+  background-color: #ffffff;
   color: #111;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow for message bubbles */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
-
 .chat-message.me .message-text {
-  background-color: #d9f4ff; /* Light blue for user messages */
+  background-color: #d9f4ff;
   color: #222;
-  border-top-right-radius: 0; /* "Tail" for user message */
+  border-top-right-radius: 0;
 }
-
 .chat-message.bot .message-text {
-  /* You might want a different background or tail for bot messages */
-  border-top-left-radius: 0; /* "Tail" for bot message */
+  border-top-left-radius: 0;
 }
 
-
-/* Avatar Styling */
+/* Avatar */
 .avatar {
-  width: 65px;
-  height: 65px;
-  margin-right: 10px;
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  border: 2px solid rgba(255, 255, 255, 0.25);
 }
-
 .avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-/* Scroll bar appearance */
-.chat-content::-webkit-scrollbar {
-  width: 8px;
-}
 
-.chat-content::-webkit-scrollbar-track {
-  background: transparent; /* Or a very subtle color from your glass theme */
-}
-
-.chat-content::-webkit-scrollbar-thumb {
-  background-color: rgba(150, 150, 150, 0.3); /* Semi-transparent thumb */
-  border-radius: 8px;
-}
-
-/* Suggested Questions */
+/* Suggested Qs */
 .suggested-questions {
-  margin-top: 0.75rem; /* Provides space above this section if chat content is short */
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.07); /* Subtle background */
-  border-radius: 12px;
-  flex-shrink: 0; /* Prevent suggested questions from shrinking */
-  /* border-top: 1px solid rgba(255, 255, 255, 0.1); Optional: if you want a separator */
+  padding: 1rem 0 0;
+  margin-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  z-index: 2;
 }
 
 .suggestion-title {
+  font-weight: 600;
+  color: #333;
   font-size: 0.9rem;
-  font-weight: bold;
-  color: #444; /* Adjust for readability on the glass background */
   margin-bottom: 0.5rem;
 }
 
@@ -128,28 +115,59 @@
 }
 
 .suggestion-btn {
-  background-color: #4a90e2; /* A clear, clickable color */
+  background-color: #4a90e2;
   color: white;
   border: none;
-  padding: 0.45rem 0.9rem;
   border-radius: 8px;
+  padding: 0.5rem 1rem;
   font-size: 0.8rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s;
 }
-
 .suggestion-btn:hover {
-  background-color: #2e6edb; /* Darker shade on hover */
+  background-color: #357bd8;
 }
 
-.chat-footer {
-  margin-top: auto; /* Pushes this to the bottom of the flex container */
-  padding-top: 1rem; /* Space above the input elements */
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0; /* Prevent footer from shrinking */
+/* Loader while embedding */
+.embedding-loader {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  text-align: center;
+  color: #555;
+  font-size: 0.9rem;
+}
+.typing-dots {
+  display: flex;
+  gap: 5px;
+  margin: 0.5rem auto;
+  justify-content: center;
+}
+.typing-dots span {
+  width: 8px;
+  height: 8px;
+  background: #4a90e2;
+  border-radius: 50%;
+  animation: bounce 0.6s infinite alternate;
+}
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-6px);
+  }
 }
 
-/* Animation */
+
+/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -161,48 +179,6 @@
   }
 }
 
-.embedding-loader {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 1rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  text-align: center;
-  color: #ccc;
-  font-size: 0.9rem;
-}
-
-.typing-dots {
-  display: flex;
-  gap: 5px;
-  margin-bottom: 0.5rem;
-}
-
-.typing-dots span {
-  width: 8px;
-  height: 8px;
-  background-color: #4a90e2;
-  border-radius: 50%;
-  animation: bounce 0.6s infinite alternate;
-}
-
-.typing-dots span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.typing-dots span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes bounce {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-6px);
-  }
-}
 
 
 
