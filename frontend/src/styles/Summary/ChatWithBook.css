@@ -1,5 +1,5 @@
 .chat-with-book {
-  width: 800px;
+  width: 100vw;
   height: 900px;
   display: flex;
   flex-direction: column;
