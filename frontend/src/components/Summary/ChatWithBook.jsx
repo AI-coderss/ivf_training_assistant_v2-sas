@@ -39,10 +39,13 @@ const ChatWithBook = ({ book }) => {
           const formData = new FormData();
           formData.append("file", blob, book.title + ".pdf");
           formData.append("user_id", userId);
-          return fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/upload", {
-            method: "POST",
-            body: formData,
-          });
+          return fetch(
+            "https://chat-with-your-books-server.onrender.com/chatwithbooks/upload",
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
         })
         .then((res) => res.json())
         .then((data) => {
@@ -69,7 +72,7 @@ const ChatWithBook = ({ book }) => {
     }
   }, [book]);
 
-  const handleSendMessage = async (text) => {
+  const handleSendMessage = async (message) => {
     if (!readyToChat) {
       setChats((prev) => [
         ...prev,
@@ -78,16 +81,23 @@ const ChatWithBook = ({ book }) => {
       return;
     }
 
-    const userMsg = { who: "me", msg: text };
+    const content = message.text || "[Audio Query]";
+    const userMsg = { who: "me", msg: content };
     setChats((prev) => [...prev, userMsg]);
     setLoading(true);
 
     try {
-      const response = await fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, user_id: userId }),
-      });
+      const response = await fetch(
+        "https://chat-with-your-books-server.onrender.com/chatwithbooks/message",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: content,
+            user_id: userId,
+          }),
+        }
+      );
 
       if (!response.ok || !response.body) {
         throw new Error("❌ Server failed to respond properly.");
@@ -121,7 +131,7 @@ const ChatWithBook = ({ book }) => {
 
   const handleSuggestedClick = (q) => {
     setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
-    handleSendMessage(q);
+    handleSendMessage({ text: q });
   };
 
   return (
@@ -134,7 +144,7 @@ const ChatWithBook = ({ book }) => {
                 <img src="/av.gif" alt="AI Avatar" />
               </figure>
             )}
-            <div className="message-text glass-fade">
+            <div className="message-text">
               <ReactMarkdown>{chat.msg}</ReactMarkdown>
             </div>
           </div>
@@ -145,10 +155,9 @@ const ChatWithBook = ({ book }) => {
             <figure className="avatar">
               <img src="/av.gif" alt="AI Avatar" />
             </figure>
-            <div className="message-text glass-fade">⏳ Thinking...</div>
+            <div className="message-text">⏳ Thinking...</div>
           </div>
         )}
-
         <div ref={chatEndRef} />
       </div>
 
@@ -158,36 +167,38 @@ const ChatWithBook = ({ book }) => {
             <span></span>
             <span></span>
             <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
           </div>
           <p>Embedding and preparing suggested questions...</p>
         </div>
       )}
 
-      {readyToChat && suggestedQuestions.length > 0 && (
-        <div className="suggested-questions">
-          <p className="suggestion-title">💡 Suggested Questions:</p>
-          <div className="suggestion-buttons">
-            {suggestedQuestions.map((q, i) => (
-              <button
-                key={i}
-                className="suggestion-btn"
-                onClick={() => handleSuggestedClick(q)}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {readyToChat && (
-        <div className="chat-footer">
-          <ChatInputWidget onSendMessage={handleSendMessage} />
-        </div>
+        <>
+          <div className="chat-footer">
+            <ChatInputWidget onSendMessage={handleSendMessage} />
+          </div>
+          <div className="suggested-questions">
+            <p className="suggestion-title">💡 Suggested Questions:</p>
+            <div className="suggestion-buttons">
+              {suggestedQuestions.map((q, i) => (
+                <button
+                  key={i}
+                  className="suggestion-btn"
+                  onClick={() => handleSuggestedClick(q)}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
 };
 
 export default ChatWithBook;
-
