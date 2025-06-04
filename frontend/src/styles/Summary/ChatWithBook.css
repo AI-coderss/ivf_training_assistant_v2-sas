@@ -127,6 +127,7 @@
   font-size: 0.85rem;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  z-index: 10002;
 }
 
 .suggestion-btn:hover {
@@ -144,6 +145,7 @@
   font-size: 0.95rem;
   color: #666;
   margin: auto; /* MODIFIED: Centers the loader within its parent container (e.g., .chat-content) */
+  z-index: 10001; /* MODIFIED: Ensures the loader appears above other content */
 }
 
 /* Typing dots animation */
@@ -179,7 +181,6 @@
 .chat-footer {
   margin-top: 1rem;
   padding-top: 1rem;
-  background-color: #f0f2f5;
   border-top: none; /* MODIFIED: Removed the grey line */
   z-index: 3;
 }
