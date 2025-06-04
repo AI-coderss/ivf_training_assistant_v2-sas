@@ -39,7 +39,7 @@ const ChatWithBook = ({ book }) => {
           const formData = new FormData();
           formData.append("file", blob, book.title + ".pdf");
           formData.append("user_id", userId);
-          return fetch("http://localhost:5000/chatwithbooks/upload", {
+          return fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/upload", {
             method: "POST",
             body: formData,
           });
@@ -75,7 +75,7 @@ const ChatWithBook = ({ book }) => {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/chatwithbooks/message",
+        "https://chat-with-your-books-server.onrender.com/chatwithbooks/message",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
