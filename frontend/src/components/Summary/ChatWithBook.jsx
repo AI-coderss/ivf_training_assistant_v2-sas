@@ -8,6 +8,7 @@ const ChatWithBook = ({ book }) => {
   const [chats, setChats] = useState([]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [readyToChat, setReadyToChat] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef(null);
   const userId = "default_user";
@@ -25,9 +26,10 @@ const ChatWithBook = ({ book }) => {
       setChats([
         {
           who: "system",
-          msg: `📚 You are now chatting with "${book.title}".`,
+          msg: `📘 You are now chatting with "${book.title}". Please wait while I load the content...`,
         },
       ]);
+      setUploading(true);
       setReadyToChat(false);
       setSuggestedQuestions([]);
 
@@ -37,13 +39,10 @@ const ChatWithBook = ({ book }) => {
           const formData = new FormData();
           formData.append("file", blob, book.title + ".pdf");
           formData.append("user_id", userId);
-          return fetch(
-            "https://chat-with-your-books-server.onrender.com/chatwithbooks/upload",
-            {
-              method: "POST",
-              body: formData,
-            }
-          );
+          return fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/upload", {
+            method: "POST",
+            body: formData,
+          });
         })
         .then((res) => res.json())
         .then((data) => {
@@ -63,27 +62,36 @@ const ChatWithBook = ({ book }) => {
               msg: "❌ Failed to load book content. Please try again later.",
             },
           ]);
+        })
+        .finally(() => {
+          setUploading(false);
         });
     }
   }, [book]);
 
   const handleSendMessage = async (text) => {
+    if (!readyToChat) {
+      setChats((prev) => [
+        ...prev,
+        { who: "bot", msg: "⚠️ Please wait until the book is fully loaded." },
+      ]);
+      return;
+    }
+
     const userMsg = { who: "me", msg: text };
     setChats((prev) => [...prev, userMsg]);
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "https://chat-with-your-books-server.onrender.com/chatwithbooks/message",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: text,
-            user_id: userId,
-          }),
-        }
-      );
+      const response = await fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, user_id: userId }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error("❌ Server failed to respond properly.");
+      }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -104,7 +112,7 @@ const ChatWithBook = ({ book }) => {
       console.error("Streaming error:", err);
       setChats((prev) => [
         ...prev,
-        { who: "bot", msg: "❌ Failed to fetch response." },
+        { who: "bot", msg: "❌ Failed to fetch response. Please try again." },
       ]);
     } finally {
       setLoading(false);
@@ -112,7 +120,6 @@ const ChatWithBook = ({ book }) => {
   };
 
   const handleSuggestedClick = (q) => {
-    if (!readyToChat) return;
     setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
     handleSendMessage(q);
   };
@@ -145,8 +152,21 @@ const ChatWithBook = ({ book }) => {
             <div className="message-text glass-fade">⏳ Thinking...</div>
           </div>
         )}
+
         <div ref={chatEndRef} />
       </div>
+
+      {/* Loader between embedding & suggested question rendering */}
+      {uploading && (
+        <div className="embedding-loader">
+          <div className="typing-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <p>Embedding and preparing suggested questions...</p>
+        </div>
+      )}
 
       {readyToChat && suggestedQuestions.length > 0 && (
         <div className="suggested-questions">
@@ -173,3 +193,4 @@ const ChatWithBook = ({ book }) => {
 };
 
 export default ChatWithBook;
+
