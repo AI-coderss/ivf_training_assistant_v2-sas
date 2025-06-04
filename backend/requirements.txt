@@ -5,6 +5,7 @@ langchain-core
 langchain-qdrant
 langchain-openai
 langchain
+pypdf
 openai
 python-dotenv
 flask
