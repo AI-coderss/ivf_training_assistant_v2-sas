@@ -55,23 +55,32 @@ def upload_pdf():
     file = request.files['file']
     user_id = request.form.get("user_id", "default_user")
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        file.save(tmp.name)
-        vector_store = get_vectorestore_from_path(tmp.name)
-        vector_stores[user_id] = vector_store
-        chat_histories[user_id] = [AIMessage(content="Hello! I'm your book assistant. How can I help you today?")]
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            file.save(tmp.name)
+            vector_store = get_vectorestore_from_path(tmp.name)
+            vector_stores[user_id] = vector_store
+            chat_histories[user_id] = [AIMessage(content="Hello! I'm your book assistant. How can I help you today?")]
 
-        # Suggest 3-5 questions from context
-        sample_question_prompt = ChatOpenAI().invoke(
-            "Based on the content of this book, suggest 5 questions a student might ask to understand it better."
-        )
-        suggestions = [q.strip("•- ") for q in sample_question_prompt.content.split('\n') if q.strip()]
+            # 🔧 Generate questions using actual vector content
+            retriever_chain = get_context_retriever_chain(vector_store)
+            conversation_chain = get_conversational_rag_chain(retriever_chain)
 
-    return jsonify({
-        "message": "File uploaded and vector store created.",
-        "suggested_questions": suggestions[:5]
-    })
+            response = conversation_chain.invoke({
+                "chat_history": [],
+                "input": "Suggest 5 important questions to understand this book."
+            })
 
+            suggestions = response.get("answer", "").split("\n")
+            questions = [q.strip("•- 1234567890.") for q in suggestions if q.strip()]
+            return jsonify({
+                "message": "File uploaded and vector store created.",
+                "suggested_questions": questions[:5]
+            })
+
+    except Exception as e:
+        print(f"[ERROR] Upload failed: {e}")
+        return jsonify({"error": "Upload failed", "details": str(e)}), 500
 
 @app.route('/chatwithbooks/message', methods=['POST'])
 def chat_message():
