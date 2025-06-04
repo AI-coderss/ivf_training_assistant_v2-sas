@@ -39,10 +39,13 @@ const ChatWithBook = ({ book }) => {
           const formData = new FormData();
           formData.append("file", blob, book.title + ".pdf");
           formData.append("user_id", userId);
-          return fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/upload", {
-            method: "POST",
-            body: formData,
-          });
+          return fetch(
+            "https://chat-with-your-books-server.onrender.com/chatwithbooks/upload",
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
         })
         .then((res) => res.json())
         .then((data) => {
@@ -83,11 +86,14 @@ const ChatWithBook = ({ book }) => {
     setLoading(true);
 
     try {
-      const response = await fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, user_id: userId }),
-      });
+      const response = await fetch(
+        "https://chat-with-your-books-server.onrender.com/chatwithbooks/message",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, user_id: userId }),
+        }
+      );
 
       if (!response.ok || !response.body) {
         throw new Error("❌ Server failed to respond properly.");
@@ -180,13 +186,13 @@ const ChatWithBook = ({ book }) => {
         </div>
       )}
 
-      <div className="chat-footer">
-        <ChatInputWidget onSendMessage={handleSendMessage} />
-      </div>
+      {readyToChat && (
+        <div className="chat-footer">
+          <ChatInputWidget onSendMessage={handleSendMessage} />
+        </div>
+      )}
     </div>
   );
 };
 
 export default ChatWithBook;
-
-

@@ -4,7 +4,7 @@
   display: flex; /* Enables flexbox for its direct children */
   flex-direction: column; /* If there's a header above summary-sections, for example */
   padding: 1rem; /* Overall padding for the page, can be adjusted or removed */
-  background-color: #f3f4f8;
+  background-color: #ffffff;
   height: 100vh;
   overflow: hidden;
   box-sizing: border-box; /* Ensures padding doesn't add to height/width */
