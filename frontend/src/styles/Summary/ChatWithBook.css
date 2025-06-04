@@ -91,12 +91,11 @@
   margin-top: auto; /* MODIFIED: Pushes this container down in the flex column of .chat-content */
   margin-bottom: 1rem;
   padding: 0.75rem;
-  background: #fff;
-  border: 1px solid #e0e0e0;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
+
 }
 
 .suggestion-title {
@@ -119,7 +118,7 @@
   min-width: 220px;
   max-width: 250px;
   text-align: center;
-  background-color: #4a90e2;
+  background-color:   #2790ff;
   color: white;
   border: none;
   padding: 0.6rem 1.2rem;
@@ -131,7 +130,7 @@
 }
 
 .suggestion-btn:hover {
-  background-color: #357bd8;
+  background-color:   #2790ff;
 }
 
 /* Loader centered in chat */
