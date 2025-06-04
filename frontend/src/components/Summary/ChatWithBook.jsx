@@ -63,7 +63,18 @@ const ChatWithBook = ({ book }) => {
   }, [book]);
 
   const handleSendMessage = async (message) => {
-    if (!book || !readyToChat) return;
+    if (!book) return;
+
+    if (!readyToChat) {
+      setChatHistory((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "⏳ Please wait while the book is being prepared...",
+        },
+      ]);
+      return;
+    }
 
     const userMessage = {
       role: "user",
@@ -112,6 +123,7 @@ const ChatWithBook = ({ book }) => {
   };
 
   const handleSuggestedClick = (question) => {
+    if (!readyToChat) return;
     handleSendMessage(question);
     setSuggestedQuestions((prev) => prev.filter((q) => q !== question));
   };
@@ -155,9 +167,16 @@ const ChatWithBook = ({ book }) => {
         </div>
       )}
 
-      {readyToChat && <ChatInputWidget onSendMessage={handleSendMessage} />}
+      {readyToChat ? (
+        <ChatInputWidget onSendMessage={handleSendMessage} />
+      ) : (
+        <div className="chat-msg assistant">
+          ⏳ Please wait while the book is being prepared...
+        </div>
+      )}
     </div>
   );
 };
 
 export default ChatWithBook;
+
