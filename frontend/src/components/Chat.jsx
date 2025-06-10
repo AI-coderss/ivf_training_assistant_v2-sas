@@ -111,16 +111,16 @@ const Chat = () => {
             <button
               key={idx}
               className="suggestion-item"
+              style={{ "--i": idx }}
               onClick={() => {
                 handleNewMessage({ text: q });
-                setSuggestedQuestions((prev) =>
-                  prev.filter((item) => item !== q)
-                );
+                setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
               }}
             >
               {q}
             </button>
           ))}
+
         </div>
       </div>
     </div>
