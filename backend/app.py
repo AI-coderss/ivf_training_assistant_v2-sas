@@ -133,7 +133,7 @@ def stream():
     user_input = data.get("message")
     if not user_input:
         return jsonify({"error": "No input message"}), 400
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    client = OpenAI()
     def generate_response():
         answer = ""
         use_web_search = False
@@ -165,10 +165,11 @@ def stream():
             yield "\n\n🔎 Switching to live web search...\n\n"
             try:
                 response = client.responses.create(
-                    model="gpt-4.1",
+                    model="gpt-4o",
                     input=user_input,
                     tools=[{ "type": "web_search_preview" }],
-                    stream=True
+                    stream=True,
+            
                 )
                 for chunk in response:
                     if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
@@ -189,15 +190,16 @@ def websearch():
     user_input = data.get("message")
     if not user_input:
         return jsonify({"error": "Missing user input"}), 400
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    client = OpenAI()
     def stream_web_response():
         try:
             # ✅ Use the correct tool type: web_search_preview
             response = client.responses.create(
-                model="gpt-4.1",
+                model="gpt-4o",
                 input=user_input,
                 tools=[{"type": "web_search_preview"}],
-                stream=True
+                stream=True,
+                
             )
             for chunk in response:
                 if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
