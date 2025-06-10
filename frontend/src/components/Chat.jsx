@@ -33,16 +33,19 @@ const Chat = () => {
       setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
 
       try {
-        const response = await fetch("https://ivf-backend-server.onrender.com/stream", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: data.text,
-            session_id: sessionId,
-          }),
-        });
+        const response = await fetch(
+          "https://ivf-backend-server.onrender.com/stream",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: data.text,
+              session_id: sessionId,
+            }),
+          }
+        );
 
         if (!response.ok || !response.body) {
           throw new Error("Failed to stream response");
@@ -69,40 +72,47 @@ const Chat = () => {
         console.error("Streaming error:", err);
         setChats((prev) => [
           ...prev,
-          { msg: "Sorry, something went wrong with the streaming response.", who: "bot" },
+          {
+            msg: "Sorry, something went wrong with the streaming response.",
+            who: "bot",
+          },
         ]);
       }
     }
   };
 
   return (
-    <div className="chat-container">
-      <div className="chat-main">
-        <div className="chat-content" ref={chatContentRef}>
-          {chats.map((chat, index) => (
-            <div key={index} className={`chat-message ${chat.who}`}>
-              {chat.who === "bot" && (
-                <figure className="avatar">
-                  <img src="/av.gif" alt="avatar" />
-                </figure>
-              )}
-              <div className="message-text">
-                <ReactMarkdown>{chat.msg}</ReactMarkdown>
-              </div>
+    <div className="chat-layout">
+      <div className="chat-content" ref={chatContentRef}>
+        {chats.map((chat, index) => (
+          <div key={index} className={`chat-message ${chat.who}`}>
+            {chat.who === "bot" && (
+              <figure className="avatar">
+                <img src="/av.gif" alt="avatar" />
+              </figure>
+            )}
+            <div className="message-text">
+              <ReactMarkdown>{chat.msg}</ReactMarkdown>
             </div>
-          ))}
-          <div ref={scrollAnchorRef} />
-        </div>
-        <div className="chat-footer">
-          <ChatInputWidget onSendMessage={handleNewMessage} />
-        </div>
+          </div>
+        ))}
+        <div ref={scrollAnchorRef} />
       </div>
 
-      <div className="suggestion-sidebar">
-        <h4>💡 Suggested Questions</h4>
+      <div className="chat-footer">
+        <ChatInputWidget onSendMessage={handleNewMessage} />
+      </div>
+
+      {/* ✅ Suggested questions sidebar */}
+      <div className="suggestion-column">
+        <h4 className="suggestion-title">💡 Suggested Questions</h4>
         <div className="suggestion-list">
           {suggestedQuestions.map((q, idx) => (
-            <button key={idx} className="suggestion-btn" onClick={() => handleNewMessage({ text: q })}>
+            <button
+              key={idx}
+              className="suggestion-item"
+              onClick={() => handleNewMessage({ text: q })}
+            >
               {q}
             </button>
           ))}
@@ -113,8 +123,3 @@ const Chat = () => {
 };
 
 export default Chat;
-
-
-
-
-
