@@ -165,7 +165,7 @@ def stream():
                 resp = client.responses.create(
                     model="gpt-4o",
                     input=user_input,
-                    tools=[{"type": "web_search"}],
+                    tools=[{ "type": "web_search_preview" }],
                     stream=True,
                 )
                 for event in resp:
@@ -197,7 +197,7 @@ def websearch():
             resp = client.responses.create(
                 model="gpt-4o",
                 input=user_input,
-                tools=[{"type": "web_search"}],
+                tools=[{ "type": "web_search_preview" }],
                 stream=True,
             )
             for event in resp:
