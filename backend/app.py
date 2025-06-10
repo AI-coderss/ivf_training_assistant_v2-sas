@@ -175,6 +175,7 @@ def stream():
                         text = delta.delta.get("content", "")
                         answer += text
                         yield text
+                        print(f"Web search chunk: {text}")
             except Exception as e:
                 yield f"\n[Web search error: {e}]"
 
