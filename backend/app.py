@@ -24,7 +24,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com"])
+CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com","https://ivf-virtual-training-assistant-dsah.onrender.com"])
 
 # === SESSION STATE ===
 chat_sessions = {}
