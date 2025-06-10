@@ -123,7 +123,33 @@ def generate():
         "response": answer,
         "session_id": session_id
     })
+@app.route("/suggestions", methods=["GET"])
+def suggest_questions():
+    try:
+        # ✅ Step 1: Use your persistent vector store
+        retriever_chain = get_context_retriever_chain()
+        conversation_chain = get_conversational_rag_chain(retriever_chain)
 
+        # ✅ Step 2: Invoke RAG to get suggested questions
+        response = conversation_chain.invoke({
+            "chat_history": [],
+            "input": "Suggest 25 common and helpful questions users may ask about IVF or virtual hospital systems. Be specific and return them as a numbered list."
+        })
+
+        raw = response.get("answer", "")
+        lines = raw.split("\n")
+        questions = [re.sub(r"^[\s•\-\d\.\)]+", "", line).strip() for line in lines if line.strip()]
+
+        # ✅ Step 3: Return JSON
+        return jsonify({
+            "suggested_questions": questions[:25]
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": "Failed to generate suggested questions.",
+            "details": str(e)
+        }), 500
 # === /stream endpoint ===
 @app.route("/stream", methods=["POST"])
 def stream():

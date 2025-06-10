@@ -7,7 +7,7 @@ const Chat = () => {
   const [chats, setChats] = useState([
     { msg: "Hi there! How can I assist you today?", who: "bot" },
   ]);
-
+  const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
     localStorage.setItem("sessionId", id);
@@ -17,15 +17,20 @@ const Chat = () => {
   const chatContentRef = useRef(null);
   const scrollAnchorRef = useRef(null);
 
-  // ✅ Automatically scroll to bottom when messages update
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chats]);
 
+  useEffect(() => {
+    fetch("https://ivf-backend-server.onrender.com/suggestions")
+      .then((res) => res.json())
+      .then((data) => setSuggestedQuestions(data.suggested_questions || []))
+      .catch((err) => console.error("Failed to fetch suggestions:", err));
+  }, []);
+
   const handleNewMessage = async (data) => {
     if (data.text) {
       setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
-   
 
       try {
         const response = await fetch("https://ivf-backend-server.onrender.com/stream", {
@@ -66,38 +71,49 @@ const Chat = () => {
           ...prev,
           { msg: "Sorry, something went wrong with the streaming response.", who: "bot" },
         ]);
-      } finally {
-       
       }
     }
   };
 
   return (
-    <>
-      <div className="chat-content" ref={chatContentRef}>
-        {chats.map((chat, index) => (
-          <div key={index} className={`chat-message ${chat.who}`}>
-            {chat.who === "bot" && (
-              <figure className="avatar">
-                <img src="/av.gif" alt="avatar" />
-              </figure>
-            )}
-            <div className="message-text">
-              <ReactMarkdown>{chat.msg}</ReactMarkdown>
+    <div className="chat-container">
+      <div className="chat-main">
+        <div className="chat-content" ref={chatContentRef}>
+          {chats.map((chat, index) => (
+            <div key={index} className={`chat-message ${chat.who}`}>
+              {chat.who === "bot" && (
+                <figure className="avatar">
+                  <img src="/av.gif" alt="avatar" />
+                </figure>
+              )}
+              <div className="message-text">
+                <ReactMarkdown>{chat.msg}</ReactMarkdown>
+              </div>
             </div>
-          </div>
-        ))}
-        <div ref={scrollAnchorRef} /> {/* ✅ Invisible anchor for scrolling */}
+          ))}
+          <div ref={scrollAnchorRef} />
+        </div>
+        <div className="chat-footer">
+          <ChatInputWidget onSendMessage={handleNewMessage} />
+        </div>
       </div>
 
-      <div className="chat-footer">
-        <ChatInputWidget onSendMessage={handleNewMessage} />
+      <div className="suggestion-sidebar">
+        <h4>💡 Suggested Questions</h4>
+        <div className="suggestion-list">
+          {suggestedQuestions.map((q, idx) => (
+            <button key={idx} className="suggestion-btn" onClick={() => handleNewMessage({ text: q })}>
+              {q}
+            </button>
+          ))}
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 
 export default Chat;
+
 
 
 
