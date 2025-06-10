@@ -137,9 +137,6 @@ const Chat = () => {
 
         {isLoading && (
           <div className="chat-message bot">
-            <figure className="avatar">
-              <img src="/av.gif" alt="avatar" />
-            </figure>
             <div className="message-text">
               <SearchLoader />
             </div>
