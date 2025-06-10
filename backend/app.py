@@ -29,7 +29,6 @@ CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com","https
 # === SESSION STATE ===
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 # === VECTOR DB ===
@@ -130,17 +129,18 @@ def generate():
 @app.route("/stream", methods=["POST"])
 def stream():
     data = request.get_json()
-    user_input = data.get("message")
     session_id = data.get("session_id", str(uuid4()))
-
+    user_input = data.get("message")
     if not user_input:
         return jsonify({"error": "No input message"}), 400
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def generate_response():
         answer = ""
         use_web = False
 
-        # Step 1: Attempt RAG response first
+        # 🚀 Step 1: Try RAG first
         try:
             for chunk in chain_with_memory.stream(
                 {"input": user_input},
@@ -150,65 +150,64 @@ def stream():
                 answer += token
                 yield token
         except Exception as e:
-            yield f"\n[Vector error: {str(e)}]"
+            yield f"\n[Vector error: {e}]"
             use_web = True
 
-        # Step 2: Fallback check (low-confidence or generic answers)
-        fallback_phrases = [
-            "don't know", "not sure", "cannot find", "no relevant", "unavailable",
-            "sorry", "unable to answer"
-        ]
-        if any(trigger in answer.lower() for trigger in fallback_phrases):
+        # 🔍 Step 2: Fallback logic
+        triggers = ["i don’t know", "i'm not sure", "no relevant", "cannot find", "sorry", "unavailable"]
+        if any(t in answer.lower() for t in triggers):
             use_web = True
 
-        # Step 3: Perform web search if needed
+        # 🌐 Step 3: Web search fallback with Responses API
         if use_web:
             yield "\n\n🔎 Switching to live web search...\n\n"
             try:
-                response = client.responses.create(
-                    model="gpt-4.1",
-                    tools=[{"type": "web_search_preview"}],
+                resp = client.responses.create(
+                    model="gpt-4o",
                     input=user_input,
-                    stream=True
+                    tools=[{"type": "web_search"}],
+                    stream=True,
                 )
-                for event in response:
-                    if hasattr(event, "output_text") and event.output_text:
-                        answer += event.output_text
-                        yield event.output_text
+                for event in resp:
+                    # event.output_text.delta streams text content
+                    delta = getattr(event, "output_text", None)
+                    if delta and getattr(delta, "delta", None):
+                        text = delta.delta.get("content", "")
+                        answer += text
+                        yield text
             except Exception as e:
-                yield f"\n[Web search error: {str(e)}]"
+                yield f"\n[Web search error: {e}]"
 
-        # Step 4: Save to session memory
-        chat_sessions.setdefault(session_id, []).extend([
-            {"role": "user", "content": user_input},
-            {"role": "assistant", "content": answer}
-        ])
+        # 🧠 Save to memory
+        chat_sessions.setdefault(session_id, []).append({"role": "user", "content": user_input})
+        chat_sessions[session_id].append({"role": "assistant", "content": answer})
 
     return Response(generate_response(), content_type="text/plain")
-# === /websearch endpoint ===
 @app.route("/websearch", methods=["POST"])
 def websearch():
     data = request.get_json()
     user_input = data.get("message")
-
     if not user_input:
         return jsonify({"error": "Missing user input"}), 400
 
-    def stream_web_response():
-        try:
-            response = client.responses.create(
-                model="gpt-4.1",
-                tools=[{"type": "web_search_preview"}],
-                input=user_input,
-                stream=True
-            )
-            for event in response:
-                if hasattr(event, "output_text") and event.output_text:
-                    yield event.output_text
-        except Exception as e:
-            yield f"\n[Web search error: {str(e)}]"
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    return Response(stream_web_response(), content_type="text/plain")
+    def stream_web():
+        try:
+            resp = client.responses.create(
+                model="gpt-4o",
+                input=user_input,
+                tools=[{"type": "web_search"}],
+                stream=True,
+            )
+            for event in resp:
+                delta = getattr(event, "output_text", None)
+                if delta and getattr(delta, "delta", None):
+                    yield delta.delta.get("content", "")
+        except Exception as e:
+            yield f"\n[Web search error: {e}]"
+
+    return Response(stream_web(), content_type="text/plain")
 
 # === /reset endpoint ===
 @app.route("/reset", methods=["POST"])
