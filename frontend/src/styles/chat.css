@@ -65,9 +65,10 @@
 }
 
 .suggestion-item:hover {
-  transform: scale(1.03) translateY(-1px);
+  transform: scale(1.5) translateY(-1px);
   box-shadow: 0 4px 14px rgba(0, 123, 255, 0.35);
   background-color: #0069d9;
+
 }
 
 /* 💫 New animations */
