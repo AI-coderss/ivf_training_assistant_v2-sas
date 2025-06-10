@@ -62,7 +62,7 @@
   line-height: 1.4;
   transition: all 0.25s ease;
   animation: popIn 0.3s ease both;
-  animation-delay: calc(var(--i) * 120ms); /* 🎯 staggered delay */
+  animation-delay: calc(var(--i) * 65ms); /* 🎯 staggered delay */
 }
 
 .suggestion-item:hover {
@@ -81,6 +81,7 @@
     transform: scale(1) translateY(0);
   }
 }
+
 
 .suggestion-column::-webkit-scrollbar {
   width: 6px;
