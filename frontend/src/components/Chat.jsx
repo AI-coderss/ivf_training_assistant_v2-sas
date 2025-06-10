@@ -111,7 +111,12 @@ const Chat = () => {
             <button
               key={idx}
               className="suggestion-item"
-              onClick={() => handleNewMessage({ text: q })}
+              onClick={() => {
+                handleNewMessage({ text: q });
+                setSuggestedQuestions((prev) =>
+                  prev.filter((item) => item !== q)
+                );
+              }}
             >
               {q}
             </button>
