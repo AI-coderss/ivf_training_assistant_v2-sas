@@ -8,6 +8,8 @@ const Chat = () => {
     { msg: "Hi there! How can I assist you today?", who: "bot" },
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
+  const [webSearchActive, setWebSearchActive] = useState(false);
+
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
     localStorage.setItem("sessionId", id);
@@ -29,60 +31,55 @@ const Chat = () => {
   }, []);
 
   const handleNewMessage = async (data) => {
-    if (data.text) {
-      setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
+    if (!data.text) return;
 
-      try {
-        const response = await fetch(
-          "https://ivf-backend-server.onrender.com/stream",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              message: data.text,
-              session_id: sessionId,
-            }),
-          }
-        );
+    setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
 
-        if (!response.ok || !response.body) {
-          throw new Error("Failed to stream response");
-        }
+    const url = webSearchActive
+      ? "https://ivf-backend-server.onrender.com/websearch"
+      : "https://ivf-backend-server.onrender.com/stream";
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let aiMessage = "";
-        setChats((prev) => [...prev, { msg: "", who: "bot" }]);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: data.text, session_id: sessionId }),
+      });
 
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          aiMessage += decoder.decode(value, { stream: true });
+      if (!response.ok || !response.body) throw new Error("Response error");
 
-          // eslint-disable-next-line no-loop-func
-          setChats((prev) => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { msg: aiMessage, who: "bot" };
-            return updated;
-          });
-        }
-      } catch (err) {
-        console.error("Streaming error:", err);
-        setChats((prev) => [
-          ...prev,
-          {
-            msg: "Sorry, something went wrong with the streaming response.",
-            who: "bot",
-          },
-        ]);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let aiMessage = "";
+      setChats((prev) => [...prev, { msg: "", who: "bot" }]);
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        aiMessage += decoder.decode(value, { stream: true });
+
+        // eslint-disable-next-line no-loop-func
+        setChats((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { msg: aiMessage, who: "bot" };
+          return updated;
+        });
       }
+    } catch (err) {
+      console.error("AI response error:", err);
+      setChats((prev) => [
+        ...prev,
+        {
+          msg: "Sorry, something went wrong with the response.",
+          who: "bot",
+        },
+      ]);
     }
   };
 
   return (
     <div className="chat-layout">
+      {/* Chat Area */}
       <div className="chat-content" ref={chatContentRef}>
         {chats.map((chat, index) => (
           <div key={index} className={`chat-message ${chat.who}`}>
@@ -98,12 +95,24 @@ const Chat = () => {
         ))}
         <div ref={scrollAnchorRef} />
       </div>
-
+      {/* Footer: Chat input + Search toggle */}
       <div className="chat-footer">
         <ChatInputWidget onSendMessage={handleNewMessage} />
+        {/* 🌐 Web Search Toggle Switch */}
+        <div className="web-search-toggle-container">
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={webSearchActive}
+              onChange={() => setWebSearchActive((prev) => !prev)}
+            />
+            <span className="slider"></span>
+          </label>
+          <span className="toggle-label">🌐 Web Search {webSearchActive ? "On" : "Off"}</span>
+        </div>
       </div>
 
-      {/* ✅ Suggested questions sidebar */}
+      {/* Suggested Questions */}
       <div className="suggestion-column">
         <h4 className="suggestion-title">💡 Suggested Questions</h4>
         <div className="suggestion-list">
@@ -114,13 +123,14 @@ const Chat = () => {
               style={{ "--i": idx }}
               onClick={() => {
                 handleNewMessage({ text: q });
-                setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
+                setSuggestedQuestions((prev) =>
+                  prev.filter((item) => item !== q)
+                );
               }}
             >
               {q}
             </button>
           ))}
-
         </div>
       </div>
     </div>
@@ -128,3 +138,6 @@ const Chat = () => {
 };
 
 export default Chat;
+
+
+

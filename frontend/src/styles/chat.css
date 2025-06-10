@@ -95,6 +95,12 @@
   background-color: #ffffff;
   border-radius: 3px;
 }
+.search-web-trigger {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+}
 
 /* Chat Content Scrollbar Styling */
 .chat-content::-webkit-scrollbar {
@@ -111,19 +117,104 @@
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-/* Chat Footer (Input Area) */
 .chat-footer {
-  position: fixed;
-  bottom: 20px;
-  width: 35%;
-  background: transparent;
-  padding: 0.5rem 0.5rem;
   display: flex;
-  transform: translateX(80%);
-  justify-content: center;
   align-items: center;
-  z-index: 10;
-  border-radius: 16px;
+  padding: 1rem;
+  gap: 0.75rem;
+}
+.search-web-btn {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  height: 40px;
+}
+
+.search-web-btn:hover {
+  background-color: #0056b3;
+  transform: scale(1.03);
+}
+.web-search-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1rem;
+  position: absolute;
+  bottom: 10px;
+  left: 20px; /* 👈 Move to the left */
+  z-index: 100;
+  background-color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 30px;
+  
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .slider {
+  background-color: #007bff;
+}
+
+.toggle-switch input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+.toggle-label {
+  font-size: 0.9rem;
+  color: #333;
+  white-space: nowrap;
+}
+
+/* 📱 Responsive positioning for smaller screens */
+@media (max-width: 768px) {
+  .web-search-toggle-container {
+    left: 10px;
+    bottom: 80px;
+    padding: 0.4rem 0.8rem;
+    gap: 6px;
+    transform: scale(0.9);
+  }
+
+  .toggle-label {
+    font-size: 0.8rem;
+  }
 }
 
 /* Chat Message Container */

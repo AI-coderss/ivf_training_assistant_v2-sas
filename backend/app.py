@@ -12,7 +12,7 @@ import openai
 import qdrant_client
 
 from prompts.prompt import engineeredprompt
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAI, OpenAIEmbeddings
 from langchain_qdrant import Qdrant
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
@@ -123,33 +123,96 @@ def generate():
         "response": answer,
         "session_id": session_id
     })
+    
 # === /stream endpoint ===
 @app.route("/stream", methods=["POST"])
 def stream():
     data = request.get_json()
     session_id = data.get("session_id", str(uuid4()))
     user_input = data.get("message")
-
     if not user_input:
         return jsonify({"error": "No input message"}), 400
 
-    def generate():
-        answer = ""
-        for chunk in chain_with_memory.stream(
-            {"input": user_input},
-            config={"configurable": {"session_id": session_id}},
-        ):
-            token = chunk.get("answer", "")
-            answer += token
-            yield token
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-        # Append to session memory after complete
+    def generate_response():
+        answer = ""
+        use_web_search = False
+
+        # Step 1: Try RAG first
+        try:
+            for chunk in chain_with_memory.stream(
+                {"input": user_input},
+                config={"configurable": {"session_id": session_id}},
+            ):
+                token = chunk.get("answer", "")
+                answer += token
+                yield token
+        except Exception as e:
+            yield f"\n[Vector error: {str(e)}]"
+            use_web_search = True
+
+        # Step 2: Fallback check based on confidence
+        fallback_triggers = [
+            "i don't know", "i'm not sure", 
+            "no relevant", "cannot find", 
+            "sorry", "unavailable"
+            "i don't know as it is beyond my knowledge", "i'm not sure",
+            "no relevant", "cannot find information related to the query",
+            "sorry", "unavailable in the provided context",
+            "unable to answer", "not enough information",
+        ]
+        if any(trigger in answer.lower() for trigger in fallback_triggers):
+            use_web_search = True
+
+        # Step 3: Perform Web Search if needed
+        if use_web_search:
+            yield "\n\n🔎 Switching to live web search...\n"
+            try:
+                web_response = client.responses.create(
+                    model="gpt-4o",
+                    input=user_input,
+                    tools=[{"type": "web_search"}],
+                    stream=True
+                )
+                for chunk in web_response:
+                    if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
+                        yield chunk.output[0].text
+            except Exception as e:
+                yield f"\n[Web search error: {str(e)}]"
+
+        # Step 4: Save session memory
         if session_id not in chat_sessions:
             chat_sessions[session_id] = []
         chat_sessions[session_id].append({"role": "user", "content": user_input})
         chat_sessions[session_id].append({"role": "assistant", "content": answer})
 
-    return Response(generate(), content_type="text/plain")
+    return Response(generate_response(), content_type="text/plain")
+# === /websearch endpoint ===
+@app.route("/websearch", methods=["POST"])
+def websearch():
+    data = request.get_json()
+    user_input = data.get("message")
+    if not user_input:
+        return jsonify({"error": "Missing user input"}), 400
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    def stream_web_response():
+        try:
+            response = client.responses.create(
+                model="gpt-4o",
+                input=user_input,
+                tools=[{"type": "web_search"}],
+                stream=True
+            )
+            for chunk in response:
+                if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
+                    yield chunk.output[0].text
+        except Exception as e:
+            yield f"\n[Web search error: {str(e)}]"
+
+    return Response(stream_web_response(), content_type="text/plain")
 
 # === /reset endpoint ===
 @app.route("/reset", methods=["POST"])
