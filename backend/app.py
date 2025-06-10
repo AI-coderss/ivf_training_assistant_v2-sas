@@ -288,23 +288,21 @@ def quiz_performance():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 @app.route("/suggestions", methods=["GET"])
-def suggest_questions():
+def suggestions():
     try:
-        # ✅ Step 1: Use your persistent vector store
-        retriever_chain = get_context_retriever_chain()
-        conversation_chain = get_conversational_rag_chain(retriever_chain)
+        # ✅ Use your persistent vector store & default RAG chain
+        conversation_chain = get_conversational_rag_chain()
 
-        # ✅ Step 2: Invoke RAG to get suggested questions
+        # ✅ Ask the AI to generate common questions
         response = conversation_chain.invoke({
             "chat_history": [],
-            "input": "Suggest 25 common and helpful questions users may ask about IVF or virtual hospital systems. Be specific and return them as a numbered list."
+            "input": "Suggest 25 common and helpful questions users may ask about IVF or IVF protocols and ESHREE guidelines. Return them as a numbered list."
         })
 
         raw = response.get("answer", "")
         lines = raw.split("\n")
         questions = [re.sub(r"^[\s•\-\d\.\)]+", "", line).strip() for line in lines if line.strip()]
 
-        # ✅ Step 3: Return JSON
         return jsonify({
             "suggested_questions": questions[:25]
         }), 200
