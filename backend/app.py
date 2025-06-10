@@ -137,9 +137,9 @@ def stream():
 
     def generate_response():
         answer = ""
-        use_web_search = False
+        use_web = False
 
-        # Step 1: Try RAG first
+        # 🚀 Step 1: Try RAG first
         try:
             for chunk in chain_with_memory.stream(
                 {"input": user_input},
@@ -149,46 +149,39 @@ def stream():
                 answer += token
                 yield token
         except Exception as e:
-            yield f"\n[Vector error: {str(e)}]"
-            use_web_search = True
+            yield f"\n[Vector error: {e}]"
+            use_web = True
 
-        # Step 2: Fallback check based on confidence
-        fallback_triggers = [
-            "i don't know", "i'm not sure", 
-            "no relevant", "cannot find", 
-            "sorry", "unavailable"
-            "i don't know as it is beyond my knowledge", "i'm not sure",
-            "no relevant", "cannot find information related to the query",
-            "sorry", "unavailable in the provided context",
-            "unable to answer", "not enough information",
-        ]
-        if any(trigger in answer.lower() for trigger in fallback_triggers):
-            use_web_search = True
+        # 🔍 Step 2: Fallback logic
+        triggers = ["i don’t know", "i'm not sure", "no relevant", "cannot find", "sorry", "unavailable"]
+        if any(t in answer.lower() for t in triggers):
+            use_web = True
 
-        # Step 3: Perform Web Search if needed
-        if use_web_search:
-            yield "\n\n🔎 Switching to live web search...\n"
+        # 🌐 Step 3: Web search fallback with Responses API
+        if use_web:
+            yield "\n\n🔎 Switching to live web search...\n\n"
             try:
-                web_response = client.responses.create(
+                resp = client.responses.create(
                     model="gpt-4o",
                     input=user_input,
                     tools=[{"type": "web_search"}],
-                    stream=True
+                    stream=True,
                 )
-                for chunk in web_response:
-                    if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
-                        yield chunk.output[0].text
+                for event in resp:
+                    # event.output_text.delta streams text content
+                    delta = getattr(event, "output_text", None)
+                    if delta and getattr(delta, "delta", None):
+                        text = delta.delta.get("content", "")
+                        answer += text
+                        yield text
             except Exception as e:
-                yield f"\n[Web search error: {str(e)}]"
+                yield f"\n[Web search error: {e}]"
 
-        # Step 4: Save session memory
-        if session_id not in chat_sessions:
-            chat_sessions[session_id] = []
-        chat_sessions[session_id].append({"role": "user", "content": user_input})
+        # 🧠 Save to memory
+        chat_sessions.setdefault(session_id, []).append({"role": "user", "content": user_input})
         chat_sessions[session_id].append({"role": "assistant", "content": answer})
 
     return Response(generate_response(), content_type="text/plain")
-# === /websearch endpoint ===
 @app.route("/websearch", methods=["POST"])
 def websearch():
     data = request.get_json()
@@ -198,21 +191,22 @@ def websearch():
 
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    def stream_web_response():
+    def stream_web():
         try:
-            response = client.responses.create(
+            resp = client.responses.create(
                 model="gpt-4o",
                 input=user_input,
                 tools=[{"type": "web_search"}],
-                stream=True
+                stream=True,
             )
-            for chunk in response:
-                if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
-                    yield chunk.output[0].text
+            for event in resp:
+                delta = getattr(event, "output_text", None)
+                if delta and getattr(delta, "delta", None):
+                    yield delta.delta.get("content", "")
         except Exception as e:
-            yield f"\n[Web search error: {str(e)}]"
+            yield f"\n[Web search error: {e}]"
 
-    return Response(stream_web_response(), content_type="text/plain")
+    return Response(stream_web(), content_type="text/plain")
 
 # === /reset endpoint ===
 @app.route("/reset", methods=["POST"])
