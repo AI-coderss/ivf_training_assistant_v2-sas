@@ -6,15 +6,17 @@
   padding: 1rem; /* Overall padding for the page, can be adjusted or removed */
   background-color: #ffffff;
   height: 100vh;
+  width: 100vw;
+  margin-top: auto;
   overflow: hidden;
+  
   box-sizing: border-box; /* Ensures padding doesn't add to height/width */
 }
 
 .summary-sections {
   display: flex;
   flex-direction: row; /* Arranges bookshelf, chat, podcast in a row */
-  gap: 1rem; /* Space between the three main sections. Adjust from 0.5rem to 1.5rem as preferred, or 0 if no gap. */
-  width: 100%;
+  gap: 1.5rem; /* Space between the three main sections. Adjust from 0.5rem to 1.5rem as preferred, or 0 if no gap. */
   height: 100%; /* Takes full available height from .summary-page */
   justify-content: center; /* MODIFIED: Centers the group of sections horizontally */
 }
@@ -34,7 +36,7 @@
 
 /* Center = Chat */
 .section.chat-section {
-  flex: 0 0 72%; /* Chat UI takes 72% of the width */
+  flex: 0 0 70%; /* Chat UI takes 72% of the width */
   display: flex; /* Uses flexbox for its internal layout (e.g., chat messages, input) */
   flex-direction: column;
   background: transparent; /* The section itself is transparent; chat UI has its own background */
@@ -50,3 +52,4 @@
   /* e.g., padding, display: flex, align-items: center, justify-content: center */
   /* overflow-y: auto; /* If podcast content might overflow */
 }
+

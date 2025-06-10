@@ -16,7 +16,7 @@ from openai import OpenAI
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com"])
+CORS(app, origins=["http://localhost:3000"])
 
 chat_histories = {}
 vector_stores = {}
@@ -52,7 +52,7 @@ def get_context_retriever_chain(vector_store):
 def get_conversational_rag_chain(retriever_chain):
     llm = ChatOpenAI()
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "Answer the user's question given the below context:\n\n{context}"),
+        ("system", "Answer the user's question  please answer them with more delails and high specificity given the below context:\n\n{context} use markdowns for detailed and enumerated answers with bold texts."),
         MessagesPlaceholder(variable_name="chat_history"),
         ("user", "{input}")
     ])
@@ -81,7 +81,7 @@ def upload_pdf():
 
             response = conversation_chain.invoke({
                 "chat_history": [],
-                "input": "Suggest 5 questions to understand this book better."
+                "input": "Suggest 25 questions to understand this book better and summarize key sections."
             })
 
             suggestions = response.get("answer", "").split("\n")
@@ -91,7 +91,7 @@ def upload_pdf():
             return jsonify({
                 "embedding_done": True,
                 "message": "Embedding completed successfully.",
-                "suggested_questions": questions[:5]
+                "suggested_questions": questions[:25]
             }), 200
 
     except Exception as e:

@@ -150,15 +150,7 @@ const ChatWithBook = ({ book }) => {
           </div>
         ))}
 
-        {loading && (
-          <div className="chat-message bot">
-            <figure className="avatar">
-              <img src="/av.gif" alt="AI Avatar" />
-            </figure>
-            <div className="message-text">⏳ Thinking...</div>
-          </div>
-        )}
-        <div ref={chatEndRef} />
+      <div ref={chatEndRef} />
       </div>
 
       {uploading && (
@@ -181,6 +173,7 @@ const ChatWithBook = ({ book }) => {
           <div className="chat-footer">
             <ChatInputWidget onSendMessage={handleSendMessage} />
           </div>
+          <div className="questions">
           <div className="suggested-questions">
             <p className="suggestion-title">💡 Suggested Questions:</p>
             <div className="suggestion-buttons">
@@ -190,10 +183,11 @@ const ChatWithBook = ({ book }) => {
                   className="suggestion-btn"
                   onClick={() => handleSuggestedClick(q)}
                 >
-                  {q}
+                  <ReactMarkdown>{q}</ReactMarkdown>
                 </button>
               ))}
             </div>
+          </div>
           </div>
         </>
       )}
