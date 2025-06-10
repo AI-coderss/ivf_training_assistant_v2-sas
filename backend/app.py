@@ -133,14 +133,12 @@ def stream():
     user_input = data.get("message")
     if not user_input:
         return jsonify({"error": "No input message"}), 400
-
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
     def generate_response():
         answer = ""
-        use_web = False
+        use_web_search = False
 
-        # 🚀 Step 1: Try RAG first
+        # Step 1: Try Vector Store (RAG)
         try:
             for chunk in chain_with_memory.stream(
                 {"input": user_input},
@@ -150,37 +148,38 @@ def stream():
                 answer += token
                 yield token
         except Exception as e:
-            yield f"\n[Vector error: {e}]"
-            use_web = True
+            yield f"\n\n❌ Vector search error: {str(e)}\n"
+            use_web_search = True
 
-        # 🔍 Step 2: Fallback logic
-        triggers = ["i don’t know", "i'm not sure", "no relevant", "cannot find", "sorry", "unavailable"]
-        if any(t in answer.lower() for t in triggers):
-            use_web = True
+        # Step 2: Check if confidence is low
+        fallback_triggers = [
+            "i don't know", "i'm not sure", "no relevant",
+            "cannot find", "sorry", "unavailable", 
+            "not enough information", "beyond my knowledge"
+        ]
+        if any(trigger in answer.lower() for trigger in fallback_triggers):
+            use_web_search = True
 
-        # 🌐 Step 3: Web search fallback with Responses API
-        if use_web:
+        # Step 3: Switch to Web Search if needed
+        if use_web_search:
             yield "\n\n🔎 Switching to live web search...\n\n"
             try:
-                resp = client.responses.create(
-                    model="gpt-4o",
+                response = client.responses.create(
+                    model="gpt-4.1",
                     input=user_input,
                     tools=[{ "type": "web_search_preview" }],
-                    stream=True,
+                    stream=True
                 )
-                for event in resp:
-                    # event.output_text.delta streams text content
-                    delta = getattr(event, "output_text", None)
-                    if delta and getattr(delta, "delta", None):
-                        text = delta.delta.get("content", "")
-                        answer += text
-                        yield text
-                        print(f"Web search chunk: {text}")
+                for chunk in response:
+                    if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
+                        yield chunk.output[0].text
             except Exception as e:
-                yield f"\n[Web search error: {e}]"
+                yield f"\n[Web search error: {str(e)}]"
 
-        # 🧠 Save to memory
-        chat_sessions.setdefault(session_id, []).append({"role": "user", "content": user_input})
+        # Step 4: Store in session memory
+        if session_id not in chat_sessions:
+            chat_sessions[session_id] = []
+        chat_sessions[session_id].append({"role": "user", "content": user_input})
         chat_sessions[session_id].append({"role": "assistant", "content": answer})
 
     return Response(generate_response(), content_type="text/plain")
@@ -190,25 +189,23 @@ def websearch():
     user_input = data.get("message")
     if not user_input:
         return jsonify({"error": "Missing user input"}), 400
-
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-    def stream_web():
+    def stream_web_response():
         try:
-            resp = client.responses.create(
-                model="gpt-4o",
+            # ✅ Use the correct tool type: web_search_preview
+            response = client.responses.create(
+                model="gpt-4.1",
                 input=user_input,
-                tools=[{ "type": "web_search_preview" }],
-                stream=True,
+                tools=[{"type": "web_search_preview"}],
+                stream=True
             )
-            for event in resp:
-                delta = getattr(event, "output_text", None)
-                if delta and getattr(delta, "delta", None):
-                    yield delta.delta.get("content", "")
+            for chunk in response:
+                if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
+                    yield chunk.output[0].text
         except Exception as e:
-            yield f"\n[Web search error: {e}]"
+            yield f"\n[Web search error: {str(e)}]"
 
-    return Response(stream_web(), content_type="text/plain")
+    return Response(stream_web_response(), content_type="text/plain")
 
 # === /reset endpoint ===
 @app.route("/reset", methods=["POST"])
