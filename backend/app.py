@@ -10,9 +10,9 @@ from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import openai
 import qdrant_client
-
+from openai import OpenAI
 from prompts.prompt import engineeredprompt
-from langchain_openai import ChatOpenAI, OpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_qdrant import Qdrant
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
