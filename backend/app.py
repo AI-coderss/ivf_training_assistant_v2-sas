@@ -166,7 +166,7 @@ def stream():
 
         # Step 3: If needed, switch to Web Search
         if use_web_search:
-            yield "\n\n🔎 Switching to live web search...\n"
+            yield "[WEB_SEARCH_INITIATED]\n"
             try:
                 stream = client.responses.create(
                     model="gpt-4.1",

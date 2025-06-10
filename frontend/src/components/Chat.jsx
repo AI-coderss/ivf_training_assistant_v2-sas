@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
+import SearchLoader from "./SearchLoader"; // Import the loader
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -9,6 +10,7 @@ const Chat = () => {
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [webSearchActive, setWebSearchActive] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // State to control the loader
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
@@ -21,7 +23,7 @@ const Chat = () => {
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chats]);
+  }, [chats, isLoading]);
 
   useEffect(() => {
     fetch("https://ivf-backend-server.onrender.com/suggestions")
@@ -34,6 +36,10 @@ const Chat = () => {
     if (!data.text) return;
 
     setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
+
+    if (webSearchActive) {
+      setIsLoading(true);
+    }
 
     const url = webSearchActive
       ? "https://ivf-backend-server.onrender.com/websearch"
@@ -51,22 +57,57 @@ const Chat = () => {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let aiMessage = "";
-      setChats((prev) => [...prev, { msg: "", who: "bot" }]);
+      let isFirstChunk = true;
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        aiMessage += decoder.decode(value, { stream: true });
+
+        const chunk = decoder.decode(value, { stream: true });
+
+        // --- Listen for the web search signal from the backend ---
+        if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
+          setIsLoading(true);
+          // Clear the previous partial (bad) RAG response
+          setChats((prev) => {
+            const updated = [...prev];
+            if (
+              updated.length > 0 &&
+              updated[updated.length - 1].who === "bot"
+            ) {
+              updated[updated.length - 1].msg = "";
+            }
+            return updated;
+          });
+          aiMessage = ""; // Reset the message accumulator
+          continue; // Skip to the next chunk, ignoring the signal string
+        }
+
+        // --- Deactivate loader when the actual content stream starts ---
+        if (isLoading) {
+          setIsLoading(false);
+        }
+
+        // --- Add bot message bubble on the very first data chunk received ---
+        if (isFirstChunk) {
+          setChats((prev) => [...prev, { msg: "", who: "bot" }]);
+          isFirstChunk = false;
+        }
+
+        aiMessage += chunk;
 
         // eslint-disable-next-line no-loop-func
         setChats((prev) => {
           const updated = [...prev];
-          updated[updated.length - 1] = { msg: aiMessage, who: "bot" };
+          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+            updated[updated.length - 1].msg = aiMessage;
+          }
           return updated;
         });
       }
     } catch (err) {
       console.error("AI response error:", err);
+      if (isLoading) setIsLoading(false);
       setChats((prev) => [
         ...prev,
         {
@@ -93,12 +134,27 @@ const Chat = () => {
             </div>
           </div>
         ))}
+
+        {isLoading && (
+          <div className="chat-message bot">
+            <figure className="avatar">
+              <img src="/av.gif" alt="avatar" />
+            </figure>
+            <div className="message-text">
+              <SearchLoader />
+            </div>
+          </div>
+        )}
+
         <div ref={scrollAnchorRef} />
       </div>
-      {/* Footer: Chat input + Search toggle */}
+
+      {/* Footer & Suggestions */}
       <div className="chat-footer">
-        <ChatInputWidget onSendMessage={handleNewMessage} />
-        {/* 🌐 Web Search Toggle Switch */}
+        <ChatInputWidget
+          onSendMessage={handleNewMessage}
+          disabled={isLoading}
+        />
         <div className="web-search-toggle-container">
           <label className="toggle-switch">
             <input
@@ -108,11 +164,12 @@ const Chat = () => {
             />
             <span className="slider"></span>
           </label>
-          <span className="toggle-label">🌐 Web Search {webSearchActive ? "On" : "Off"}</span>
+          <span className="toggle-label">
+            🌐 Web Search {webSearchActive ? "On" : "Off"}
+          </span>
         </div>
       </div>
 
-      {/* Suggested Questions */}
       <div className="suggestion-column">
         <h4 className="suggestion-title">💡 Suggested Questions</h4>
         <div className="suggestion-list">
@@ -138,6 +195,3 @@ const Chat = () => {
 };
 
 export default Chat;
-
-
-

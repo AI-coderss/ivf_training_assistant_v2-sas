@@ -1,0 +1,270 @@
+/* Color Variables */
+:root {
+  --magnifying-glass: rgb(111, 197, 211);
+  --magnifying-glass-light: rgb(167, 217, 225);
+  --magnifying-glass-dark: rgb(95, 168, 180);
+  --contact-card: rgb(252, 236, 243);
+  --contact-card-light: rgb(210, 175, 211);
+  --contact-card-dark: rgb(153, 106, 169);
+}
+
+/* Helper for centering elements */
+.centered {
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: 0;
+  right: 0;
+}
+
+.loader-container {
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: -62.5px; /* Scaled from -125px */
+  right: 0;
+  height: 150px; /* Scaled from 300px */
+  width: 150px; /* Scaled from 300px */
+}
+
+.loader-container .contact-card {
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: 0;
+  right: 0;
+  width: 125px; /* Scaled from 250px */
+  height: 60px; /* Scaled from 120px */
+  background-color: var(--contact-card);
+  border-radius: 2px; /* Scaled from 4px */
+  border-bottom: 4px solid var(--contact-card-light); /* Scaled from 8px */
+  animation: contact-card-animate 3s ease-in-out infinite;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.loader-container .contact-card:nth-child(2) {
+  animation-delay: 1.5s;
+}
+
+.loader-container .contact-card .avatar {
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: -62.5px; /* Scaled from -125px */
+  top: 0;
+  right: 0;
+  width: 32.5px; /* Scaled from 65px */
+  height: 32.5px; /* Scaled from 65px */
+  background-color: var(--contact-card-light);
+  border-radius: 2px; /* Scaled from 4px */
+  z-index: 3;
+}
+
+.loader-container .contact-card .avatar::before {
+  content: "";
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: -7.5px; /* Scaled from -15px */
+  right: 0;
+  height: 11.25px; /* Scaled from 22.5px */
+  width: 11.25px; /* Scaled from 22.5px */
+  background-color: var(--contact-card-dark);
+  border-radius: 50%;
+}
+
+.loader-container .contact-card .avatar::after {
+  content: "";
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: 20px; /* Scaled from 40px */
+  right: 0;
+  height: 12.5px; /* Scaled from 25px */
+  width: 20px; /* Scaled from 40px */
+  background-color: var(--contact-card-dark);
+  border-top-left-radius: 50%;
+  border-top-right-radius: 50%;
+}
+
+.loader-container .contact-card .text {
+  position: absolute;
+  top: 21.25px; /* Scaled from 42.5px */
+  right: 20px; /* Scaled from 40px */
+  width: 50px; /* Scaled from 100px */
+  height: 3.75px; /* Scaled from 7.5px */
+  background-color: var(--contact-card-dark);
+}
+
+.loader-container .contact-card .text::before {
+  content: "";
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: 8.75px; /* Scaled from 17.5px */
+  right: 0;
+  width: 60px; /* Scaled from 120px */
+  height: 3.75px; /* Scaled from 7.5px */
+  background-color: var(--contact-card-dark);
+}
+
+.loader-container .contact-card .text::after {
+  content: "";
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: 16.25px; /* Scaled from 32.5px */
+  right: 0;
+  width: 55px; /* Scaled from 110px */
+  height: 3.75px; /* Scaled from 7.5px */
+  background-color: var(--contact-card-dark);
+}
+
+@keyframes contact-card-animate {
+  0% { opacity: 0; top: -150px; width: 0px; } /* Scaled from -300px */
+  1% { opacity: 1; top: -150px; width: 0px; } /* Scaled from -300px */
+  10% { top: -150px; width: 125px; } /* Scaled from -300px, 250px */
+  20% { top: 0px; width: 125px; } /* Scaled from 250px */
+  25% { top: 0px; width: 125px; } /* Scaled from 250px */
+  35% { top: 0px; width: 125px; } /* Scaled from 250px */
+  50% { top: 150px; width: 125px; } /* Scaled from 300px, 250px */
+  65% { opacity: 1; top: 150px; width: 0px; } /* Scaled from 300px */
+  100% { opacity: 0; top: 150px; width: 0px; } /* Scaled from 300px */
+}
+
+#magnifying-glass {
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: 75px; /* Scaled from 150px */
+  top: 0;
+  right: 0;
+  width: 75px; /* Scaled from 150px */
+  height: 75px; /* Scaled from 150px */
+  border: 7px solid var(--magnifying-glass); /* Scaled from 14px */
+  border-radius: 50%;
+  animation: magnifying-glass-animate 1.5s ease-in-out infinite;
+  animation-delay: 0.375s;
+  transform: rotate(37.5deg);
+}
+
+#magnifying-glass::before {
+  content: "";
+  position: absolute;
+  left: -6px; /* Scaled from -12px */
+  top: -2.5px; /* Scaled from -5px */
+  height: 80px; /* Scaled from 160px */
+  width: 80px; /* Scaled from 160px */
+  border-radius: 50%;
+  opacity: 0.8;
+  border-left: 3px solid white; /* Scaled from 6px */
+  transform: rotate(15deg);
+}
+
+#magnifying-glass::after {
+  content: "";
+  position: absolute;
+  left: -2px; /* Scaled from -4px */
+  top: -2.5px; /* Scaled from -5px */
+  height: 80px; /* Scaled from 160px */
+  width: 80px; /* Scaled from 160px */
+  border-radius: 50%;
+  opacity: 0.8;
+  border-right: 3px solid white; /* Scaled from 6px */
+  transform: rotate(15deg);
+}
+
+#glass {
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 75px; /* Scaled from 150px */
+  width: 75px; /* Scaled from 150px */
+  border-radius: 50%;
+  background-color: white;
+  opacity: 0.35;
+}
+
+#handle {
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: 120px; /* Scaled from 240px */
+  right: 0;
+  height: 50px; /* Scaled from 100px */
+  width: 17.5px; /* Scaled from 35px */
+  border-radius: 3.75px; /* Scaled from 7.5px */
+  background-color: var(--magnifying-glass);
+}
+
+#handle::after {
+  content: "";
+  position: absolute;
+  border-top-right-radius: 15px; /* Scaled from 30px */
+  left: 2.5px; /* Scaled from 5px */
+  top: -10px; /* Scaled from -20px */
+  height: 15px; /* Scaled from 30px */
+  width: 10px; /* Scaled from 20px */
+  background-color: var(--magnifying-glass-dark);
+}
+
+#handle-inner {
+  margin: auto;
+  position: absolute;
+  bottom: 0;
+  left: -3.75px; /* Scaled from -7.5px */
+  top: -3.75px; /* Scaled from -7.5px */
+  right: 0;
+  height: 46px; /* Scaled from 92px */
+  width: 13.75px; /* Scaled from 27.5px */
+  border-top-left-radius: 3.75px; /* Scaled from 7.5px */
+  border-bottom-right-radius: 8.75px; /* Scaled from 17.5px */
+  background-color: var(--magnifying-glass-light);
+  z-index: 2;
+}
+
+#handle-inner::before {
+  content: "";
+  z-index: -1;
+  position: absolute;
+  left: 0px;
+  top: 17px; /* Scaled from 34px */
+  height: 4px; /* Scaled from 8px */
+  width: 13.75px; /* Scaled from 27.5px */
+  background-color: var(--magnifying-glass);
+  z-index: 1;
+}
+
+#handle-inner::after {
+  content: "";
+  z-index: -1;
+  position: absolute;
+  left: 0px;
+  top: 10px; /* Scaled from 20px */
+  height: 4px; /* Scaled from 8px */
+  width: 13.75px; /* Scaled from 27.5px */
+  background-color: var(--magnifying-glass);
+  z-index: 1;
+}
+
+@keyframes magnifying-glass-animate {
+  0% { transform: rotate(37.5deg); left: 75px; top: 0; } /* Scaled from 150px */
+  10% { transform: rotate(37.5deg); left: 75px; top: 0; } /* Scaled from 150px */
+  50% { transform: rotate(5deg); left: -75px; top: 0; } /* Scaled from -150px */
+  75% { transform: rotate(5deg); left: -75px; top: 0; } /* Scaled from -150px */
+  82.5% { top: 13.75px; } /* Scaled from 27.5px */
+  90% { transform: rotate(37.5deg); left: 75px; top: 0; } /* Scaled from 150px */
+  100% { transform: rotate(37.5deg); left: 75px; top: 0; } /* Scaled from 150px */
+}
