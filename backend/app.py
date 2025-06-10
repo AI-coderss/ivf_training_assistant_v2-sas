@@ -133,12 +133,13 @@ def stream():
     user_input = data.get("message")
     if not user_input:
         return jsonify({"error": "No input message"}), 400
-    client = OpenAI()
+    # Initialize OpenAI client
+    client= OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     def generate_response():
         answer = ""
         use_web_search = False
 
-        # Step 1: Try Vector Store (RAG)
+        # Try vector store (RAG)
         try:
             for chunk in chain_with_memory.stream(
                 {"input": user_input},
@@ -148,36 +149,37 @@ def stream():
                 answer += token
                 yield token
         except Exception as e:
-            yield f"\n\n❌ Vector search error: {str(e)}\n"
+            yield f"\n❌ Vector search error: {str(e)}\n"
             use_web_search = True
 
-        # Step 2: Check if confidence is low
+        # Check confidence
         fallback_triggers = [
             "i don't know", "i'm not sure", "no relevant",
-            "cannot find", "sorry", "unavailable", 
-            "not enough information", "beyond my knowledge"
+            "cannot find", "sorry", "unavailable",
+            "not enough information", "beyond my knowledge",
         ]
         if any(trigger in answer.lower() for trigger in fallback_triggers):
             use_web_search = True
 
-        # Step 3: Switch to Web Search if needed
+        # Fallback to web search
         if use_web_search:
             yield "\n\n🔎 Switching to live web search...\n\n"
             try:
-                response = client.responses.create(
-                    model="gpt-4o",
-                    input=user_input,
+                stream = client.responses.create(
+                    model="gpt-4.1",
+                    input=[{ "role": "user", "content": user_input }],
                     tools=[{ "type": "web_search_preview" }],
-                    stream=True,
-            
+                    stream=True
                 )
-                for chunk in response:
-                    if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
-                        yield chunk.output[0].text
+                for event in stream:
+                    if hasattr(event, "delta") and event.delta:
+                        yield event.delta
+                    elif getattr(event, "type", "") == "response.output_text.done":
+                        break
             except Exception as e:
                 yield f"\n[Web search error: {str(e)}]"
 
-        # Step 4: Store in session memory
+        # Save to memory
         if session_id not in chat_sessions:
             chat_sessions[session_id] = []
         chat_sessions[session_id].append({"role": "user", "content": user_input})
@@ -190,20 +192,22 @@ def websearch():
     user_input = data.get("message")
     if not user_input:
         return jsonify({"error": "Missing user input"}), 400
-    client = OpenAI()
+    # Initialize OpenAI client
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
     def stream_web_response():
         try:
-            # ✅ Use the correct tool type: web_search_preview
-            response = client.responses.create(
-                model="gpt-4o",
-                input=user_input,
-                tools=[{"type": "web_search_preview"}],
-                stream=True,
-                
+            stream = client.responses.create(
+                model="gpt-4.1",  # or "gpt-4o" / "gpt-4o-mini"
+                input=[{ "role": "user", "content": user_input }],
+                tools=[{ "type": "web_search_preview" }],
+                stream=True
             )
-            for chunk in response:
-                if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
-                    yield chunk.output[0].text
+            for event in stream:
+                if hasattr(event, "delta") and event.delta:
+                    yield event.delta
+                elif getattr(event, "type", "") == "response.output_text.done":
+                    break
         except Exception as e:
             yield f"\n[Web search error: {str(e)}]"
 
