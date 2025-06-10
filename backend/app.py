@@ -130,17 +130,16 @@ def generate():
 @app.route("/stream", methods=["POST"])
 def stream():
     data = request.get_json()
-    user_input = data.get("message")
     session_id = data.get("session_id", str(uuid4()))
-
+    user_input = data.get("message")
     if not user_input:
         return jsonify({"error": "No input message"}), 400
 
     def generate_response():
         answer = ""
-        use_web = False
+        use_web_search = False
 
-        # Step 1: Attempt RAG response first
+        # Step 1: Try Vector Store (RAG)
         try:
             for chunk in chain_with_memory.stream(
                 {"input": user_input},
@@ -150,39 +149,39 @@ def stream():
                 answer += token
                 yield token
         except Exception as e:
-            yield f"\n[Vector error: {str(e)}]"
-            use_web = True
+            yield f"\n\n❌ Vector search error: {str(e)}\n"
+            use_web_search = True
 
-        # Step 2: Fallback check (low-confidence or generic answers)
-        fallback_phrases = [
-            "don't know", "not sure", "cannot find", "no relevant", "unavailable",
-            "sorry", "unable to answer"
+        # Step 2: Check if confidence is low
+        fallback_triggers = [
+            "i don't know", "i'm not sure", "no relevant",
+            "cannot find", "sorry", "unavailable", 
+            "not enough information", "beyond my knowledge"
         ]
-        if any(trigger in answer.lower() for trigger in fallback_phrases):
-            use_web = True
+        if any(trigger in answer.lower() for trigger in fallback_triggers):
+            use_web_search = True
 
-        # Step 3: Perform web search if needed
-        if use_web:
+        # Step 3: Switch to Web Search if needed
+        if use_web_search:
             yield "\n\n🔎 Switching to live web search...\n\n"
             try:
                 response = client.responses.create(
                     model="gpt-4.1",
-                    tools=[{"type": "web_search_preview"}],
                     input=user_input,
+                    tools=[{ "type": "web_search_preview" }],
                     stream=True
                 )
-                for event in response:
-                    if hasattr(event, "output_text") and event.output_text:
-                        answer += event.output_text
-                        yield event.output_text
+                for chunk in response:
+                    if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
+                        yield chunk.output[0].text
             except Exception as e:
                 yield f"\n[Web search error: {str(e)}]"
 
-        # Step 4: Save to session memory
-        chat_sessions.setdefault(session_id, []).extend([
-            {"role": "user", "content": user_input},
-            {"role": "assistant", "content": answer}
-        ])
+        # Step 4: Store in session memory
+        if session_id not in chat_sessions:
+            chat_sessions[session_id] = []
+        chat_sessions[session_id].append({"role": "user", "content": user_input})
+        chat_sessions[session_id].append({"role": "assistant", "content": answer})
 
     return Response(generate_response(), content_type="text/plain")
 # === /websearch endpoint ===
@@ -190,21 +189,21 @@ def stream():
 def websearch():
     data = request.get_json()
     user_input = data.get("message")
-
     if not user_input:
         return jsonify({"error": "Missing user input"}), 400
 
     def stream_web_response():
         try:
+            # ✅ Use the correct tool type: web_search_preview
             response = client.responses.create(
                 model="gpt-4.1",
-                tools=[{"type": "web_search_preview"}],
                 input=user_input,
+                tools=[{"type": "web_search_preview"}],
                 stream=True
             )
-            for event in response:
-                if hasattr(event, "output_text") and event.output_text:
-                    yield event.output_text
+            for chunk in response:
+                if hasattr(chunk, "output") and chunk.output and chunk.output[0].type == "text":
+                    yield chunk.output[0].text
         except Exception as e:
             yield f"\n[Web search error: {str(e)}]"
 
