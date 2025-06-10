@@ -6,7 +6,7 @@ langchain-qdrant
 langchain-openai
 langchain
 pypdf
-openai=1.85.0
+openai
 python-dotenv
 flask
 flask-cors
