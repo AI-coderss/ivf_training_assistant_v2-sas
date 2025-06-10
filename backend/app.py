@@ -134,12 +134,14 @@ def stream():
     if not user_input:
         return jsonify({"error": "No input message"}), 400
     # Initialize OpenAI client
-    client= OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
     def generate_response():
         answer = ""
         use_web_search = False
+        sources = []
 
-        # Try vector store (RAG)
+        # Step 1: Try RAG (vector-based)
         try:
             for chunk in chain_with_memory.stream(
                 {"input": user_input},
@@ -149,21 +151,22 @@ def stream():
                 answer += token
                 yield token
         except Exception as e:
-            yield f"\n❌ Vector search error: {str(e)}\n"
+            yield f"\n[Vector error: {str(e)}]"
             use_web_search = True
 
-        # Check confidence
+        # Step 2: Fallback trigger phrases
         fallback_triggers = [
-            "i don't know", "i'm not sure", "no relevant",
-            "cannot find", "sorry", "unavailable",
-            "not enough information", "beyond my knowledge",
+            "i don't know", "i'm not sure", 
+            "no relevant", "cannot find", 
+            "sorry", "unavailable", "unable to answer",
+            "not enough information"
         ]
         if any(trigger in answer.lower() for trigger in fallback_triggers):
             use_web_search = True
 
-        # Fallback to web search
+        # Step 3: If needed, switch to Web Search
         if use_web_search:
-            yield "\n\n🔎 Switching to live web search...\n\n"
+            yield "\n\n🔎 Switching to live web search...\n"
             try:
                 stream = client.responses.create(
                     model="gpt-4.1",
@@ -171,21 +174,35 @@ def stream():
                     tools=[{ "type": "web_search_preview" }],
                     stream=True
                 )
+
                 for event in stream:
                     if hasattr(event, "delta") and event.delta:
                         yield event.delta
+                    elif hasattr(event, "citations"):
+                        sources.extend(event.citations)
                     elif getattr(event, "type", "") == "response.output_text.done":
                         break
+
+                if sources:
+                    yield "\n\n📚 **Sources:**\n"
+                    for i, src in enumerate(sources, 1):
+                        title = src.get("title", f"Source {i}")
+                        url = src.get("url", "#")
+                        yield f"- [{title}]({url})\n"
+
             except Exception as e:
                 yield f"\n[Web search error: {str(e)}]"
 
-        # Save to memory
+        # Step 4: Store chat memory
         if session_id not in chat_sessions:
             chat_sessions[session_id] = []
+
         chat_sessions[session_id].append({"role": "user", "content": user_input})
         chat_sessions[session_id].append({"role": "assistant", "content": answer})
 
     return Response(generate_response(), content_type="text/plain")
+
+# === /websearch endpoint ===
 @app.route("/websearch", methods=["POST"])
 def websearch():
     data = request.get_json()
@@ -196,18 +213,32 @@ def websearch():
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def stream_web_response():
+        sources = []
+
         try:
             stream = client.responses.create(
-                model="gpt-4.1",  # or "gpt-4o" / "gpt-4o-mini"
+                model="gpt-4.1",
                 input=[{ "role": "user", "content": user_input }],
                 tools=[{ "type": "web_search_preview" }],
                 stream=True
             )
+
             for event in stream:
                 if hasattr(event, "delta") and event.delta:
                     yield event.delta
+                elif hasattr(event, "citations"):
+                    sources.extend(event.citations)
                 elif getattr(event, "type", "") == "response.output_text.done":
                     break
+
+            # 🔗 Append source links at the end
+            if sources:
+                yield "\n\n📚 **Sources:**\n"
+                for i, src in enumerate(sources, 1):
+                    title = src.get("title", f"Source {i}")
+                    url = src.get("url", "#")
+                    yield f"- [{title}]({url})\n"
+
         except Exception as e:
             yield f"\n[Web search error: {str(e)}]"
 
