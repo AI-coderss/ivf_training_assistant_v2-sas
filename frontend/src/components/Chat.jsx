@@ -31,23 +31,7 @@ const Chat = () => {
       .then((data) => setSuggestedQuestions(data.suggested_questions || []))
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
-  // ------------ HELPERS ------------
-  const addLoaderBubble = () => {
-    setIsLoading(true);
-    setChats(prev => [...prev, { msg: "", who: "bot", loader: true }]);
-  };
-
-  const replaceLoaderWithBotBubble = () => {
-    setIsLoading(false);
-    setChats(prev => {
-      const updated = [...prev];
-      const last = updated[updated.length - 1];
-      if (last && last.loader) {
-        updated[updated.length - 1] = { msg: "", who: "bot" };
-      }
-      return updated;
-    });
-  };
+  
   const handleNewMessage = async (data) => {
     if (!data.text) return;
 
@@ -55,7 +39,6 @@ const Chat = () => {
 
     if (webSearchActive) {
       setIsLoading(true);
-      addLoaderBubble(); // Add loader bubble for web search
     }
 
     const url = webSearchActive
@@ -75,7 +58,6 @@ const Chat = () => {
       const decoder = new TextDecoder();
       let aiMessage = "";
       let isFirstChunk = true;
-      let firstChunkArrived = false;
 
       while (true) {
         const { value, done } = await reader.read();
@@ -86,7 +68,6 @@ const Chat = () => {
         // --- Listen for the web search signal from the backend ---
         if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
           setIsLoading(true);
-          
           // Clear the previous partial (bad) RAG response
           setChats((prev) => {
             const updated = [...prev];
@@ -106,13 +87,6 @@ const Chat = () => {
         if (isLoading) {
           setIsLoading(false);
         }
-         // First real data: replace loader bubble with normal bot bubble
-        if (!firstChunkArrived) {
-          firstChunkArrived = true;
-          if (isLoading) replaceLoaderWithBotBubble();
-          else
-            setChats(prev => [...prev, { msg: "", who: "bot" }]); // RAG path
-        }
 
         // --- Add bot message bubble on the very first data chunk received ---
         if (isFirstChunk) {
@@ -121,6 +95,7 @@ const Chat = () => {
         }
 
         aiMessage += chunk;
+
         // eslint-disable-next-line no-loop-func
         setChats((prev) => {
           const updated = [...prev];
