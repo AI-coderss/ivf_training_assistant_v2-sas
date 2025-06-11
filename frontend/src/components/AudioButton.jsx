@@ -52,7 +52,7 @@ const AudioButton = ({ text }) => {
       disabled={busy}
       title="Play audio"
     >
-      <FaVolumeUp size={14} />
+      <FaVolumeUp size={14}/>
     </button>
   );
 };

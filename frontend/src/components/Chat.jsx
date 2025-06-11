@@ -131,7 +131,7 @@ const Chat = () => {
             )}
             <div className="message-text">
               <ReactMarkdown>{chat.msg}</ReactMarkdown>
-             
+          
             </div>
           </div>
         ))}
