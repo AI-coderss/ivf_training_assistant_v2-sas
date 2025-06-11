@@ -15,6 +15,13 @@
   transition: max-height 0.3s ease-in-out;
   z-index: 1;
   box-sizing: border-box;
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.chat-content::-webkit-scrollbar {
+  display: none;
 }
 .chat-layout {
   display: flex;
