@@ -27,7 +27,6 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com","https://ivf-virtual-training-assistant-dsah.onrender.com"])
-CORS(app, resources={r"/tts": {"origins": "https://ivf-virtual-training-assistant-dsah.onrender.com"}})
 
 
 # === SESSION STATE ===

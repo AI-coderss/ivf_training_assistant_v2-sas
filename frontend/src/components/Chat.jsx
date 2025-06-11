@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
-import AudioButton from "./AudioButton";
 import ReactMarkdown from "react-markdown";
 import SearchLoader from "./SearchLoader"; // Import the loader
 import "../styles/chat.css";
@@ -132,10 +131,7 @@ const Chat = () => {
             )}
             <div className="message-text">
               <ReactMarkdown>{chat.msg}</ReactMarkdown>
-              {/* Tiny speaker icon for AI messages */}
-              {chat.who === "bot" && chat.msg && (
-                <AudioButton text={chat.msg} />
-              )}
+             
             </div>
           </div>
         ))}
