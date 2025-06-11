@@ -1,171 +1,171 @@
-.chat-glass-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  width: 90%;
-  padding: 1rem 2rem;
-  background-color: #ffffff;
-  box-sizing: border-box;
-  overflow: hidden;
-  position: absolute;
-  left: 0;
 
+/* === Main Wrapper Grid Layout === */
+.sp-bookchat {
+  display: grid;
+  grid-template-columns: 1fr 280px;  /* chat messages | suggested questions */
+  grid-template-rows: 1fr auto;     /* chat area + suggestions | input */
+  gap: 1rem;
+  height: 100%;
+  background: #ffffff;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  position: relative;
 }
 
-/* Chat area */
-.chat-content {
-  flex: 1;
+/* === Chat Message Area === */
+.sp-bookchat .chat-content {
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   scroll-behavior: smooth;
-  padding: 0 1rem;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  padding-right: 0.5rem;
+  scrollbar-width: none;
 }
-
-/* Hide scrollbar for Chrome, Safari, Opera */
-.chat-content::-webkit-scrollbar {
+.sp-bookchat .chat-content::-webkit-scrollbar {
   display: none;
 }
 
-
-.chat-message.me {
-  justify-content: flex-start;
+/* === Chat Footer (Input Area) === */
+.sp-bookchat .chat-footer {
+  grid-column: 1 / 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
-.chat-message.bot {
-  justify-content: flex-start;
-  margin-bottom: 1.2rem;
+
+/* === Suggested Questions Sidebar === */
+.sp-bookchat .questions {
+  grid-column: 2 / 3;
+  grid-row: 1 / 3;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: none;
+}
+.sp-bookchat .questions::-webkit-scrollbar {
+  display: none;
 }
 
-/* User message */
-.chat-message.me .message-text {
- background-color:   #2790ff;
+.sp-bookchat .suggested-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+.sp-bookchat .suggestion-title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.sp-bookchat .suggestion-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.sp-bookchat .suggestion-btn {
+  width: 100%;
+  min-height: 3.5rem;
+  background-color: #2790ff;
   color: white;
- border-radius: 13px;
-  align-self: flex-end;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.sp-bookchat .suggestion-btn:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
 }
 
-/* Bot message */
-.chat-message.bot .message-text {
-  background-color: #ffffff;
-  color: #111;
-  border-top-left-radius: 0;
-  align-self: flex-start;
+/* === Message Bubble Styles === */
+.sp-bookchat .chat-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.sp-bookchat .chat-message.me {
+  justify-content: flex-end;
+}
+.sp-bookchat .chat-message.bot {
+  justify-content: flex-start;
 }
 
-/* Message bubble */
-.message-text {
+.sp-bookchat .message-text {
   max-width: 80%;
-  border-radius: 16px;
+  padding: 0.75rem 1rem;
   font-size: 0.95rem;
   line-height: 1.4;
+  border-radius: 16px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
+.sp-bookchat .chat-message.me .message-text {
+  background-color: #2790ff;
+  color: white;
+  border-top-right-radius: 0;
+}
+.sp-bookchat .chat-message.bot .message-text {
+  background-color: #f5f5f5;
+  color: #222;
+  border-top-left-radius: 0;
+}
 
-/* Avatar */
-.avatar {
+/* === Avatar Bubble === */
+.sp-bookchat .avatar {
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
-  flex-shrink: 0;
 }
-.avatar img {
+.sp-bookchat .avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-
-.questions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  overflow-y: scroll;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-.questions::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
-
-.suggestion-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 30px;
-  justify-content: center;
- 
-
-}
-
-.suggestion-btn {
-  flex: 1 1 25%;
-  min-width: 220px;
-  max-width: 450px;
-  height: 120px;
-  text-align: justify;
-  background-color:   #2790ff;
-  color: white;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 10px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s cubic-bezier(.4,2,.6,1);
-  z-index: 10002;
-  text-wrap: wrap;
-}
-
-.suggestion-btn:hover {
-  background-color:   #2790ff;
-  transform:  scale(1.05);
-  box-shadow: 0 0 10px gray;
-}
-
-/* Loader centered in chat */
-.embedding-loader {
+/* === Typing Loader Animation === */
+.sp-bookchat .embedding-loader {
+  grid-column: 1 / 2;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
   height: 100px;
-  font-size: 0.95rem;
   color: #666;
-  margin: auto; /* MODIFIED: Centers the loader within its parent container (e.g., .chat-content) */
-  z-index: 10001; /* MODIFIED: Ensures the loader appears above other content */
+  font-size: 0.9rem;
+  z-index: 1;
 }
-
-/* Typing dots animation */
-.typing-dots {
+.sp-bookchat .typing-dots {
   display: flex;
   gap: 5px;
   margin-bottom: 0.5rem;
 }
-.typing-dots span {
+.sp-bookchat .typing-dots span {
   width: 8px;
   height: 8px;
-  background-color: #4a90e2;
+  background-color: #2790ff;
   border-radius: 50%;
   animation: bounce 0.6s infinite alternate;
 }
-.typing-dots span:nth-child(2) {
+.sp-bookchat .typing-dots span:nth-child(2) {
   animation-delay: 0.2s;
 }
-.typing-dots span:nth-child(3) {
+.sp-bookchat .typing-dots span:nth-child(3) {
   animation-delay: 0.4s;
 }
-.typing-dots span:nth-child(4) {
+.sp-bookchat .typing-dots span:nth-child(4) {
   animation-delay: 0.6s;
 }
-.typing-dots span:nth-child(5) {
+.sp-bookchat .typing-dots span:nth-child(5) {
   animation-delay: 0.8s;
 }
-.typing-dots span:nth-child(6) {
+.sp-bookchat .typing-dots span:nth-child(6) {
   animation-delay: 1s;
 }
 @keyframes bounce {
@@ -177,31 +177,7 @@
   }
 }
 
-/* Chat footer with input */
-.chat-footer {
- display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 0 1rem;
-}
 
-
-/* Smooth animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.questions{
-  display: flex;
-  flex-direction: column;
-  margin-top: 1rem;
-}
 
 
 

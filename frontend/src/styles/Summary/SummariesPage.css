@@ -1,55 +1,43 @@
 /* src/styles/Summary/SummariesPage.css */
 
-.summary-page {
-  display: flex; /* Enables flexbox for its direct children */
-  flex-direction: column; /* If there's a header above summary-sections, for example */
-  padding: 1rem; /* Overall padding for the page, can be adjusted or removed */
-  background-color: #ffffff;
+.sp-summary-page {
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   width: 100vw;
-  margin-top: auto;
+  background: #ffffff;
+  padding: 1rem;
+  box-sizing: border-box;
   overflow: hidden;
-  
-  box-sizing: border-box; /* Ensures padding doesn't add to height/width */
 }
 
-.summary-sections {
+/* === 3-column grid =================================================== */
+.sp-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 260px 1fr 320px;  /* bookshelf – chat – player  */
+  grid-gap: 1.5rem;
+  height: 100%;
+}
+
+/* column 1 ––––––––––––––––––––––––––––––––––––––– */
+.sp-bookshelf {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.sp-bookshelf::-webkit-scrollbar { display: none; }
+
+/* column 2 ––––––––––––––––––––––––––––––––––––––– */
+.sp-chat {
   display: flex;
-  flex-direction: row; /* Arranges bookshelf, chat, podcast in a row */
-  gap: 1.5rem; /* Space between the three main sections. Adjust from 0.5rem to 1.5rem as preferred, or 0 if no gap. */
-  height: 100%; /* Takes full available height from .summary-page */
-  justify-content: center; /* MODIFIED: Centers the group of sections horizontally */
-}
-
-/* Left = Books */
-.section.bookshelf-section {
-  flex: 0 0 10%; /* Bookshelf takes 10% of the width, doesn't grow or shrink */
-  overflow-y: auto; /* Allows scrolling within the bookshelf if content overflows */
-  scrollbar-width: none; /* Hides scrollbar for Firefox */
-  height: 100%; /* Takes full height of its parent (.summary-sections) */
-  /* min-width: 180px; /* Optional: consider a min-width if 10% can become too narrow for book display */
-}
-
-.section.bookshelf-section::-webkit-scrollbar {
-  display: none; /* Hides scrollbar for WebKit browsers */
-}
-
-/* Center = Chat */
-.section.chat-section {
-  flex: 0 0 70%; /* Chat UI takes 72% of the width */
-  display: flex; /* Uses flexbox for its internal layout (e.g., chat messages, input) */
   flex-direction: column;
-  background: transparent; /* The section itself is transparent; chat UI has its own background */
-  height: 100%;
-  position: relative; /* Added in case absolutely positioned elements inside need a reference, e.g. a full-overlay loader */
+  overflow: hidden;   /* keeps chat nicely clipped */
 }
 
-/* Right = Podcasts or Media */
-.section.podcast-section {
-  flex: 0 0 15%; /* Podcast player takes the remaining 15% of the width */
-  height: 100%;
-  /* Add styling for the podcast player container here if needed */
-  /* e.g., padding, display: flex, align-items: center, justify-content: center */
-  /* overflow-y: auto; /* If podcast content might overflow */
+/* column 3 ––––––––––––––––––––––––––––––––––––––– */
+.sp-player {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
