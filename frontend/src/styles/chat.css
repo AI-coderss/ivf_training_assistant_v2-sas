@@ -228,6 +228,7 @@
 .chat-message {
   display: flex;
   align-items: flex-start;
+  position: relative;
   margin: 0.5rem 0;
   padding: 0 1rem;
   animation: fadeIn 0.5s ease-in-out;
@@ -248,6 +249,7 @@
 .audio-btn:hover  { transform: scale(1.25); }
 .audio-btn:active { transform: scale(0.95); }
 .audio-btn:disabled{ opacity: .4; cursor: default; }
+
 
 .chat-message.bot {
   justify-content: flex-start;

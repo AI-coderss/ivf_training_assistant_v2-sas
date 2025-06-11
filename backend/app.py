@@ -4,6 +4,8 @@ from uuid import uuid4
 from datetime import datetime
 import json
 import re
+import base64
+import io
 from uuid import uuid4
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response, stream_with_context
@@ -257,28 +259,32 @@ tts_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.route("/tts", methods=["POST"])
 def tts():
-    text = (request.json or {}).get("text", "").strip()
-    if not text:
-        return jsonify({"error": "No text given"}), 400
-
     try:
-        audio_stream = tts_client.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
-            input=text,
-            format="mp3",
-            stream=True
+        data = request.json
+        text = data.get("text", "")
+
+        if not text.strip():
+            return jsonify({"error": "Text is empty"}), 400
+
+        response = tts_client.audio.speech.create(
+            model="tts-1",  # or "tts-1-hd" if you want high quality
+            voice="nova",   # available voices: alloy, echo, fable, onyx, nova, shimmer
+            input=text
         )
+
+        # Read audio stream into memory
+        buffer = io.BytesIO()
+        response.stream_to_file(buffer)
+        buffer.seek(0)
+        audio_data = buffer.read()
+
+        # Convert to base64
+        base64_audio = base64.b64encode(audio_data).decode("utf-8")
+        return jsonify({ "audio": base64_audio })
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-    @stream_with_context
-    def generate():
-        for chunk in audio_stream:
-            yield chunk
-
-    return Response(generate(), mimetype="audio/mpeg")
-
+        print("TTS error:", str(e))
+        return jsonify({ "error": "Failed to generate TTS audio." }), 500
 # === /reset endpoint ===
 @app.route("/reset", methods=["POST"])
 def reset():
