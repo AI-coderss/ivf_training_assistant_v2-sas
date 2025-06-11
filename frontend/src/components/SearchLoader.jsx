@@ -1,26 +1,23 @@
-import React from 'react';
-import '../styles/SearchLoader.css'; // Ensure you have the correct path to your CSS file
+import React from "react";
+import "../styles/SearchLoader.css";
 
-
-const SearchLoader = () => {
-  return (
-    <div className="loader-container">
-      <div className="contact-card">
-        <div className="avatar"></div>
-        <div className="text"></div>
-      </div>
-      <div className="contact-card">
-        <div className="avatar"></div>
-        <div className="text"></div>
-      </div>
-      <div id="magnifying-glass">
-        <div id="glass"></div>
-        <div id="handle">
-          <div id="handle-inner"></div>
-        </div>
+const SearchLoader = () => (
+  <div className="search-loader-container">
+    <div className="search-contact-card">
+      <div className="search-avatar"></div>
+      <div className="search-text"></div>
+    </div>
+    <div className="search-contact-card">
+      <div className="search-avatar"></div>
+      <div className="search-text"></div>
+    </div>
+    <div id="magnifying-glass">
+      <div id="glass"></div>
+      <div id="handle">
+        <div id="handle-inner"></div>
       </div>
     </div>
-  );
-};
+  </div>
+);
 
 export default SearchLoader;
