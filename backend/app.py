@@ -6,7 +6,7 @@ import json
 import re
 from uuid import uuid4
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 import openai
 import qdrant_client
@@ -253,6 +253,31 @@ def websearch():
             yield f"\n[Web search error: {str(e)}]"
 
     return Response(stream_web_response(), content_type="text/plain")
+tts_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+@app.route("/tts", methods=["POST"])
+def tts():
+    text = (request.json or {}).get("text", "").strip()
+    if not text:
+        return jsonify({"error": "No text given"}), 400
+
+    try:
+        audio_stream = tts_client.audio.speech.create(
+            model="tts-1",
+            voice="alloy",
+            input=text,
+            format="mp3",
+            stream=True
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    @stream_with_context
+    def generate():
+        for chunk in audio_stream:
+            yield chunk
+
+    return Response(generate(), mimetype="audio/mpeg")
 
 # === /reset endpoint ===
 @app.route("/reset", methods=["POST"])
