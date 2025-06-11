@@ -166,6 +166,9 @@ def stream():
             "I can't browse the web in real-time to provide the latest information",
             "I cannot access the internet to look up current information",
             "I cannot perform web searches or access external databases",
+            "I can't browse the web in real-time to provide the latest information",
+            "I do not have the capability to access real-time information",
+            "I cannot access the internet to look up current information",
 
         ]
         if any(trigger in answer.lower() for trigger in fallback_triggers):
