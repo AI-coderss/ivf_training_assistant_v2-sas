@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "../ChatInputWidget";
 import ReactMarkdown from "react-markdown";
-import "../styles/Summary/ChatWithBook.css"; // Assuming you have styles for this component
+import "../../styles/Summary/ChatWithBook.css"; // Assuming you have styles for this component
 
 const ChatWithBook = ({ book }) => {
   const [chats, setChats] = useState([]);
