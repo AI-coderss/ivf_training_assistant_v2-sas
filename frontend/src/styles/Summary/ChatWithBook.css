@@ -184,11 +184,7 @@
   border-top: none; /* MODIFIED: Removed the grey line */
   z-index: 3;
 }
-.chat-footer .chat-input-container {
-  width: 100%;
-  transform: translateX(-50%);
-  left: 50%;
-}
+
 
 /* Smooth animation */
 @keyframes fadeIn {
