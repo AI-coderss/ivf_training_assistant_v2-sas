@@ -255,36 +255,33 @@ def websearch():
             yield f"\n[Web search error: {str(e)}]"
 
     return Response(stream_web_response(), content_type="text/plain")
+# === /tts endpoint ===
+# Initialize OpenAI TTS client
 tts_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 @app.route("/tts", methods=["POST"])
 def tts():
+    text = (request.json or {}).get("text", "").strip()
+    if not text:
+        return jsonify({"error": "No text provided"}), 400
+
     try:
-        data = request.json
-        text = data.get("text", "")
+        # 🌟 OpenAI official streaming recipe
+        @stream_with_context
+        def generate():
+            with tts_client.audio.speech.with_streaming_response.create(
+                model="gpt-4o-mini-tts",   # or "tts-1" if enabled
+                voice="coral",             # alloy • echo • coral • nova • shimmer …
+                input=text,
+                instructions="Speak in a friendly tone."
+            ) as resp:
+                for chunk in resp.iter_bytes():  # stream raw MP3 bytes
+                    yield chunk
 
-        if not text.strip():
-            return jsonify({"error": "Text is empty"}), 400
+        return Response(generate(), mimetype="audio/mpeg")
 
-        response = tts_client.audio.speech.create(
-            model="tts-1",  # or "tts-1-hd" if you want high quality
-            voice="nova",   # available voices: alloy, echo, fable, onyx, nova, shimmer
-            input=text
-        )
-
-        # Read audio stream into memory
-        buffer = io.BytesIO()
-        response.stream_to_file(buffer)
-        buffer.seek(0)
-        audio_data = buffer.read()
-
-        # Convert to base64
-        base64_audio = base64.b64encode(audio_data).decode("utf-8")
-        return jsonify({ "audio": base64_audio })
-
-    except Exception as e:
-        print("TTS error:", str(e))
-        return jsonify({ "error": "Failed to generate TTS audio." }), 500
+    except Exception as err:
+        print("TTS error:", err)
+        return jsonify({"error": "TTS failed"}), 500
 # === /reset endpoint ===
 @app.route("/reset", methods=["POST"])
 def reset():
