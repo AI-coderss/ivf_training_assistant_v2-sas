@@ -36,7 +36,7 @@
 
 /* Center = Chat */
 .section.chat-section {
-  flex: 0 0 60%; /* Chat UI takes 72% of the width */
+  flex: 0 0 70%; /* Chat UI takes 72% of the width */
   display: flex; /* Uses flexbox for its internal layout (e.g., chat messages, input) */
   flex-direction: column;
   background: transparent; /* The section itself is transparent; chat UI has its own background */
