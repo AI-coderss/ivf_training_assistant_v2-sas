@@ -262,26 +262,33 @@ tts_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 def tts():
     text = (request.json or {}).get("text", "").strip()
     if not text:
-        return jsonify({"error": "No text provided"}), 400
+        return jsonify({"error": "No text supplied"}), 400
 
     try:
-        # 🌟 OpenAI official streaming recipe
-        @stream_with_context
-        def generate():
-            with tts_client.audio.speech.with_streaming_response.create(
-                model="gpt-4o-mini-tts",   # or "tts-1" if enabled
-                voice="coral",             # alloy • echo • coral • nova • shimmer …
-                input=text,
-                instructions="Speak in a friendly tone."
-            ) as resp:
-                for chunk in resp.iter_bytes():  # stream raw MP3 bytes
-                    yield chunk
-
-        return Response(generate(), mimetype="audio/mpeg")
-
-    except Exception as err:
-        print("TTS error:", err)
+        # PCM streaming output
+        pcm_stream = tts_client.audio.speech.with_streaming_response.create(
+            model="gpt-4o-mini-tts",
+            voice="coral",
+            input=text,
+            instructions="Speak in a friendly tone.",
+            response_format="pcm",  # raw 16-bit 48-kHz PCM stream
+        )
+    except Exception as e:
+        print("TTS error:", e)
         return jsonify({"error": "TTS failed"}), 500
+
+    # Convert PCM-bytes → base64 chunk-by-chunk
+    @stream_with_context
+    def gen():
+        for chunk in pcm_stream.iter_bytes():
+            # encode small chunk to base64 (keep chunks small for smooth stream)
+            b64 = base64.b64encode(chunk).decode("ascii")
+            yield b64
+        # mark end for the browser
+        yield "[[END_OF_AUDIO]]"
+
+    # text/plain so fetch() treats it as text stream
+    return Response(gen(), mimetype="text/plain")
 # === /reset endpoint ===
 @app.route("/reset", methods=["POST"])
 def reset():

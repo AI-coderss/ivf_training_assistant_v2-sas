@@ -234,21 +234,28 @@
   animation: fadeIn 0.5s ease-in-out;
   transition: all 0.3s ease-in-out;
 }
-.audio-btn{
+.message-text {
+  position: relative;
+  padding-right: 24px;
+}
+
+.audio-btn {
   position: absolute;
   bottom: 4px;
-  right: 6px;
-  border:none;
-  background: transparent;
-  cursor:pointer;
-  padding:4px;
-  border-radius:50%;
-  color:#007bff;
-  transition: transform .2s;
+  right: 4px;
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  padding: 4px;
 }
-.audio-btn:hover  { transform: scale(1.25); }
-.audio-btn:active { transform: scale(0.95); }
-.audio-btn:disabled{ opacity: .4; cursor: default; }
+.audio-btn:hover {
+  transform: scale(1.2);
+}
+.audio-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 
 .chat-message.bot {
