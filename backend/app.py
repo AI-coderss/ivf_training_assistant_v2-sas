@@ -157,9 +157,16 @@ def stream():
         # Step 2: Fallback trigger phrases
         fallback_triggers = [
             "i don't know", "i'm not sure", 
+            "I can't browse the web",
+            "I cannot access the internet", "I cannot search the web",
             "no relevant", "cannot find", 
             "sorry", "unavailable", "unable to answer",
-            "not enough information"
+            "not enough information",
+            "I currently do not have browsing capabilities",
+            "I can't browse the web in real-time to provide the latest information",
+            "I cannot access the internet to look up current information",
+            "I cannot perform web searches or access external databases",
+
         ]
         if any(trigger in answer.lower() for trigger in fallback_triggers):
             use_web_search = True
