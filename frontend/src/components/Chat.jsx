@@ -84,7 +84,8 @@ const Chat = () => {
         }
 
         // --- Deactivate loader when the actual content stream starts ---
-        if (isLoading) {
+        if (isLoading && isFirstChunk) {
+          // If we were loading, but now we have content, stop the loader
           setIsLoading(false);
         }
 
