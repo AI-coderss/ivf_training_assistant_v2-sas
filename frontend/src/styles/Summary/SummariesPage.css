@@ -9,79 +9,35 @@
   padding: 1rem;
   box-sizing: border-box;
   overflow: hidden;
-  font-family: Arial, sans-serif;
 }
 
-.sp-summary-page h2 {
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-  color: #333;
-}
-
-/* === 4-column grid =================================================== */
+/* === 3-column grid =================================================== */
 .sp-layout {
   flex: 1;
   display: grid;
-  grid-template-columns: 10% 15% 60% 15%;
-  gap: 1rem;
+  grid-template-columns: 260px 1fr 320px;  /* bookshelf – chat – player  */
+  grid-gap: 1.5rem;
   height: 100%;
-  padding-top: 0.5rem;
 }
 
-/* column 1 – Book Shelf */
+/* column 1 ––––––––––––––––––––––––––––––––––––––– */
 .sp-bookshelf {
   overflow-y: auto;
   scrollbar-width: none;
-  background: #f7f7f7;
-  border-radius: 8px;
-  padding: 0.75rem;
 }
-.sp-bookshelf::-webkit-scrollbar {
-  display: none;
-}
+.sp-bookshelf::-webkit-scrollbar { display: none; }
 
-/* column 2 – Suggested Questions (future use) */
-.sp-suggestions {
-  background: #f7f7f7;
-  border-radius: 8px;
-  padding: 0.75rem;
-}
-
-/* column 3 – Chat with Book */
+/* column 2 ––––––––––––––––––––––––––––––––––––––– */
 .sp-chat {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-  padding: 1rem;
-  height: calc(100vh - 120px);
-  overflow: hidden;
+  overflow: hidden;   /* keeps chat nicely clipped */
 }
 
-/* column 4 – Podcast Player */
+/* column 3 ––––––––––––––––––––––––––––––––––––––– */
 .sp-player {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 1rem;
 }
-
-/* Responsive Adjustments */
-@media (max-width: 1024px) {
-  .sp-layout {
-    grid-template-columns: 20% 25% 55% 0%;
-  }
-}
-
-@media (max-width: 768px) {
-  .sp-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto;
-  }
-  .sp-player {
-    justify-content: flex-end;
-  }
-}
-
 
