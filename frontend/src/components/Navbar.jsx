@@ -13,7 +13,7 @@ const Navbar = () => {
   const menuItems = [
     { label: "Home 🏠", path: "/" },
     { label: "Quizzes 🧠", path: "/quizzes" },
-    { label: "Summaries 📚", path: "/summaries" },
+    //{ label: "Summaries 📚", path: "/summaries" },
     { label: "Digital Content 🎥", path: "/content" },
     { label: "Talk to Avatar 🤖", path: "/avatar" },
   ];

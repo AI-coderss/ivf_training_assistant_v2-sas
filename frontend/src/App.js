@@ -4,7 +4,6 @@ import Navbar from "./components/Navbar";
 import "./App.css";
 import ChatPage from "./pages/ChatPage";
 import QuizzesPage from "./pages/QuizzesPage";
-import SummariesPage from "./pages/SummariesPage";
 import ContentPage from "./pages/ContentPage";
 import AvatarPage from "./pages/AvatarPage";
 
@@ -18,7 +17,6 @@ function App() {
           {/* Explicit routes */}
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/quizzes" element={<QuizzesPage />} />
-          <Route path="/summaries" element={<SummariesPage />} />
           <Route path="/content" element={<ContentPage />} />
           <Route path="/avatar" element={<AvatarPage />} />
           {/* Fallback: unmatched routes go back to home or a 404 page */}
