@@ -56,10 +56,8 @@
 }
 
 .navItem:hover:not(.active) {
-  text-decoration: underline;
-  text-decoration-color: white;
-  text-underline-offset: 3px;
-  color: #ffd700;
+  text-decoration: none;
+  color: #0729ec;
   transform: translateY(-3px) scale(1.05);
   text-shadow: 0 2px 14px rgba(0,0,0,0.15);
   background: rgba(255, 255, 255, 0.15);
@@ -71,13 +69,10 @@
 
 .navItem.active {
   color: #007bff;
+  text-decoration: none;
 }
 
-.navItem:hover:not(.active) {
-  text-decoration: underline;
-  text-decoration-color: white;
-  text-underline-offset: 4px;
-}
+
 
 /* Active Tab Background */
 .navItemActiveContainer {
