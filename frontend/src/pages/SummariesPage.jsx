@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import SummaryBookShelf from "../components/Summary/SummaryBookShelf";
 import ChatWithBook from "../components/Summary/ChatWithBook";
-import PodcastPlayer from "../components/Summary/PodcastPlayer";
+
 
 import "../styles/Summary/SummariesPage.css";
 
@@ -24,10 +24,6 @@ const SummariesPage = () => {
 
         <div className="sp-chat">
           <ChatWithBook book={selectedBook} />
-        </div>
-
-        <div className="sp-player">
-          <PodcastPlayer />
         </div>
       </div>
     </div>
