@@ -14,8 +14,8 @@
 .sp-layout {
   flex: 1;
   display: grid;
-  grid-template-columns: 10% 15% 75%;  /* bookshelf – suggestions – chat */
-  gap: 1rem;  /* Adjust gap if needed */
+  grid-template-columns: 1fr 1.5fr 7.5fr;  /* bookshelf – suggestions – chat */
+  gap: 2rem;  /* Adjust gap if needed */
   height: 100%;
   padding-top: 0.5rem;
 }
