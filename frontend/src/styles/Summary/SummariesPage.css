@@ -11,14 +11,15 @@
   overflow: hidden;
 }
 
-/* === 3-column grid =================================================== */
 .sp-layout {
   flex: 1;
   display: grid;
-  grid-template-columns: 260px 1fr 320px;  /* bookshelf – chat – player  */
-  grid-gap: 1.5rem;
+  grid-template-columns: 10% 15% 75%;  /* bookshelf – suggestions – chat */
+  gap: 1rem;  /* Adjust gap if needed */
   height: 100%;
+  padding-top: 0.5rem;
 }
+
 
 /* column 1 ––––––––––––––––––––––––––––––––––––––– */
 .sp-bookshelf {
@@ -33,11 +34,16 @@
   flex-direction: column;
   overflow: hidden;   /* keeps chat nicely clipped */
 }
+@media (max-width: 1024px) {
+  .sp-layout {
+    grid-template-columns: 20% 25% 55%;
+  }
+}
 
-/* column 3 ––––––––––––––––––––––––––––––––––––––– */
-.sp-player {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
+@media (max-width: 768px) {
+  .sp-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
 }
 
