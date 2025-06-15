@@ -46,14 +46,15 @@
 
 /* === Suggested Questions === */
 .sp-bookchat .questions {
-  grid-column: 2 / 3;
-  grid-row: 1 / 3; /* Span both rows to match chat + input */
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 0 1rem 1rem; /* more balanced padding */
+  width: 380px;
+  background-color: transparent;
+  padding: 1.5rem 1rem 1rem 1rem;
   overflow-y: auto;
-  border-left: 1px solid #e0e0e0;
+  scroll-behavior: smooth;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
 }
 .sp-bookchat .questions::-webkit-scrollbar {
   display: none;
