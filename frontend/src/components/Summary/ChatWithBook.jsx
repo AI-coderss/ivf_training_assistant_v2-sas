@@ -167,10 +167,9 @@ const ChatWithBook = ({ book }) => {
       {/* footer + suggestions (only when ready) */}
       {readyToChat && (
         <>
-         
-            
+          <div className="chat-input-bar">
             <ChatInputWidget onSendMessage={handleSendMessage} />
-        
+          </div>
 
           <div className="questions">
             <div className="suggested-questions">
