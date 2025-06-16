@@ -1,0 +1,236 @@
+/* 1. White Theme Color Palette */
+:root {
+  --bg-color: #f8f9fa; /* Light gray background */
+  --card-bg-color: #ffffff; /* White cards */
+  --text-color: #212529; /* Dark text */
+  --text-color-muted: #6c757d; /* Muted gray text */
+  --primary-color:#007BFF; /* Kept the vibrant primary color */
+  --border-color: #dee2e6; /* Light border for separation */
+  --card-border-radius: 12px;
+  --spacing-unit: 1rem;
+}
+
+/* 2. Main page layout */
+.avatar-page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  color: var(--text-color);
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+.main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 155px; /* Space for the bottom swiper */
+  padding: var(--spacing-unit);
+  gap: var(--spacing-unit);
+}
+.content-wrapper {
+  width: 100%;
+  max-width: 2200px;
+  padding: var(--spacing-unit);
+  box-sizing: border-box;
+  margin-top: 125px;
+}
+.main-content h2 {
+  font-family: 'Charter', serif;
+  font-weight: 500;
+  font-size: 2.25rem;
+  margin-bottom: var(--spacing-unit);
+}
+
+/* 3. Increased Video Container Size */
+.video-container {
+    width: 100%;
+    max-width: 4200px; /* Increased width */
+    aspect-ratio: 16 / 7; /* Slightly taller aspect ratio */
+    min-height: 350px;    /* Ensures greater height */
+    background-color: #000;
+    border-radius: var(--card-border-radius);
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border-color);
+}
+
+.video-placeholder {
+  color: var(--text-color-muted);
+  font-size: 1.25rem;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 1.5);
+  width: 100%;
+  max-width: 960px; /* Increased to match video width */
+}
+
+
+.buttons-wrapper {
+  display: flex;
+  gap: var(--spacing-unit);
+}
+
+.control-btn {
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.speak-btn {
+  background-color: var(--primary-color);
+  color: white;
+}
+.speak-btn:hover {
+  background-color: #007BFF;
+}
+
+.send-btn {
+  background-color: var(--text-color-muted);
+  color: white;
+}
+.send-btn:hover {
+  background-color: #8c939a;
+}
+.send-btn:disabled {
+  background-color: #495057;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* 4. Swiper container placed at the bottom with no bottom space */
+.bottom-swiper-container {
+  width: 100%;
+  margin-top: 155px;
+  padding-top: var(--spacing-unit); /* Only top padding remains */
+  flex-shrink: 0;
+}
+
+.avatar-swiper {
+  padding-inline: var(--spacing-unit);
+  /* Added a small bottom padding to the swiper itself for visual balance */
+  padding-bottom: calc(var(--spacing-unit) * 0.75);
+}
+
+/* 5. Card styling for the white theme */
+.avatar-swiper .swiper-slide {
+  width: 200px !important;
+  height: auto;
+  transition: transform 0.3s ease;
+}
+
+/* Not active card: apply subtle animation (e.g., pulsing opacity/scale) */
+.card {
+    width: 240px;
+    height: 320px;
+    background: var(--card-bg-color);
+    border-radius: var(--card-border-radius);
+    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s cubic-bezier(0.4, 0.2, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0.2, 0.2, 1), opacity 0.3s;
+    transform: scale(0.95);
+    opacity: 0.7;
+    animation: cardPulse 1.5s infinite alternate;
+    /* Remove margin, use gap instead */
+    padding: 25px;   /* Inner padding for card content */
+    box-sizing: border-box;
+}
+
+/* Add gap between swiper slides (cards) */
+.avatar-swiper .swiper-wrapper {
+    display: flex;
+    gap: 32px; /* Adjust gap size as needed */
+}
+
+@keyframes cardPulse {
+    0% {
+        opacity: 0.7;
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 0.85;
+        transform: scale(0.98);
+    }
+}
+
+/* Active card: apply continuously radiating border animation */
+.card.active {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 20px rgba(138, 79, 255, 0.2);
+    animation: radiateBorder 1.2s infinite;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes radiateBorder {
+    0% {
+        box-shadow:
+            0 0 0 0 rgba(0, 123, 255, 0.4),
+            0 4px 20px rgba(138, 79, 255, 0.2);
+    }
+    70% {
+        box-shadow:
+            0 0 0 12px rgba(0, 123, 255, 0),
+            0 4px 20px rgba(138, 79, 255, 0.2);
+    }
+    100% {
+        box-shadow:
+            0 0 0 0 rgba(0, 123, 255, 0),
+            0 4px 20px rgba(138, 79, 255, 0.2);
+    }
+}
+
+.card:hover {
+    
+    box-shadow: 0 8px 32px rgba(0, 123, 255, 0.15);
+    opacity: 1;
+}
+
+.swiper-slide-active .card {
+ 
+  opacity: 1;
+}
+
+.card.active {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 20px rgba(138, 79, 255, 0.2); /* Softer shadow for white theme */
+}
+
+.avatar-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background-color: #f1f3f5;
+}
+
+.card-text {
+  padding: var(--spacing-unit);
+  text-align: center;
+}
+
+.card-text h3 {
+  font-size: 1.1rem;
+  margin: 0 0 0.25rem;
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.card-text p {
+  font-size: 0.85rem;
+  margin: 0;
+  color: var(--text-color-muted);
+  line-height: 1.4;
+}
