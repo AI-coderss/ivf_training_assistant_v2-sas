@@ -30,6 +30,8 @@
   margin-top: 155px; /* Space for the bottom swiper */
   padding: var(--spacing-unit);
   gap: var(--spacing-unit);
+  background-color: none; /* No background color for main content */
+  
 }
 .content-wrapper {
   width: 100%;
