@@ -58,7 +58,7 @@
 }
 
 .suggestion-item {
-  background-color: #F1F3F5;
+  background-color: #f8f9fa;
   border: none;
   color: #333;
   font-size: 0.95rem;
@@ -75,7 +75,8 @@
 .suggestion-item:hover {
   transform: scale(1.8) translateY(-1px);
   box-shadow: 0 4px 14px rgba(0, 123, 255, 0.35);
-  background-color: #0069d9;
+  color: #f1efef;
+  background-color: #007BFF;
 }
 
 @keyframes popIn {
