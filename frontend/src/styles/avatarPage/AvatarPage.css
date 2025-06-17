@@ -170,23 +170,38 @@
 }
 
 /* ✅ Improved chat bubble style with fade-in */
+/* ✅ General bubble style */
 .chat-message {
-  
-  transform: translateY(10px);
+  max-width: 80%;
+  margin: 0.3rem 0;
+  padding: 0.6rem 1rem;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  opacity: 0;
+  transform: translateY(8px);
   animation: messageFadeIn 0.3s ease forwards;
 }
 
+/* ✅ AI message bubble: light, left-aligned */
 .chat-message.avatar {
-  background: #e9ecef;
+  background: #f1f3f5;
   color: var(--text-color);
   align-self: flex-start;
+  border-top-left-radius: 4px;
 }
 
+/* ✅ User message bubble: colored, right-aligned */
 .chat-message.user {
   background: var(--primary-color);
   color: #fff;
   align-self: flex-end;
+  border-top-right-radius: 4px;
 }
+
+
 
 @keyframes messageFadeIn {
   to {

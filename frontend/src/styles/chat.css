@@ -58,9 +58,9 @@
 }
 
 .suggestion-item {
-  background-color: #007bff;
+  background-color: #F1F3F5;
   border: none;
-  color: #fff;
+  color: #333;
   font-size: 0.95rem;
   border-radius: 12px;
   padding: 0.65rem 1rem;
