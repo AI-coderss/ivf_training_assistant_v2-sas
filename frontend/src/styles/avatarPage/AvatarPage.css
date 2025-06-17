@@ -172,14 +172,13 @@
 /* ✅ Improved chat bubble style with fade-in */
 /* ✅ General bubble style */
 .chat-message {
-  max-width: 80%;
-  margin: 0.3rem 0;
-  padding: 0.6rem 1rem;
-  border-radius: 16px;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  opacity: 0;
-  transform: translateY(8px);
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  margin: 0.5rem 0;
+  padding: 0 1rem;
+  animation: fadeIn 0.5s ease-in-out;
+  transition: all 0.3s ease-in-out;
   animation: messageFadeIn 0.3s ease forwards;
 }
 
