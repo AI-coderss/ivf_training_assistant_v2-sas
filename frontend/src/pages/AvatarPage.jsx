@@ -15,7 +15,9 @@ import "swiper/css";
 import "swiper/css/keyboard";
 import "swiper/css/mousewheel";
 
-import "../styles/avatarPage/AvatarPage.css"; // The single, updated CSS file
+import "../styles/avatarPage/AvatarPage.css";
+import "../styles/AudioWave.css";
+import AudioWave from "../components/avatarPage/AudioWave";
 
 import { createStream, postSdp, chat as apiChat } from "../api";
 
@@ -75,12 +77,7 @@ export default function AvatarPage() {
   ]);
   const [currentMessage, setCurrentMessage] = useState("");
 
-  const {
-    transcript,
-    listening,
-    browserSupportsSpeechRecognition,
-    resetTranscript,
-  } = useSpeechRecognition();
+  const { transcript, listening, resetTranscript } = useSpeechRecognition();
 
   const initWebRTC = async (sdpOffer) => {
     const pc = new RTCPeerConnection({
@@ -140,11 +137,13 @@ export default function AvatarPage() {
       setMessages((prev) => [...prev, avatarMessage]);
     } catch (error) {
       console.error("Error getting chat response:", error);
-      const errorMessage = {
-        sender: "avatar",
-        text: "Sorry, I couldn't process that. Please try again.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "avatar",
+          text: "Sorry, I couldn't process that. Please try again.",
+        },
+      ]);
     }
   };
 
@@ -157,19 +156,12 @@ export default function AvatarPage() {
   return (
     <div className="avatar-page-container">
       <div className="main-view-wrapper">
-        <div className="video-section">
+        <div className="video-chat-wrapper">
           <div className="video-container">
             <video ref={videoRef} autoPlay playsInline muted />
             <div className="video-controls-overlay">
-              <div className="audio-visualizer">
-                {listening && (
-                  <>
-                    <div className="viz-bar"></div>
-                    <div className="viz-bar"></div>
-                    <div className="viz-bar"></div>
-                  </>
-                )}
-              </div>
+              {listening && <AudioWave listening={listening} />}
+
               <button
                 onClick={handleMicToggle}
                 className="overlay-control-button"
@@ -188,40 +180,46 @@ export default function AvatarPage() {
               </button>
             </div>
           </div>
-        </div>
 
-        <div className={`chat-panel ${isChatVisible ? "visible" : ""}`}>
-          <div className="chat-header">
-            <h3>Conversation</h3>
-            <button
-              onClick={() => setIsChatVisible(false)}
-              className="close-chat-btn"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="chat-messages">
-            {messages.map((msg, index) => (
-              <ChatMessage key={index} sender={msg.sender} text={msg.text} />
-            ))}
-          </div>
-          <div className="chat-input-area">
-            <input
-              type="text"
-              placeholder="Type your message..."
-              value={currentMessage}
-              onChange={(e) => setCurrentMessage(e.target.value)}
-              onKeyPress={(e) =>
-                e.key === "Enter" && handleSend(currentMessage)
-              }
-            />
-            <button
-              onClick={() => handleSend(currentMessage)}
-              disabled={!currentMessage}
-            >
-              <FaPaperPlane />
-            </button>
-          </div>
+          {isChatVisible && (
+            <div className="chat-panel">
+              <div className="chat-header">
+                <h3>Conversation</h3>
+                <button
+                  onClick={() => setIsChatVisible(false)}
+                  className="close-chat-btn"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="chat-messages-av">
+                {messages.map((msg, index) => (
+                  <ChatMessage
+                    key={index}
+                    sender={msg.sender}
+                    text={msg.text}
+                  />
+                ))}
+              </div>
+              <div className="chat-input-area">
+                <input
+                  type="text"
+                  placeholder="Type your message..."
+                  value={currentMessage}
+                  onChange={(e) => setCurrentMessage(e.target.value)}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" && handleSend(currentMessage)
+                  }
+                />
+                <button
+                  onClick={() => handleSend(currentMessage)}
+                  disabled={!currentMessage}
+                >
+                  <FaPaperPlane />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
