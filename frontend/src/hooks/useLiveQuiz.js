@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 
 /**
- * Custom hook for streaming IVF quiz questions using POST + ReadableStream.
+ * Custom hook for streaming IVF quiz questions using POST + ReadableStream,
+ * handles SSE-style `data:` chunks properly.
  */
 export default function useLiveQuiz() {
   const [questions, setQuestions] = useState([]);
@@ -34,23 +35,60 @@ export default function useLiveQuiz() {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+
+      // Decode incoming chunk and add to buffer
       buffer += decoder.decode(value, { stream: true });
-    }
 
-    buffer += decoder.decode();
+      // Split by double newline (SSE delimiter)
+      let lines = buffer.split("\n\n");
 
-    try {
-      const parsed = JSON.parse(buffer);
-      if (parsed.questions && Array.isArray(parsed.questions)) {
-        setQuestions(parsed.questions);
-        setSessionId(parsed.session_id);
-      } else {
-        setError("Invalid quiz format.");
+      // Keep incomplete piece for next round
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const jsonStr = line.replace("data: ", "").trim();
+          try {
+            const parsed = JSON.parse(jsonStr);
+
+            if (parsed.error) {
+              console.error("Stream error:", parsed.error);
+              setError(parsed.error);
+            } else {
+              // Fallback if entire questions array comes at once
+              if (parsed.questions && Array.isArray(parsed.questions)) {
+                setQuestions(parsed.questions);
+                if (parsed.session_id) {
+                  setSessionId(parsed.session_id);
+                }
+              } else {
+                // Otherwise, it's a single streamed question object
+                setQuestions((prev) => [...prev, parsed]);
+              }
+            }
+
+          } catch (err) {
+            console.error("Parse error:", err, jsonStr);
+          }
+        }
       }
-    } catch (err) {
-      console.error("Parse error:", err);
-      setError("Failed to parse streamed quiz.");
     }
+
+    // After stream ends, parse leftover buffer if needed
+    if (buffer.trim().startsWith("data: ")) {
+      const jsonStr = buffer.replace("data: ", "").trim();
+      try {
+        const parsed = JSON.parse(jsonStr);
+        if (parsed.questions && Array.isArray(parsed.questions)) {
+          setQuestions(parsed.questions);
+        } else {
+          setQuestions((prev) => [...prev, parsed]);
+        }
+      } catch (err) {
+        console.error("Parse error in leftover:", err, jsonStr);
+      }
+    }
+
   }, []);
 
   return {
@@ -62,3 +100,4 @@ export default function useLiveQuiz() {
     setError,
   };
 }
+
