@@ -320,18 +320,18 @@ def start_quiz():
     topic = data.get("topic", "IVF")
     difficulty = data.get("difficulty", "mixed")
 
-    # ✅ Strong instructions to enforce pure JSON
     instructions = (
-        f"You are an IVF quiz assistant. "
-        f"Generate EXACTLY 20 multiple-choice questions on '{topic}', with '{difficulty}' difficulty. "
-        f"Respond ONLY with a valid JSON array. No explanations, no markdown, no text outside JSON. "
-        f"Each object must have: id, text, options (array of 4), correct (A/B/C/D), difficulty (easy/medium/hard)."
+        f"You are an IVF training bot. "
+        f"Search the web for a real IVF multiple-choice practice exam for '{topic}' "
+        f"with '{difficulty}' level. "
+        f"Extract real questions verbatim. "
+        f"Stream each question JSON as soon as you have it: "
+        f'{{"id": "...", "text": "...", "options": ["A","B","C","D"], "correct": "A", "difficulty": "easy"}}. '
+        f"No explanations. Keep sending until at least 20 real online questions."
     )
 
     def stream_quiz():
-        chunks = []
         try:
-            # ✅ Stream from OpenAI Responses API
             stream = client.responses.create(
                 model="gpt-4o",
                 input=[{"role": "user", "content": instructions}],
@@ -339,40 +339,32 @@ def start_quiz():
                 stream=True
             )
 
+            buffer = ""
+            question_id = 1
+
             for event in stream:
                 if hasattr(event, "delta") and event.delta:
-                    chunks.append(event.delta)
+                    buffer += event.delta
+
+                    # Try to parse JSON object one-by-one if possible
+                    if buffer.strip().endswith("}"):
+                        try:
+                            obj = json.loads(buffer)
+                            obj["id"] = f"q{question_id}"
+                            question_id += 1
+                            yield f"data: {json.dumps(obj)}\n\n"
+                            buffer = ""
+                        except Exception:
+                            # Not a full JSON yet, keep buffering
+                            pass
+
                 elif getattr(event, "type", "") == "response.output_text.done":
                     break
 
-            # ✅ Join chunks
-            raw_json = ''.join(chunks).strip()
-
-            # ✅ Remove accidental markdown if present
-            if raw_json.startswith("```"):
-                raw_json = raw_json.split("```")[-2].strip()
-
-            # ✅ Parse JSON safely
-            questions = json.loads(raw_json)
-
-            if not isinstance(questions, list) or len(questions) != 20:
-                raise ValueError("Invalid JSON: must be array of 20 questions")
-
-            # ✅ Always yield final JSON response
-            yield json.dumps({
-                "session_id": session_id,
-                "questions": questions
-            })
-
         except Exception as e:
-            # ✅ Always yield error in JSON
-            yield json.dumps({
-                "error": f"Server failed: {str(e)}"
-            })
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-    # ✅ Return as streaming JSON
-    return Response(stream_quiz(), content_type="application/json")
-
+    return Response(stream_quiz(), content_type="text/event-stream")
 
 # === Quick test route ===
 @app.route("/")
