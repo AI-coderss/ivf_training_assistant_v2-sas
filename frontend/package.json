@@ -34,14 +34,16 @@
     "swiper": "^11.2.8",
     "web-vitals": "^2.1.4"
   },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "serve -s build",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  
-  
+  "proxy": "http://localhost:4000",
   "eslintConfig": {
     "extends": [
       "react-app",
