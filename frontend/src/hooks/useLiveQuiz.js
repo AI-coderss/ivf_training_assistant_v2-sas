@@ -1,18 +1,19 @@
 import { useState, useCallback } from "react";
 
 /**
- * Custom hook for streaming IVF quiz questions using POST + ReadableStream,
- * handles SSE-style `data:` chunks properly.
+ * Hook for streaming IVF quiz questions with live typing effect.
  */
 export default function useLiveQuiz() {
   const [questions, setQuestions] = useState([]);
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState(null);
+  const [streamingQuestion, setStreamingQuestion] = useState(""); // NEW!
 
   const startQuiz = useCallback(async (difficulty) => {
     setQuestions([]);
     setError("");
     setSessionId(null);
+    setStreamingQuestion("");
 
     const response = await fetch(
       "https://ivf-backend-server.onrender.com/start-quiz",
@@ -36,18 +37,15 @@ export default function useLiveQuiz() {
       const { done, value } = await reader.read();
       if (done) break;
 
-      // Decode incoming chunk and add to buffer
       buffer += decoder.decode(value, { stream: true });
 
-      // Split by double newline (SSE delimiter)
       let lines = buffer.split("\n\n");
-
-      // Keep incomplete piece for next round
       buffer = lines.pop();
 
       for (const line of lines) {
         if (line.startsWith("data: ")) {
           const jsonStr = line.replace("data: ", "").trim();
+
           try {
             const parsed = JSON.parse(jsonStr);
 
@@ -55,26 +53,27 @@ export default function useLiveQuiz() {
               console.error("Stream error:", parsed.error);
               setError(parsed.error);
             } else {
-              // Fallback if entire questions array comes at once
+              // Full questions array fallback
               if (parsed.questions && Array.isArray(parsed.questions)) {
                 setQuestions(parsed.questions);
-                if (parsed.session_id) {
-                  setSessionId(parsed.session_id);
-                }
+                setSessionId(parsed.session_id);
+                setStreamingQuestion("");
               } else {
-                // Otherwise, it's a single streamed question object
+                // Finalize question
                 setQuestions((prev) => [...prev, parsed]);
+                setStreamingQuestion(""); // Clear after finalizing
               }
             }
 
-          } catch (err) {
-            console.error("Parse error:", err, jsonStr);
+          } catch {
+            // If not fully parsable, show partial text for live typing
+            setStreamingQuestion(jsonStr);
           }
         }
       }
     }
 
-    // After stream ends, parse leftover buffer if needed
+    // Parse leftover if any
     if (buffer.trim().startsWith("data: ")) {
       const jsonStr = buffer.replace("data: ", "").trim();
       try {
@@ -84,8 +83,8 @@ export default function useLiveQuiz() {
         } else {
           setQuestions((prev) => [...prev, parsed]);
         }
-      } catch (err) {
-        console.error("Parse error in leftover:", err, jsonStr);
+      } catch {
+        setStreamingQuestion(jsonStr);
       }
     }
 
@@ -96,6 +95,7 @@ export default function useLiveQuiz() {
     error,
     sessionId,
     startQuiz,
+    streamingQuestion, // EXPOSED!
     setQuestions,
     setError,
   };

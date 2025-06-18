@@ -5,11 +5,18 @@ import QuestionBlock from "../components/Quizzes/QuestionBlock";
 import ResultSummary from "../components/Quizzes/ResultSummary";
 import Badge from "../components/Quizzes/Badge";
 import ChatBot from "../components/Quizzes/Chatbot";
-import useLiveQuiz from "../hooks/useLiveQuiz"; // ✅ NEW: your custom hook
+import StreamingQuestion from "../components/Quizzes/StreamingQuestion"; // ✅ NEW!
+import useLiveQuiz from "../hooks/useLiveQuiz"; // ✅ USE HOOK
 
 const QuizzesPage = () => {
-  // ✅ Use custom hook for live streaming quiz
-  const { questions, error, startQuiz, setQuestions, setError } = useLiveQuiz();
+  const {
+    questions,
+    error,
+    startQuiz,
+    streamingQuestion,
+    setQuestions,
+    setError,
+  } = useLiveQuiz();
 
   const [answers, setAnswers] = useState({});
   const [feedbackShown, setFeedbackShown] = useState({});
@@ -42,7 +49,6 @@ const QuizzesPage = () => {
     return "easy";
   };
 
-  // ✅ New: triggers the hook & sets local quiz states
   const handleStartQuiz = async () => {
     setAnswers({});
     setScore(0);
@@ -55,7 +61,7 @@ const QuizzesPage = () => {
     setTimeLeft(600);
 
     const difficulty = chooseDifficulty();
-    await startQuiz(difficulty); // ✅ Uses hook version!
+    await startQuiz(difficulty); // ✅ USE HOOK
 
     setQuizStarted(true);
     setTimerActive(true);
@@ -137,7 +143,7 @@ Based on these mistakes, please provide:
     setScore(0);
     setQuizStarted(false);
     setShowResult(false);
-    setQuestions([]); // ✅ Uses hook's setter
+    setQuestions([]);
     setFeedbackShown({});
     setError("");
     setTimeLeft(600);
@@ -216,12 +222,10 @@ Based on these mistakes, please provide:
         </>
       ) : (
         <>
-          {/* Sticky Timer at the Top */}
           <div className="sticky-timer-wrapper">
             <TimerDisplay timeLeft={timeLeft} />
           </div>
 
-          {/* Questions Below Timer */}
           <div className="quiz-with-timer">
             <form
               className="all-questions-form"
@@ -241,6 +245,11 @@ Based on these mistakes, please provide:
                   handleAnswer={handleAnswer}
                 />
               ))}
+
+              {streamingQuestion && (
+                <StreamingQuestion text={streamingQuestion} />
+              )}
+
               <button
                 type="submit"
                 className="submit-button"
