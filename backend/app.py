@@ -32,6 +32,7 @@ CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com","https
 # === SESSION STATE ===
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 # === VECTOR DB ===
@@ -297,60 +298,81 @@ def reset():
     if session_id in chat_sessions:
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
+#===/start Quiz endpoint
 
 @app.route("/start-quiz", methods=["POST"])
+
 def start_quiz():
     try:
         session_id = request.json.get("session_id", str(uuid4()))
         topic = request.json.get("topic", "IVF")
-        difficulty = request.json.get("difficulty", "mixed")  # ✅ new param
+        difficulty = request.json.get("difficulty", "mixed")
 
-        rag_prompt = (
-            f"You are an IVF virtual training assistant. Generate exactly 20 multiple-choice questions on '{topic}'. "
-            f"Each question must reflect '{difficulty}' difficulty level. Return them strictly as a JSON array. "
-            "Each object must follow this format:\n"
-            '{ "id": "q1", "text": "...", "options": ["A", "B", "C", "D"], "correct": "B", "difficulty": "easy" }\n'
-            "Respond ONLY with valid JSON — no markdown, commentary, or explanations."
+
+        # Build AI prompt and JSON schema
+        instructions = (
+            "You are an IVF virtual training assistant. "
+            "Generate exactly 20 multiple-choice questions on IVF. "
+            f"Each question must reflect '{difficulty}' difficulty level. "
+            "Return strictly a JSON array of objects, each like:\n"
+            '{ "id": "q1", "text": "...", '
+            '"options": ["A", "B", "C", "D"], '
+            '"correct": "B", "difficulty": "easy" }'
         )
+        
+        schema = {
+            "type": "array",
+            "minItems": 20,
+            "maxItems": 20,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "text": {"type": "string"},
+                    "options": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 4, "maxItems": 4
+                    },
+                    "correct": {"type": "string"},
+                    "difficulty": {"type": "string", "enum": ["easy", "medium", "hard"]}
+                },
+                "required": ["id", "text", "options", "correct", "difficulty"]
+            }
+        }
 
-        # 🧠 Ask AI via RAG
-        response = chain_with_memory.invoke(
-            {"input": rag_prompt},
-            config={"configurable": {"session_id": session_id}},
+        # Call Responses API with structured output and web-search built-in tool
+        resp = client.responses.create(
+            model="gpt-4o",
+            tools=[{"type": "web_search_preview"}],
+            instructions=instructions,
+            input=topic,
+            response_format={"type": "json_schema", "schema": schema},
+            stream=False
         )
-        raw_answer = response["answer"]
-        print("✅ AI response received")
+        raw_text = resp.output_text
+        questions = json.loads(raw_text)
 
-        # 🔍 Clean and parse JSON safely
-        raw_cleaned = re.sub(r"```json|```", "", raw_answer).strip()
-        questions = json.loads(raw_cleaned)
+        # Basic validation
+        if not isinstance(questions, list) or len(questions) != 20:
+            raise ValueError("Quiz must contain exactly 20 questions")
+        
+        for q in questions:
+            missing = {f for f in ("id","text","options","correct","difficulty") if f not in q}
+            if missing:
+                raise ValueError(f"Question missing keys: {missing}")
 
-        # ✅ Validate structure
-        if not isinstance(questions, list) or not all(
-            "text" in q and "options" in q and "correct" in q and "difficulty" in q for q in questions
-        ):
-            raise ValueError("Parsed questions are not valid or missing difficulty field.")
+        # Save to session history
+        chat_sessions.setdefault(session_id, []).append({"role":"user","content":instructions})
+        chat_sessions[session_id].append({"role":"assistant","content":raw_text})
 
-        print("✅ Parsed question example:", questions[0])
-
-        # 💾 Save history (optional)
-        if session_id not in chat_sessions:
-            chat_sessions[session_id] = []
-        chat_sessions[session_id].append({"role": "user", "content": rag_prompt})
-        chat_sessions[session_id].append({"role": "assistant", "content": raw_answer})
-
-        return jsonify({
-            "questions": questions,
-            "session_id": session_id
-        })
+        return jsonify({"questions": questions, "session_id": session_id})
 
     except Exception as e:
-        print("❌ Failed to parse quiz questions:", str(e))
-        print("🛠 Raw AI output:", raw_answer if 'raw_answer' in locals() else "No output")
-
         return jsonify({
-            "error": "Failed to generate valid quiz from AI response.",
-            "details": str(e)
+            "error": "Failed to generate valid quiz.",
+            "details": str(e),
+            "raw_output": raw_text if 'raw_text' in locals() else None
         }), 500
     
 @app.route("/quiz-feedback-stream", methods=["POST"])
