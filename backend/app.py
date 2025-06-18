@@ -299,6 +299,19 @@ def reset():
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
 #===/start Quiz endpoint
+from flask import Flask, request, Response
+from flask_cors import CORS
+from uuid import uuid4
+import os
+import json
+from openai import OpenAI
+
+# === Initialize Flask ===
+app = Flask(__name__)
+CORS(app)  # ✅ Enable CORS for all origins
+
+# === Initialize OpenAI ===
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.route("/start-quiz", methods=["POST"])
 def start_quiz():
@@ -307,16 +320,20 @@ def start_quiz():
     topic = data.get("topic", "IVF")
     difficulty = data.get("difficulty", "mixed")
 
+    # ✅ Strong instructions to enforce pure JSON
     instructions = (
-        f"You are an IVF quiz assistant. Generate 20 questions on '{topic}' "
-        f"with '{difficulty}' difficulty. Return valid JSON array only."
+        f"You are an IVF quiz assistant. "
+        f"Generate EXACTLY 20 multiple-choice questions on '{topic}', with '{difficulty}' difficulty. "
+        f"Respond ONLY with a valid JSON array. No explanations, no markdown, no text outside JSON. "
+        f"Each object must have: id, text, options (array of 4), correct (A/B/C/D), difficulty (easy/medium/hard)."
     )
 
     def stream_quiz():
         chunks = []
         try:
+            # ✅ Stream from OpenAI Responses API
             stream = client.responses.create(
-                model="gpt-4.1",
+                model="gpt-4o",
                 input=[{"role": "user", "content": instructions}],
                 tools=[{"type": "web_search_preview"}],
                 stream=True
@@ -328,15 +345,41 @@ def start_quiz():
                 elif getattr(event, "type", "") == "response.output_text.done":
                     break
 
+            # ✅ Join chunks
             raw_json = ''.join(chunks).strip()
+
+            # ✅ Remove accidental markdown if present
+            if raw_json.startswith("```"):
+                raw_json = raw_json.split("```")[-2].strip()
+
+            # ✅ Parse JSON safely
             questions = json.loads(raw_json)
 
-            yield json.dumps({"session_id": session_id, "questions": questions})
+            if not isinstance(questions, list) or len(questions) != 20:
+                raise ValueError("Invalid JSON: must be array of 20 questions")
+
+            # ✅ Always yield final JSON response
+            yield json.dumps({
+                "session_id": session_id,
+                "questions": questions
+            })
 
         except Exception as e:
-            yield json.dumps({"error": str(e)})
+            # ✅ Always yield error in JSON
+            yield json.dumps({
+                "error": f"Server failed: {str(e)}"
+            })
 
+    # ✅ Return as streaming JSON
     return Response(stream_quiz(), content_type="application/json")
+
+
+# === Quick test route ===
+@app.route("/")
+def index():
+    return "✅ IVF Quiz API is up!"
+
+
 
 @app.route("/quiz-feedback-stream", methods=["POST"])
 def quiz_feedback_stream():
