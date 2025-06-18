@@ -301,25 +301,27 @@ def reset():
 #===/start Quiz endpoint
 
 @app.route("/start-quiz", methods=["POST"])
-
 def start_quiz():
     try:
-        session_id = request.json.get("session_id", str(uuid4()))
-        topic = request.json.get("topic", "IVF")
-        difficulty = request.json.get("difficulty", "mixed")
+        data = request.get_json()
+        session_id = data.get("session_id", str(uuid4()))
+        topic = data.get("topic", "IVF")
+        difficulty = data.get("difficulty", "mixed")
 
-
-        # Build AI prompt and JSON schema
+        # ✅ Proper instructions and JSON Schema
         instructions = (
-            "You are an IVF virtual training assistant. "
-            "Generate exactly 20 multiple-choice questions on IVF. "
-            f"Each question must reflect '{difficulty}' difficulty level. "
-            "Return strictly a JSON array of objects, each like:\n"
-            '{ "id": "q1", "text": "...", '
-            '"options": ["A", "B", "C", "D"], '
-            '"correct": "B", "difficulty": "easy" }'
+            f"You are an IVF virtual training assistant. "
+            f"Generate exactly 20 multiple-choice questions on '{topic}' "
+            f"with '{difficulty}' difficulty. "
+            "Each question must have:\n"
+            "- id\n"
+            "- text\n"
+            "- options (array of 4)\n"
+            "- correct (A/B/C/D)\n"
+            "- difficulty (easy/medium/hard)\n"
+            "Return STRICTLY valid JSON array, NO other text."
         )
-        
+
         schema = {
             "type": "array",
             "minItems": 20,
@@ -332,49 +334,57 @@ def start_quiz():
                     "options": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "minItems": 4, "maxItems": 4
+                        "minItems": 4,
+                        "maxItems": 4
                     },
-                    "correct": {"type": "string"},
-                    "difficulty": {"type": "string", "enum": ["easy", "medium", "hard"]}
+                    "correct": {
+                        "type": "string",
+                        "enum": ["A", "B", "C", "D"]
+                    },
+                    "difficulty": {
+                        "type": "string",
+                        "enum": ["easy", "medium", "hard"]
+                    }
                 },
                 "required": ["id", "text", "options", "correct", "difficulty"]
             }
         }
 
-        # Call Responses API with structured output and web-search built-in tool
-        resp = client.responses.create(
+        # ✅ Correct Responses API call
+        response = client.responses.create(
             model="gpt-4o",
-            tools=[{"type": "web_search_preview"}],
             instructions=instructions,
-            input=topic,
-            response_format={"type": "json_schema", "schema": schema},
-            stream=False
+            input=[{"role": "user", "content": topic}],
+            tools=[{"type": "web_search_preview"}],
+            response_format={
+                "type": "json_schema",
+                "json_schema": schema
+            }
         )
-        raw_text = resp.output_text
-        questions = json.loads(raw_text)
 
-        # Basic validation
+        # ✅ Parse raw JSON output
+        questions = json.loads(response.output_text)
+
         if not isinstance(questions, list) or len(questions) != 20:
-            raise ValueError("Quiz must contain exactly 20 questions")
-        
-        for q in questions:
-            missing = {f for f in ("id","text","options","correct","difficulty") if f not in q}
-            if missing:
-                raise ValueError(f"Question missing keys: {missing}")
+            raise ValueError("Response must be an array of 20 questions")
 
-        # Save to session history
-        chat_sessions.setdefault(session_id, []).append({"role":"user","content":instructions})
-        chat_sessions[session_id].append({"role":"assistant","content":raw_text})
+        # Save session history if desired
+        chat_sessions.setdefault(session_id, []).append({
+            "role": "assistant",
+            "content": response.output_text
+        })
 
-        return jsonify({"questions": questions, "session_id": session_id})
+        return jsonify({
+            "questions": questions,
+            "session_id": session_id
+        })
 
     except Exception as e:
+        print("❌ Error generating quiz:", e)
         return jsonify({
-            "error": "Failed to generate valid quiz.",
-            "details": str(e),
-            "raw_output": raw_text if 'raw_text' in locals() else None
+            "error": "Failed to generate quiz",
+            "details": str(e)
         }), 500
-    
 @app.route("/quiz-feedback-stream", methods=["POST"])
 def quiz_feedback_stream():
     try:
