@@ -302,89 +302,59 @@ def reset():
 
 @app.route("/start-quiz", methods=["POST"])
 def start_quiz():
-    try:
-        data = request.get_json()
-        session_id = data.get("session_id", str(uuid4()))
-        topic = data.get("topic", "IVF")
-        difficulty = data.get("difficulty", "mixed")
+    data = request.get_json()
+    session_id = data.get("session_id", str(uuid4()))
+    topic = data.get("topic", "IVF")
+    difficulty = data.get("difficulty", "mixed")
 
-        # ✅ Proper instructions and JSON Schema
-        instructions = (
-            f"You are an IVF virtual training assistant. "
-            f"Generate exactly 20 multiple-choice questions on '{topic}' "
-            f"with '{difficulty}' difficulty. "
-            "Each question must have:\n"
-            "- id\n"
-            "- text\n"
-            "- options (array of 4)\n"
-            "- correct (A/B/C/D)\n"
-            "- difficulty (easy/medium/hard)\n"
-            "Return STRICTLY valid JSON array, NO other text."
-        )
+    instructions = (
+        f"You are an IVF training assistant. "
+        f"Generate exactly 20 multiple-choice questions about '{topic}' "
+        f"with '{difficulty}' difficulty. "
+        "Respond ONLY with valid JSON array like:\n"
+        '[{"id":"q1","text":"...","options":["A","B","C","D"],"correct":"B","difficulty":"easy"}, ...]'
+    )
 
-        schema = {
-            "type": "array",
-            "minItems": 20,
-            "maxItems": 20,
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "text": {"type": "string"},
-                    "options": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "minItems": 4,
-                        "maxItems": 4
-                    },
-                    "correct": {
-                        "type": "string",
-                        "enum": ["A", "B", "C", "D"]
-                    },
-                    "difficulty": {
-                        "type": "string",
-                        "enum": ["easy", "medium", "hard"]
-                    }
-                },
-                "required": ["id", "text", "options", "correct", "difficulty"]
-            }
-        }
+    def stream_quiz():
+        chunks = []
+        try:
+            # 🧠 Call Responses API with streaming
+            stream = client.responses.create(
+                model="gpt-4o",
+                input=[{"role": "user", "content": instructions}],
+                tools=[{"type": "web_search_preview"}],
+                stream=True
+            )
 
-        # ✅ Correct Responses API call
-        response = client.responses.create(
-            model="gpt-4o",
-            instructions=instructions,
-            input=[{"role": "user", "content": topic}],
-            tools=[{"type": "web_search_preview"}],
-            response_format={
-                "type": "json_schema",
-                "json_schema": schema
-            }
-        )
+            for event in stream:
+                if hasattr(event, "delta") and event.delta:
+                    chunks.append(event.delta)
+                elif getattr(event, "type", "") == "response.output_text.done":
+                    break
 
-        # ✅ Parse raw JSON output
-        questions = json.loads(response.output_text)
+            # ✅ Join all chunks
+            raw_json = ''.join(chunks).strip()
 
-        if not isinstance(questions, list) or len(questions) != 20:
-            raise ValueError("Response must be an array of 20 questions")
+            # ✅ Parse to confirm it's valid JSON
+            questions = json.loads(raw_json)
 
-        # Save session history if desired
-        chat_sessions.setdefault(session_id, []).append({
-            "role": "assistant",
-            "content": response.output_text
-        })
+            if not isinstance(questions, list) or len(questions) != 20:
+                raise ValueError("AI did not return 20 questions")
 
-        return jsonify({
-            "questions": questions,
-            "session_id": session_id
-        })
+            yield json.dumps({
+                "session_id": session_id,
+                "questions": questions
+            })
 
-    except Exception as e:
-        print("❌ Error generating quiz:", e)
-        return jsonify({
-            "error": "Failed to generate quiz",
-            "details": str(e)
-        }), 500
+        except Exception as e:
+            yield json.dumps({
+                "error": "Failed to generate quiz",
+                "details": str(e)
+            })
+
+    # 🚀 Return streaming JSON Response
+    return Response(stream_quiz(), content_type="application/json")
+
 @app.route("/quiz-feedback-stream", methods=["POST"])
 def quiz_feedback_stream():
     try:

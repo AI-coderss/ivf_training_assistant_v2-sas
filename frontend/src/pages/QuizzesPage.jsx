@@ -50,11 +50,27 @@ const QuizzesPage = () => {
       });
 
       if (!res.ok) throw new Error("Server error: " + res.statusText);
-      const data = await res.json();
+
+      // ✅ Stream the response text
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+      }
+      fullText += decoder.decode(); // Flush final chunk
+
+      // ✅ Parse final JSON
+      const data = JSON.parse(fullText);
+
       if (!data.questions || !Array.isArray(data.questions)) {
         throw new Error("Invalid quiz data format received from server.");
       }
 
+      // ✅ Normalize questions
       const letterMap = { A: 0, B: 1, C: 2, D: 3 };
       const processedQuestions = data.questions.map((q) => {
         const correctIndex = letterMap[q.correct?.trim()?.toUpperCase()];
@@ -68,6 +84,7 @@ const QuizzesPage = () => {
       setQuizStarted(true);
       setTimeLeft(600);
       setTimerActive(true);
+
     } catch (err) {
       console.error("Quiz fetch error:", err);
       setError("Failed to load quiz. Please try again.");
@@ -96,10 +113,10 @@ const QuizzesPage = () => {
 The trainee made mistakes in the following IVF questions:
 
 ${wrong.map(q =>
-  `Q: ${q.text}
+        `Q: ${q.text}
 Answered: ${updatedAnswers[q.id] || "No answer"}
 Correct: ${q.correct}`
-).join("\n\n")}
+      ).join("\n\n")}
 
 Based on these mistakes, please provide:
 - A short summary of weak areas
@@ -173,7 +190,7 @@ Based on these mistakes, please provide:
       }, 1000);
     }
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizStarted, showResult, timerActive]);
 
   return (
@@ -195,8 +212,8 @@ Based on these mistakes, please provide:
           <ResultSummary score={score} total={questions.length} getPassStatus={getPassStatus} />
           {(score / questions.length) * 100 >= 80 && <Badge />}
           <p className="performance-summary">
-            Accuracy: Easy {Math.round((previousPerformance.easy.correct / (previousPerformance.easy.total || 1)) * 100)}%, 
-            Medium {Math.round((previousPerformance.medium.correct / (previousPerformance.medium.total || 1)) * 100)}%, 
+            Accuracy: Easy {Math.round((previousPerformance.easy.correct / (previousPerformance.easy.total || 1)) * 100)}%,
+            Medium {Math.round((previousPerformance.medium.correct / (previousPerformance.medium.total || 1)) * 100)}%,
             Hard {Math.round((previousPerformance.hard.correct / (previousPerformance.hard.total || 1)) * 100)}%
           </p>
           {showChatbot && <ChatBot open={true} initialMessage={feedbackPrompt} predefinedQuestions={predefinedQuestions} />}
