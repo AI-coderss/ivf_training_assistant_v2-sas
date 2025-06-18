@@ -308,19 +308,15 @@ def start_quiz():
     difficulty = data.get("difficulty", "mixed")
 
     instructions = (
-        f"You are an IVF training assistant. "
-        f"Generate exactly 20 multiple-choice questions about '{topic}' "
-        f"with '{difficulty}' difficulty. "
-        "Respond ONLY with valid JSON array like:\n"
-        '[{"id":"q1","text":"...","options":["A","B","C","D"],"correct":"B","difficulty":"easy"}, ...]'
+        f"You are an IVF quiz assistant. Generate 20 questions on '{topic}' "
+        f"with '{difficulty}' difficulty. Return valid JSON array only."
     )
 
     def stream_quiz():
         chunks = []
         try:
-            # 🧠 Call Responses API with streaming
             stream = client.responses.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 input=[{"role": "user", "content": instructions}],
                 tools=[{"type": "web_search_preview"}],
                 stream=True
@@ -332,27 +328,14 @@ def start_quiz():
                 elif getattr(event, "type", "") == "response.output_text.done":
                     break
 
-            # ✅ Join all chunks
             raw_json = ''.join(chunks).strip()
-
-            # ✅ Parse to confirm it's valid JSON
             questions = json.loads(raw_json)
 
-            if not isinstance(questions, list) or len(questions) != 20:
-                raise ValueError("AI did not return 20 questions")
-
-            yield json.dumps({
-                "session_id": session_id,
-                "questions": questions
-            })
+            yield json.dumps({"session_id": session_id, "questions": questions})
 
         except Exception as e:
-            yield json.dumps({
-                "error": "Failed to generate quiz",
-                "details": str(e)
-            })
+            yield json.dumps({"error": str(e)})
 
-    # 🚀 Return streaming JSON Response
     return Response(stream_quiz(), content_type="application/json")
 
 @app.route("/quiz-feedback-stream", methods=["POST"])
