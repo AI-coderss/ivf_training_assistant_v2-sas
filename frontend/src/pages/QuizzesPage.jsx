@@ -5,24 +5,16 @@ import QuestionBlock from "../components/Quizzes/QuestionBlock";
 import ResultSummary from "../components/Quizzes/ResultSummary";
 import Badge from "../components/Quizzes/Badge";
 import ChatBot from "../components/Quizzes/Chatbot";
-import StreamingQuestion from "../components/Quizzes/StreamingQuestion"; // ✅ new!
-import useLiveQuiz from "../hooks/useLiveQuiz"; // ✅ the hook
 
 const QuizzesPage = () => {
-  const {
-    questions,
-    error,
-    startQuiz,
-    streamingQuestion,
-    setQuestions,
-    setError,
-  } = useLiveQuiz();
-
+  const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [feedbackShown, setFeedbackShown] = useState({});
   const [score, setScore] = useState(0);
   const [quizStarted, setQuizStarted] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600);
   const [timerActive, setTimerActive] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
@@ -33,11 +25,7 @@ const QuizzesPage = () => {
     const stored = localStorage.getItem("quizPerformance");
     return stored
       ? JSON.parse(stored)
-      : {
-          easy: { correct: 0, total: 0 },
-          medium: { correct: 0, total: 0 },
-          hard: { correct: 0, total: 0 },
-        };
+      : { easy: { correct: 0, total: 0 }, medium: { correct: 0, total: 0 }, hard: { correct: 0, total: 0 } };
   });
 
   const chooseDifficulty = () => {
@@ -49,22 +37,60 @@ const QuizzesPage = () => {
     return "easy";
   };
 
-  const handleStartQuiz = async () => {
-    setAnswers({});
-    setScore(0);
-    setShowResult(false);
-    setFeedbackShown({});
+  const startQuiz = async () => {
     setError("");
-    setShowChatbot(false);
-    setFeedbackPrompt("");
-    setPredefinedQuestions([]);
-    setTimeLeft(600);
-
+    setLoading(true);
     const difficulty = chooseDifficulty();
-    await startQuiz(difficulty);
 
-    setQuizStarted(true);
-    setTimerActive(true);
+    try {
+      const res = await fetch("https://ivf-backend-server.onrender.com/start-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: "IVF", difficulty }),
+      });
+
+      if (!res.ok) throw new Error("Server error: " + res.statusText);
+
+      // ✅ Stream the response text
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+      }
+      fullText += decoder.decode(); // Flush final chunk
+
+      // ✅ Parse final JSON
+      const data = JSON.parse(fullText);
+
+      if (!data.questions || !Array.isArray(data.questions)) {
+        throw new Error("Invalid quiz data format received from server.");
+      }
+
+      // ✅ Normalize questions
+      const letterMap = { A: 0, B: 1, C: 2, D: 3 };
+      const processedQuestions = data.questions.map((q) => {
+        const correctIndex = letterMap[q.correct?.trim()?.toUpperCase()];
+        return {
+          ...q,
+          correct: q.options[correctIndex] || "",
+        };
+      });
+
+      setQuestions(processedQuestions);
+      setQuizStarted(true);
+      setTimeLeft(600);
+      setTimerActive(true);
+
+    } catch (err) {
+      console.error("Quiz fetch error:", err);
+      setError("Failed to load quiz. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAnswer = (questionId, selectedOption) => {
@@ -86,14 +112,11 @@ const QuizzesPage = () => {
       const feedbackText = `
 The trainee made mistakes in the following IVF questions:
 
-${wrong
-  .map(
-    (q) =>
-      `Q: ${q.text}
+${wrong.map(q =>
+        `Q: ${q.text}
 Answered: ${updatedAnswers[q.id] || "No answer"}
 Correct: ${q.correct}`
-  )
-  .join("\n\n")}
+      ).join("\n\n")}
 
 Based on these mistakes, please provide:
 - A short summary of weak areas
@@ -105,7 +128,7 @@ Based on these mistakes, please provide:
 
       const predefined = [
         "Given my performance, what concepts should I focus on?",
-        ...wrong.map((q) => `Why was my answer to "${q.text}" incorrect?`),
+        ...wrong.map(q => `Why was my answer to "${q.text}" incorrect?`)
       ];
       setPredefinedQuestions(predefined);
     }
@@ -117,8 +140,7 @@ Based on these mistakes, please provide:
       if (!(q.id in updatedAnswers)) updatedAnswers[q.id] = null;
       updatedFeedback[q.id] = true;
 
-      if (!newPerformance[level])
-        newPerformance[level] = { correct: 0, total: 0 };
+      if (!newPerformance[level]) newPerformance[level] = { correct: 0, total: 0 };
       newPerformance[level].total += 1;
       if (isCorrect) newPerformance[level].correct += 1;
       if (isCorrect) score++;
@@ -176,56 +198,35 @@ Based on these mistakes, please provide:
       <h2>IVF Knowledge Quizzes 🧐</h2>
       {error && <p className="error-text">{error}</p>}
 
-      {!quizStarted ? (
-        <button className="start-button" onClick={handleStartQuiz}>
+      {loading ? (
+        <div className="loading-box">
+          <div className="spinner"></div>
+          <p>Generating your quiz… please wait ⏳</p>
+        </div>
+      ) : !quizStarted ? (
+        <button className="start-button" onClick={startQuiz}>
           Start Quiz
         </button>
       ) : showResult ? (
         <>
-          <ResultSummary
-            score={score}
-            total={questions.length}
-            getPassStatus={getPassStatus}
-          />
+          <ResultSummary score={score} total={questions.length} getPassStatus={getPassStatus} />
           {(score / questions.length) * 100 >= 80 && <Badge />}
           <p className="performance-summary">
-            Accuracy: Easy{" "}
-            {Math.round(
-              (previousPerformance.easy.correct /
-                (previousPerformance.easy.total || 1)) *
-                100
-            )}
-            %, Medium{" "}
-            {Math.round(
-              (previousPerformance.medium.correct /
-                (previousPerformance.medium.total || 1)) *
-                100
-            )}
-            %, Hard{" "}
-            {Math.round(
-              (previousPerformance.hard.correct /
-                (previousPerformance.hard.total || 1)) *
-                100
-            )}
-            %
+            Accuracy: Easy {Math.round((previousPerformance.easy.correct / (previousPerformance.easy.total || 1)) * 100)}%,
+            Medium {Math.round((previousPerformance.medium.correct / (previousPerformance.medium.total || 1)) * 100)}%,
+            Hard {Math.round((previousPerformance.hard.correct / (previousPerformance.hard.total || 1)) * 100)}%
           </p>
-          {showChatbot && (
-            <ChatBot
-              open={true}
-              initialMessage={feedbackPrompt}
-              predefinedQuestions={predefinedQuestions}
-            />
-          )}
-          <button className="restart-button" onClick={restart}>
-            Try Again
-          </button>
+          {showChatbot && <ChatBot open={true} initialMessage={feedbackPrompt} predefinedQuestions={predefinedQuestions} />}
+          <button className="restart-button" onClick={restart}>Try Again</button>
         </>
       ) : (
         <>
+          {/* Sticky Timer at the Top */}
           <div className="sticky-timer-wrapper">
             <TimerDisplay timeLeft={timeLeft} />
           </div>
 
+          {/* Questions Below Timer */}
           <div className="quiz-with-timer">
             <form
               className="all-questions-form"
@@ -245,12 +246,6 @@ Based on these mistakes, please provide:
                   handleAnswer={handleAnswer}
                 />
               ))}
-
-              {/* ✅ Live typing block */}
-              {streamingQuestion && (
-                <StreamingQuestion text={streamingQuestion} />
-              )}
-
               <button
                 type="submit"
                 className="submit-button"
@@ -267,3 +262,9 @@ Based on these mistakes, please provide:
 };
 
 export default QuizzesPage;
+
+
+
+
+
+

@@ -26,13 +26,12 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["https://ivf-virtual-training-assistant-dsah.onrender.com"])
+CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com","https://ivf-virtual-training-assistant-dsah.onrender.com"])
 
 
 # === SESSION STATE ===
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 # === VECTOR DB ===
@@ -298,81 +297,62 @@ def reset():
     if session_id in chat_sessions:
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
-#===/start Quiz endpoint
-from flask import Flask, request, Response
-from flask_cors import CORS
-from uuid import uuid4
-import os
-import json
-from openai import OpenAI
-
-# === Initialize Flask ===
-app = Flask(__name__)
-CORS(app)  # ✅ Enable CORS for all origins
-
-# === Initialize OpenAI ===
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.route("/start-quiz", methods=["POST"])
 def start_quiz():
-    data = request.get_json()
-    session_id = data.get("session_id", str(uuid4()))
-    topic = data.get("topic", "IVF")
-    difficulty = data.get("difficulty", "mixed")
+    try:
+        session_id = request.json.get("session_id", str(uuid4()))
+        topic = request.json.get("topic", "IVF")
+        difficulty = request.json.get("difficulty", "mixed")  # ✅ new param
 
-    instructions = (
-        f"You are an IVF training bot. "
-        f"Search the web for a real IVF multiple-choice practice exam for '{topic}' "
-        f"with '{difficulty}' level. "
-        f"Extract real questions verbatim. "
-        f"Stream each question JSON as soon as you have it: "
-        f'{{"id": "...", "text": "...", "options": ["A","B","C","D"], "correct": "A", "difficulty": "easy"}}. '
-        f"No explanations. Keep sending until at least 20 real online questions."
-    )
+        rag_prompt = (
+            f"You are an IVF virtual training assistant. Generate exactly 20 multiple-choice questions on '{topic}'. "
+            f"Each question must reflect '{difficulty}' difficulty level. Return them strictly as a JSON array. "
+            "Each object must follow this format:\n"
+            '{ "id": "q1", "text": "...", "options": ["A", "B", "C", "D"], "correct": "B", "difficulty": "easy" }\n'
+            "Respond ONLY with valid JSON — no markdown, commentary, or explanations."
+        )
 
-    def stream_quiz():
-        try:
-            stream = client.responses.create(
-                model="gpt-4o",
-                input=[{"role": "user", "content": instructions}],
-                tools=[{"type": "web_search_preview"}],
-                stream=True
-            )
+        # 🧠 Ask AI via RAG
+        response = chain_with_memory.invoke(
+            {"input": rag_prompt},
+            config={"configurable": {"session_id": session_id}},
+        )
+        raw_answer = response["answer"]
+        print("✅ AI response received")
 
-            buffer = ""
-            question_id = 1
+        # 🔍 Clean and parse JSON safely
+        raw_cleaned = re.sub(r"```json|```", "", raw_answer).strip()
+        questions = json.loads(raw_cleaned)
 
-            for event in stream:
-                if hasattr(event, "delta") and event.delta:
-                    buffer += event.delta
+        # ✅ Validate structure
+        if not isinstance(questions, list) or not all(
+            "text" in q and "options" in q and "correct" in q and "difficulty" in q for q in questions
+        ):
+            raise ValueError("Parsed questions are not valid or missing difficulty field.")
 
-                    # Try to parse JSON object one-by-one if possible
-                    if buffer.strip().endswith("}"):
-                        try:
-                            obj = json.loads(buffer)
-                            obj["id"] = f"q{question_id}"
-                            question_id += 1
-                            yield f"data: {json.dumps(obj)}\n\n"
-                            buffer = ""
-                        except Exception:
-                            # Not a full JSON yet, keep buffering
-                            pass
+        print("✅ Parsed question example:", questions[0])
 
-                elif getattr(event, "type", "") == "response.output_text.done":
-                    break
+        # 💾 Save history (optional)
+        if session_id not in chat_sessions:
+            chat_sessions[session_id] = []
+        chat_sessions[session_id].append({"role": "user", "content": rag_prompt})
+        chat_sessions[session_id].append({"role": "assistant", "content": raw_answer})
 
-        except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        return jsonify({
+            "questions": questions,
+            "session_id": session_id
+        })
 
-    return Response(stream_quiz(), content_type="text/event-stream")
+    except Exception as e:
+        print("❌ Failed to parse quiz questions:", str(e))
+        print("🛠 Raw AI output:", raw_answer if 'raw_answer' in locals() else "No output")
 
-# === Quick test route ===
-@app.route("/")
-def index():
-    return "✅ IVF Quiz API is up!"
-
-
-
+        return jsonify({
+            "error": "Failed to generate valid quiz from AI response.",
+            "details": str(e)
+        }), 500
+    
 @app.route("/quiz-feedback-stream", methods=["POST"])
 def quiz_feedback_stream():
     try:
