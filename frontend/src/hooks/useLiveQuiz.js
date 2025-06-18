@@ -1,13 +1,14 @@
 import { useState, useCallback } from "react";
 
 /**
- * Hook for streaming IVF quiz questions with live typing effect.
+ * Hook for streaming IVF quiz questions using SSE style.
+ * Handles partial text for typing + final parsed JSON.
  */
 export default function useLiveQuiz() {
   const [questions, setQuestions] = useState([]);
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState(null);
-  const [streamingQuestion, setStreamingQuestion] = useState(""); // NEW!
+  const [streamingQuestion, setStreamingQuestion] = useState(""); // partial text
 
   const startQuiz = useCallback(async (difficulty) => {
     setQuestions([]);
@@ -45,35 +46,32 @@ export default function useLiveQuiz() {
       for (const line of lines) {
         if (line.startsWith("data: ")) {
           const jsonStr = line.replace("data: ", "").trim();
-
           try {
             const parsed = JSON.parse(jsonStr);
 
             if (parsed.error) {
-              console.error("Stream error:", parsed.error);
               setError(parsed.error);
-            } else {
-              // Full questions array fallback
-              if (parsed.questions && Array.isArray(parsed.questions)) {
-                setQuestions(parsed.questions);
+            } else if (parsed.questions && Array.isArray(parsed.questions)) {
+              setQuestions(parsed.questions);
+              if (parsed.session_id) {
                 setSessionId(parsed.session_id);
-                setStreamingQuestion("");
-              } else {
-                // Finalize question
-                setQuestions((prev) => [...prev, parsed]);
-                setStreamingQuestion(""); // Clear after finalizing
               }
+              setStreamingQuestion("");
+            } else {
+              // ✅ Final parsed question → push + clear stream text
+              setQuestions((prev) => [...prev, parsed]);
+              setStreamingQuestion("");
             }
 
           } catch {
-            // If not fully parsable, show partial text for live typing
+            // Not JSON yet? treat as partial stream text
             setStreamingQuestion(jsonStr);
           }
         }
       }
     }
 
-    // Parse leftover if any
+    // Parse leftover buffer
     if (buffer.trim().startsWith("data: ")) {
       const jsonStr = buffer.replace("data: ", "").trim();
       try {
@@ -83,6 +81,7 @@ export default function useLiveQuiz() {
         } else {
           setQuestions((prev) => [...prev, parsed]);
         }
+        setStreamingQuestion("");
       } catch {
         setStreamingQuestion(jsonStr);
       }
@@ -95,7 +94,7 @@ export default function useLiveQuiz() {
     error,
     sessionId,
     startQuiz,
-    streamingQuestion, // EXPOSED!
+    streamingQuestion, // expose for live typing
     setQuestions,
     setError,
   };

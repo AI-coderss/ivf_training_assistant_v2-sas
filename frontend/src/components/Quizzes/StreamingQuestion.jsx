@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import "../../styles/Quizzes/QuizzesPage.css";
 
 const StreamingQuestion = ({ text }) => {
   const [visibleText, setVisibleText] = useState("");
@@ -10,15 +11,16 @@ const StreamingQuestion = ({ text }) => {
       setVisibleText(text.slice(0, index + 1));
       index++;
       if (index >= text.length) clearInterval(interval);
-    }, 15); // Typing speed
+    }, 20);
     return () => clearInterval(interval);
   }, [text]);
 
   return (
     <div className="streaming-question">
-      <p>{visibleText}</p>
+      <h4>{visibleText}</h4>
     </div>
   );
 };
 
 export default StreamingQuestion;
+

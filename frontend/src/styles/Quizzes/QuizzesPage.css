@@ -125,6 +125,15 @@
 .option-label:hover {
   background-color: #eef4ff;
 }
+/* Add to QuizzesPage.css or StreamingQuestion.css */
+.streaming-question {
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-family: monospace;
+  white-space: pre-wrap;
+}
 
 /* Submit button */
 .submit-button {

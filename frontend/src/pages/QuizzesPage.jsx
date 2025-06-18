@@ -5,8 +5,8 @@ import QuestionBlock from "../components/Quizzes/QuestionBlock";
 import ResultSummary from "../components/Quizzes/ResultSummary";
 import Badge from "../components/Quizzes/Badge";
 import ChatBot from "../components/Quizzes/Chatbot";
-import StreamingQuestion from "../components/Quizzes/StreamingQuestion"; // ✅ NEW!
-import useLiveQuiz from "../hooks/useLiveQuiz"; // ✅ USE HOOK
+import StreamingQuestion from "../components/Quizzes/StreamingQuestion"; // ✅ new!
+import useLiveQuiz from "../hooks/useLiveQuiz"; // ✅ the hook
 
 const QuizzesPage = () => {
   const {
@@ -61,7 +61,7 @@ const QuizzesPage = () => {
     setTimeLeft(600);
 
     const difficulty = chooseDifficulty();
-    await startQuiz(difficulty); // ✅ USE HOOK
+    await startQuiz(difficulty);
 
     setQuizStarted(true);
     setTimerActive(true);
@@ -246,6 +246,7 @@ Based on these mistakes, please provide:
                 />
               ))}
 
+              {/* ✅ Live typing block */}
               {streamingQuestion && (
                 <StreamingQuestion text={streamingQuestion} />
               )}
