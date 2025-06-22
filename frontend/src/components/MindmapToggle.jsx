@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Mindmap } from "@rileyy29/react-mindmap";
 import "../styles/MindmapToggle.css"
 
-const BACKEND_URL = "https://YOUR-BACKEND-URL"; // ✅ Replace with your backend URL
+const BACKEND_URL = "https://ivf-backend-server.onrender.com"; // ✅ Replace with your backend URL
 
 const MindmapToggle = ({ handleNewMessage, topic = "IVF", sessionId }) => {
   const [open, setOpen] = useState(false);
