@@ -452,6 +452,58 @@ def suggestions():
             "error": "Failed to generate suggested questions.",
             "details": str(e)
         }), 500
+@app.route("/mindmap", methods=["POST"])
+def mindmap():
+    try:
+        session_id = request.json.get("session_id", str(uuid4()))
+        topic = request.json.get("topic", "IVF")  # allow optional custom topic
+
+        rag_prompt = (
+            f"You are an IVF training mind map assistant. "
+            f"Generate a JSON mind map for topic '{topic}'. "
+            f"Use this format:\n"
+            "[\n"
+            "  {\n"
+            '    "id": 1,\n'
+            '    "title": "Root Node",\n'
+            '    "children": [\n'
+            "      {\n"
+            '        "id": 2,\n'
+            '        "title": "Subtopic A",\n'
+            '        "children": []\n'
+            "      },\n"
+            "      {\n"
+            '        "id": 3,\n'
+            '        "title": "Subtopic B",\n'
+            '        "children": []\n'
+            "      }\n"
+            "    ]\n"
+            "  }\n"
+            "]\n"
+            "Return strictly valid JSON, no commentary, no markdown."
+        )
+
+        response = chain_with_memory.invoke(
+            {"input": rag_prompt},
+            config={"configurable": {"session_id": session_id}},
+        )
+        raw_answer = response["answer"]
+
+        # Clean and parse AI output
+        raw_cleaned = re.sub(r"```json|```", "", raw_answer).strip()
+        nodes = json.loads(raw_cleaned)
+
+        return jsonify({
+            "nodes": nodes,
+            "session_id": session_id
+        }), 200
+
+    except Exception as e:
+        print("❌ Mindmap generation error:", str(e))
+        return jsonify({
+            "error": "Failed to generate mindmap.",
+            "details": str(e)
+        }), 500
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)

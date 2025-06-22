@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
+import MindmapToggle from "./MindmapToggle";
+
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SearchLoader from "./SearchLoader"; // Import the loader
@@ -179,6 +181,12 @@ const Chat = () => {
           onSendMessage={handleNewMessage}
           disabled={isLoading}
         />
+        <MindmapToggle
+          handleNewMessage={handleNewMessage}
+          topic="IVF" // optional, dynamic topic
+          sessionId={sessionId} // pass same session id for continuity
+        />
+
         <div className="web-search-toggle-container">
           <label className="toggle-switch">
             <input
