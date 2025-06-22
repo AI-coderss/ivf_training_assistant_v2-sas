@@ -511,19 +511,20 @@ def diagram():
         session_id = request.json.get("session_id", str(uuid4()))
         topic = request.json.get("topic", "IVF process diagram")
 
-        # ✅ Prompt: produce valid Mermaid only, properly formatted, no chat fluff
+        # ✅ Updated prompt: instruct LLM to NOT use step numbers in labels
         rag_prompt = (
             f"You are a diagram assistant. "
             f"For the topic '{topic}', generate a clear, labeled flow diagram "
-            f"in valid Mermaid syntax. Use this exact format:\n"
+            f"in valid Mermaid syntax. Use short, clean labels WITHOUT numbering (do not include step numbers). "
+            f"Use this exact format:\n"
             "```mermaid\n"
             "graph TD\n"
-            "Step1 --> Step2 --> Step3\n"
+            "StepA --> StepB --> StepC\n"
             "```\n"
             "Return ONLY the Mermaid syntax, wrapped in triple backticks."
         )
 
-        # ✅ Call your existing chain_with_memory
+        # ✅ Call your existing chain
         response = chain_with_memory.invoke(
             {"input": rag_prompt},
             config={"configurable": {"session_id": session_id}},
@@ -533,9 +534,10 @@ def diagram():
         # ✅ Extract Mermaid block robustly
         match = re.search(r"```mermaid([\s\S]+?)```", raw_answer)
         mermaid_code = match.group(1).strip() if match else raw_answer.strip()
+        cleaned_mermaid = re.sub(r'\[(\d+\.\s*)([^\]]+)\]', r'[\2]', mermaid_code)
 
         return jsonify({
-            "mermaid": mermaid_code,
+            "mermaid": cleaned_mermaid,
             "session_id": session_id
         }), 200
 
