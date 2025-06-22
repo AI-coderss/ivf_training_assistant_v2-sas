@@ -3,17 +3,20 @@ import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import SearchLoader from "./SearchLoader"; // Import the loader
+import SearchLoader from "./SearchLoader";
 import mermaid from "mermaid";
 import "../styles/chat.css";
 
 const Chat = () => {
   const [chats, setChats] = useState([
-    { msg: "Hi there! How can I assist you today with your IVF Training?", who: "bot" },
+    {
+      msg: "Hi there! How can I assist you today with your IVF Training?",
+      who: "bot",
+    },
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [webSearchActive, setWebSearchActive] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // State to control the loader
+  const [isLoading, setIsLoading] = useState(false);
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
@@ -23,15 +26,17 @@ const Chat = () => {
 
   const chatContentRef = useRef(null);
   const scrollAnchorRef = useRef(null);
-
-  // ✅ Ref for Mermaid rendering
   const mermaidRef = useRef(null);
+
+  // ✅ Helper to log errors clearly
+  const handleError = (label, err) => {
+    console.error(`${label}:`, err?.message || JSON.stringify(err) || String(err));
+  };
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chats, isLoading]);
 
-  // ✅ Re-render Mermaid whenever chats update
   useEffect(() => {
     if (mermaidRef.current) {
       mermaid.initialize({ startOnLoad: false });
@@ -41,9 +46,15 @@ const Chat = () => {
 
   useEffect(() => {
     fetch("https://ivf-backend-server.onrender.com/suggestions")
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status}: ${text}`);
+        }
+        return res.json();
+      })
       .then((data) => setSuggestedQuestions(data.suggested_questions || []))
-      .catch((err) => console.error("Failed to fetch suggestions:", err));
+      .catch((err) => handleError("Failed to fetch suggestions", err));
   }, []);
 
   const handleNewMessage = async (data) => {
@@ -66,7 +77,10 @@ const Chat = () => {
         body: JSON.stringify({ message: data.text, session_id: sessionId }),
       });
 
-      if (!response.ok || !response.body) throw new Error("Response error");
+      if (!response.ok || !response.body) {
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${text}`);
+      }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -79,31 +93,23 @@ const Chat = () => {
 
         const chunk = decoder.decode(value, { stream: true });
 
-        // --- Listen for the web search signal from the backend ---
         if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
           setIsLoading(true);
-          // Clear the previous partial (bad) RAG response
           setChats((prev) => {
             const updated = [...prev];
-            if (
-              updated.length > 0 &&
-              updated[updated.length - 1].who === "bot"
-            ) {
+            if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
               updated[updated.length - 1].msg = "";
             }
             return updated;
           });
-          aiMessage = ""; // Reset the message accumulator
-          continue; // Skip to the next chunk, ignoring the signal string
+          aiMessage = "";
+          continue;
         }
 
-        // --- Deactivate loader when the actual content stream starts ---
         if (isLoading && isFirstChunk) {
-          // If we were loading, but now we have content, stop the loader
           setIsLoading(false);
         }
 
-        // --- Add bot message bubble on the very first data chunk received ---
         if (isFirstChunk) {
           setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           isFirstChunk = false;
@@ -121,7 +127,7 @@ const Chat = () => {
         });
       }
     } catch (err) {
-      console.error("AI response error:", err);
+      handleError("AI response error", err);
       if (isLoading) setIsLoading(false);
       setChats((prev) => [
         ...prev,
@@ -153,9 +159,7 @@ const Chat = () => {
                     code({ node, inline, className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || "");
                       if (match && match[1] === "mermaid") {
-                        return (
-                          <div className="language-mermaid">{children}</div>
-                        );
+                        return <div className="language-mermaid">{children}</div>;
                       }
                       return (
                         <code className={className} {...props}>
