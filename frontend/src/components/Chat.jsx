@@ -2,16 +2,20 @@ import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import SearchLoader from "./SearchLoader"; // Import the loader
+import SearchLoader from "./SearchLoader";
+import { MermaidDiagram } from "@lightenna/react-mermaid-diagram"; // ✅ NEW
 import "../styles/chat.css";
 
 const Chat = () => {
   const [chats, setChats] = useState([
-    { msg: "Hi there! How can I assist you today with your IVF Training?", who: "bot" },
+    {
+      msg: "Hi there! How can I assist you today with your IVF Training?",
+      who: "bot",
+    },
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [webSearchActive, setWebSearchActive] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // State to control the loader
+  const [isLoading, setIsLoading] = useState(false);
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
@@ -46,6 +50,9 @@ const Chat = () => {
       ? "https://ivf-backend-server.onrender.com/websearch"
       : "https://ivf-backend-server.onrender.com/stream";
 
+    // ✅ Detect if user wants a diagram
+    const userWantsDiagram = /diagram|flowchart|flow chart/i.test(data.text);
+
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -66,10 +73,8 @@ const Chat = () => {
 
         const chunk = decoder.decode(value, { stream: true });
 
-        // --- Listen for the web search signal from the backend ---
         if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
           setIsLoading(true);
-          // Clear the previous partial (bad) RAG response
           setChats((prev) => {
             const updated = [...prev];
             if (
@@ -80,19 +85,24 @@ const Chat = () => {
             }
             return updated;
           });
-          aiMessage = ""; // Reset the message accumulator
-          continue; // Skip to the next chunk, ignoring the signal string
+          aiMessage = "";
+          continue;
         }
 
-        // --- Deactivate loader when the actual content stream starts ---
         if (isLoading && isFirstChunk) {
-          // If we were loading, but now we have content, stop the loader
           setIsLoading(false);
         }
 
-        // --- Add bot message bubble on the very first data chunk received ---
         if (isFirstChunk) {
-          setChats((prev) => [...prev, { msg: "", who: "bot" }]);
+          // ✅ If user asked for diagram, prepare bubble with diagram slot
+          setChats((prev) => [
+            ...prev,
+            {
+              msg: "",
+              who: "bot",
+              diagram: userWantsDiagram ? "" : null,
+            },
+          ]);
           isFirstChunk = false;
         }
 
@@ -103,6 +113,31 @@ const Chat = () => {
           const updated = [...prev];
           if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
             updated[updated.length - 1].msg = aiMessage;
+          }
+          return updated;
+        });
+      }
+
+      // ✅ If user wanted a diagram, call /diagram AFTER streaming ends
+      if (userWantsDiagram) {
+        const diagramRes = await fetch(
+          "https://ivf-backend-server.onrender.com/diagram",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topic: data.text,
+              session_id: sessionId,
+            }),
+          }
+        );
+        const diagramData = await diagramRes.json();
+        const mermaidText = diagramData.mermaid || "";
+
+        setChats((prev) => {
+          const updated = [...prev];
+          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+            updated[updated.length - 1].diagram = mermaidText;
           }
           return updated;
         });
@@ -132,8 +167,16 @@ const Chat = () => {
               </figure>
             )}
             <div className="message-text">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{chat.msg}</ReactMarkdown>
-          
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {chat.msg}
+              </ReactMarkdown>
+
+              {/* ✅ If this bot message has a diagram, render it below text */}
+              {chat.diagram && (
+                <div style={{ marginTop: "1rem" }}>
+                  <MermaidDiagram>{chat.diagram}</MermaidDiagram>
+                </div>
+              )}
             </div>
           </div>
         ))}

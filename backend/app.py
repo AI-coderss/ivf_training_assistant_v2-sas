@@ -504,6 +504,48 @@ def mindmap():
             "error": "Failed to generate mindmap.",
             "details": str(e)
         }), 500
+    
+@app.route("/diagram", methods=["POST"])
+def diagram():
+    try:
+        session_id = request.json.get("session_id", str(uuid4()))
+        topic = request.json.get("topic", "IVF process diagram")
+
+        # ✅ Prompt: produce valid Mermaid only, properly formatted, no chat fluff
+        rag_prompt = (
+            f"You are a diagram assistant. "
+            f"For the topic '{topic}', generate a clear, labeled flow diagram "
+            f"in valid Mermaid syntax. Use this exact format:\n"
+            "```mermaid\n"
+            "graph TD\n"
+            "Step1 --> Step2 --> Step3\n"
+            "```\n"
+            "Return ONLY the Mermaid syntax, wrapped in triple backticks."
+        )
+
+        # ✅ Call your existing chain_with_memory
+        response = chain_with_memory.invoke(
+            {"input": rag_prompt},
+            config={"configurable": {"session_id": session_id}},
+        )
+        raw_answer = response["answer"]
+
+        # ✅ Extract Mermaid block robustly
+        match = re.search(r"```mermaid([\s\S]+?)```", raw_answer)
+        mermaid_code = match.group(1).strip() if match else raw_answer.strip()
+
+        return jsonify({
+            "mermaid": mermaid_code,
+            "session_id": session_id
+        }), 200
+
+    except Exception as e:
+        print("❌ Diagram generation error:", str(e))
+        return jsonify({
+            "error": "Failed to generate Mermaid diagram.",
+            "details": str(e)
+        }), 500
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)
