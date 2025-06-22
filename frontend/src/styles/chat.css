@@ -302,6 +302,24 @@
   color: #fff;
   border-radius: 12px 12px 0 12px;
 }
+.message-text table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+
+.message-text th,
+.message-text td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.message-text th {
+  background-color: #f6f6f6;
+  font-weight: 600;
+}
 
 /* Avatar Styling */
 .avatar {
