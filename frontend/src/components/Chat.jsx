@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
-import SearchLoader from "./SearchLoader"; // Import the loader
+import remarkGfm from "remark-gfm";
+import SearchLoader from "./SearchLoader";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -10,7 +11,7 @@ const Chat = () => {
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [webSearchActive, setWebSearchActive] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // State to control the loader
+  const [isLoading, setIsLoading] = useState(false);
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
@@ -65,10 +66,8 @@ const Chat = () => {
 
         const chunk = decoder.decode(value, { stream: true });
 
-        // --- Listen for the web search signal from the backend ---
         if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
           setIsLoading(true);
-          // Clear the previous partial (bad) RAG response
           setChats((prev) => {
             const updated = [...prev];
             if (
@@ -79,17 +78,14 @@ const Chat = () => {
             }
             return updated;
           });
-          aiMessage = ""; // Reset the message accumulator
-          continue; // Skip to the next chunk, ignoring the signal string
+          aiMessage = "";
+          continue;
         }
 
-        // --- Deactivate loader when the actual content stream starts ---
         if (isLoading && isFirstChunk) {
-          // If we were loading, but now we have content, stop the loader
           setIsLoading(false);
         }
 
-        // --- Add bot message bubble on the very first data chunk received ---
         if (isFirstChunk) {
           setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           isFirstChunk = false;
@@ -131,8 +127,9 @@ const Chat = () => {
               </figure>
             )}
             <div className="message-text">
-              <ReactMarkdown>{chat.msg}</ReactMarkdown>
-          
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {chat.msg}
+              </ReactMarkdown>
             </div>
           </div>
         ))}
@@ -194,3 +191,4 @@ const Chat = () => {
 };
 
 export default Chat;
+
