@@ -1,23 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
-import MindmapToggle from "./MindmapToggle";
-
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SearchLoader from "./SearchLoader"; // Import the loader
-import mermaid from "mermaid"; // ✅ Add Mermaid!
 import "../styles/chat.css";
 
 const Chat = () => {
   const [chats, setChats] = useState([
-    {
-      msg: "Hi there! How can I assist you today with your IVF Training?",
-      who: "bot",
-    },
+    { msg: "Hi there! How can I assist you today with your IVF Training?", who: "bot" },
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [webSearchActive, setWebSearchActive] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // State to control the loader
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
@@ -38,11 +32,6 @@ const Chat = () => {
       .then((data) => setSuggestedQuestions(data.suggested_questions || []))
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
-
-  // ✅ Re-run Mermaid on new chats
-  useEffect(() => {
-    mermaid.init(undefined, ".mermaid");
-  }, [chats]);
 
   const handleNewMessage = async (data) => {
     if (!data.text) return;
@@ -77,8 +66,10 @@ const Chat = () => {
 
         const chunk = decoder.decode(value, { stream: true });
 
+        // --- Listen for the web search signal from the backend ---
         if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
           setIsLoading(true);
+          // Clear the previous partial (bad) RAG response
           setChats((prev) => {
             const updated = [...prev];
             if (
@@ -89,14 +80,17 @@ const Chat = () => {
             }
             return updated;
           });
-          aiMessage = "";
-          continue;
+          aiMessage = ""; // Reset the message accumulator
+          continue; // Skip to the next chunk, ignoring the signal string
         }
 
+        // --- Deactivate loader when the actual content stream starts ---
         if (isLoading && isFirstChunk) {
+          // If we were loading, but now we have content, stop the loader
           setIsLoading(false);
         }
 
+        // --- Add bot message bubble on the very first data chunk received ---
         if (isFirstChunk) {
           setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           isFirstChunk = false;
@@ -138,28 +132,8 @@ const Chat = () => {
               </figure>
             )}
             <div className="message-text">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  code({ node, inline, className, children, ...props }) {
-                    const match = /language-(\w+)/.exec(className || "");
-                    if (match && match[1] === "mermaid") {
-                      return (
-                        <div className="mermaid">
-                          {String(children).replace(/\n$/, "")}
-                        </div>
-                      );
-                    }
-                    return (
-                      <code className={className} {...props}>
-                        {children}
-                      </code>
-                    );
-                  },
-                }}
-              >
-                {chat.msg}
-              </ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{chat.msg}</ReactMarkdown>
+          
             </div>
           </div>
         ))}
@@ -181,12 +155,6 @@ const Chat = () => {
           onSendMessage={handleNewMessage}
           disabled={isLoading}
         />
-        <MindmapToggle
-          handleNewMessage={handleNewMessage}
-          topic="IVF" // optional, dynamic topic
-          sessionId={sessionId} // pass same session id for continuity
-        />
-
         <div className="web-search-toggle-container">
           <label className="toggle-switch">
             <input
