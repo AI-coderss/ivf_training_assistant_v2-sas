@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
 import SearchLoader from "./SearchLoader";
-import mermaid from "mermaid";
+import mermaid from "mermaid"; // ✅ NEW
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -26,36 +25,40 @@ const Chat = () => {
 
   const chatContentRef = useRef(null);
   const scrollAnchorRef = useRef(null);
-  const mermaidRef = useRef(null);
 
-  // ✅ Helper to log errors clearly
-  const handleError = (label, err) => {
-    console.error(`${label}:`, err?.message || JSON.stringify(err) || String(err));
-  };
+  // ✅ Mermaid container refs
+  const mermaidRefs = useRef({});
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chats, isLoading]);
 
   useEffect(() => {
-    if (mermaidRef.current) {
-      mermaid.initialize({ startOnLoad: false });
-      mermaid.init(undefined, mermaidRef.current.querySelectorAll(".language-mermaid"));
-    }
-  }, [chats]);
+    fetch("https://ivf-backend-server.onrender.com/suggestions")
+      .then((res) => res.json())
+      .then((data) => setSuggestedQuestions(data.suggested_questions || []))
+      .catch((err) => console.error("Failed to fetch suggestions:", err));
+  }, []);
 
   useEffect(() => {
-    fetch("https://ivf-backend-server.onrender.com/suggestions")
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`HTTP ${res.status}: ${text}`);
+    // ✅ After chats update, render Mermaid diagrams if any
+    chats.forEach((chat, index) => {
+      if (
+        chat.msg &&
+        chat.msg.includes("```mermaid") &&
+        mermaidRefs.current[index]
+      ) {
+        const mermaidCode = chat.msg.match(/```mermaid([\s\S]*?)```/);
+        if (mermaidCode && mermaidCode[1]) {
+          mermaid.initialize({ startOnLoad: false });
+          const uniqueId = `mermaid-${index}`;
+          mermaid.render(uniqueId, mermaidCode[1], (svgCode) => {
+            mermaidRefs.current[index].innerHTML = svgCode;
+          });
         }
-        return res.json();
-      })
-      .then((data) => setSuggestedQuestions(data.suggested_questions || []))
-      .catch((err) => handleError("Failed to fetch suggestions", err));
-  }, []);
+      }
+    });
+  }, [chats]);
 
   const handleNewMessage = async (data) => {
     if (!data.text) return;
@@ -77,10 +80,7 @@ const Chat = () => {
         body: JSON.stringify({ message: data.text, session_id: sessionId }),
       });
 
-      if (!response.ok || !response.body) {
-        const text = await response.text();
-        throw new Error(`HTTP ${response.status}: ${text}`);
-      }
+      if (!response.ok || !response.body) throw new Error("Response error");
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -97,7 +97,10 @@ const Chat = () => {
           setIsLoading(true);
           setChats((prev) => {
             const updated = [...prev];
-            if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+            if (
+              updated.length > 0 &&
+              updated[updated.length - 1].who === "bot"
+            ) {
               updated[updated.length - 1].msg = "";
             }
             return updated;
@@ -127,7 +130,7 @@ const Chat = () => {
         });
       }
     } catch (err) {
-      handleError("AI response error", err);
+      console.error("AI response error:", err);
       if (isLoading) setIsLoading(false);
       setChats((prev) => [
         ...prev,
@@ -143,38 +146,24 @@ const Chat = () => {
     <div className="chat-layout">
       {/* Chat Area */}
       <div className="chat-content" ref={chatContentRef}>
-        <div ref={mermaidRef}>
-          {chats.map((chat, index) => (
-            <div key={index} className={`chat-message ${chat.who}`}>
-              {chat.who === "bot" && (
-                <figure className="avatar">
-                  <img src="/av.gif" alt="avatar" />
-                </figure>
-              )}
-              <div className="message-text">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
-                  components={{
-                    code({ node, inline, className, children, ...props }) {
-                      const match = /language-(\w+)/.exec(className || "");
-                      if (match && match[1] === "mermaid") {
-                        return <div className="language-mermaid">{children}</div>;
-                      }
-                      return (
-                        <code className={className} {...props}>
-                          {children}
-                        </code>
-                      );
-                    },
-                  }}
-                >
+        {chats.map((chat, index) => (
+          <div key={index} className={`chat-message ${chat.who}`}>
+            {chat.who === "bot" && (
+              <figure className="avatar">
+                <img src="/av.gif" alt="avatar" />
+              </figure>
+            )}
+            <div className="message-text">
+              {chat.msg.includes("```mermaid") ? (
+                <div ref={(el) => (mermaidRefs.current[index] = el)} />
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {chat.msg}
                 </ReactMarkdown>
-              </div>
+              )}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
 
         {isLoading && (
           <div className="chat-message bot">
