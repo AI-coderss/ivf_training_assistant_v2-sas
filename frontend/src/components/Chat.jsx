@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import SearchLoader from "./SearchLoader"; // Import the loader
+import mermaid from "mermaid";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -22,9 +24,20 @@ const Chat = () => {
   const chatContentRef = useRef(null);
   const scrollAnchorRef = useRef(null);
 
+  // ✅ Ref for Mermaid rendering
+  const mermaidRef = useRef(null);
+
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chats, isLoading]);
+
+  // ✅ Re-render Mermaid whenever chats update
+  useEffect(() => {
+    if (mermaidRef.current) {
+      mermaid.initialize({ startOnLoad: false });
+      mermaid.init(undefined, mermaidRef.current.querySelectorAll(".language-mermaid"));
+    }
+  }, [chats]);
 
   useEffect(() => {
     fetch("https://ivf-backend-server.onrender.com/suggestions")
@@ -124,19 +137,40 @@ const Chat = () => {
     <div className="chat-layout">
       {/* Chat Area */}
       <div className="chat-content" ref={chatContentRef}>
-        {chats.map((chat, index) => (
-          <div key={index} className={`chat-message ${chat.who}`}>
-            {chat.who === "bot" && (
-              <figure className="avatar">
-                <img src="/av.gif" alt="avatar" />
-              </figure>
-            )}
-            <div className="message-text">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{chat.msg}</ReactMarkdown>
-          
+        <div ref={mermaidRef}>
+          {chats.map((chat, index) => (
+            <div key={index} className={`chat-message ${chat.who}`}>
+              {chat.who === "bot" && (
+                <figure className="avatar">
+                  <img src="/av.gif" alt="avatar" />
+                </figure>
+              )}
+              <div className="message-text">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    code({ node, inline, className, children, ...props }) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      if (match && match[1] === "mermaid") {
+                        return (
+                          <div className="language-mermaid">{children}</div>
+                        );
+                      }
+                      return (
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                >
+                  {chat.msg}
+                </ReactMarkdown>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
 
         {isLoading && (
           <div className="chat-message bot">
