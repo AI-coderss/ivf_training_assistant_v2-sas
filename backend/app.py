@@ -1,9 +1,10 @@
 import os
 import tempfile
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, time
 import json
 import re
+import random
 import base64
 import io
 from uuid import uuid4
@@ -429,13 +430,25 @@ def quiz_performance():
 @app.route("/suggestions", methods=["GET"])
 def suggestions():
     try:
-        # ✅ Use your persistent vector store & default RAG chain
+        # ✅ Get your RAG chain
         conversation_chain = get_conversational_rag_chain()
 
-        # ✅ Ask the AI to generate common questions
+        # ✅ Inject random noise / seed to force diversity
+        random_seed = str(random.randint(1000, 9999))
+        timestamp = int(time.time())
+
+        # ✅ Add variation instructions: new wording, different phrasing, shuffle order
+        prompt = (
+            f"Generate 25 unique, fresh, and helpful questions about IVF, "
+            f"from any previous list. Use new wording, vary question types, "
+            f"and include unexpected but relevant aspects. (Seed: {random_seed}, Time: {timestamp}) "
+           
+        )
+
+        # ✅ Force the RAG to see it as a unique query
         response = conversation_chain.invoke({
             "chat_history": [],
-            "input": "Suggest 25 common and helpful questions users may ask about IVF or IVF protocols and ESHREE guidelines. Return them as a numbered list."
+            "input": prompt
         })
 
         raw = response.get("answer", "")
