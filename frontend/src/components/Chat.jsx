@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import SearchLoader from "./SearchLoader";
-import mermaid from "mermaid"; // ✅ NEW
+import SearchLoader from "./SearchLoader"; // Import the loader
+import mermaid from "mermaid"; // ✅ Add Mermaid!
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -26,9 +26,6 @@ const Chat = () => {
   const chatContentRef = useRef(null);
   const scrollAnchorRef = useRef(null);
 
-  // ✅ Mermaid container refs
-  const mermaidRefs = useRef({});
-
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chats, isLoading]);
@@ -40,24 +37,9 @@ const Chat = () => {
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
 
+  // ✅ Re-run Mermaid on new chats
   useEffect(() => {
-    // ✅ After chats update, render Mermaid diagrams if any
-    chats.forEach((chat, index) => {
-      if (
-        chat.msg &&
-        chat.msg.includes("```mermaid") &&
-        mermaidRefs.current[index]
-      ) {
-        const mermaidCode = chat.msg.match(/```mermaid([\s\S]*?)```/);
-        if (mermaidCode && mermaidCode[1]) {
-          mermaid.initialize({ startOnLoad: false });
-          const uniqueId = `mermaid-${index}`;
-          mermaid.render(uniqueId, mermaidCode[1], (svgCode) => {
-            mermaidRefs.current[index].innerHTML = svgCode;
-          });
-        }
-      }
-    });
+    mermaid.init(undefined, ".mermaid");
   }, [chats]);
 
   const handleNewMessage = async (data) => {
@@ -154,13 +136,28 @@ const Chat = () => {
               </figure>
             )}
             <div className="message-text">
-              {chat.msg.includes("```mermaid") ? (
-                <div ref={(el) => (mermaidRefs.current[index] = el)} />
-              ) : (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {chat.msg}
-                </ReactMarkdown>
-              )}
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code({ node, inline, className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || "");
+                    if (match && match[1] === "mermaid") {
+                      return (
+                        <div className="mermaid">
+                          {String(children).replace(/\n$/, "")}
+                        </div>
+                      );
+                    }
+                    return (
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                }}
+              >
+                {chat.msg}
+              </ReactMarkdown>
             </div>
           </div>
         ))}
