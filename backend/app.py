@@ -27,7 +27,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com","https://ivf-virtual-training-assistant-dsah.onrender.com"])
+CORS(app, origins=["https://ivf-virtual-training-assistant-dsah.onrender.com","http://localhost:3000","https://ivfvirtualtrainingassistantdsah.onrender.com"])
 
 
 # === SESSION STATE ===
@@ -507,44 +507,65 @@ def mindmap():
     
 @app.route("/diagram", methods=["POST"])
 def diagram():
+    """
+    Generate a React Flow compatible diagram JSON.
+    Example output:
+    {
+        "nodes": [
+            { "id": "1", "data": { "label": "Start" }, "position": { "x": 0, "y": 0 } },
+            { "id": "2", "data": { "label": "Process" }, "position": { "x": 200, "y": 0 } }
+        ],
+        "edges": [
+            { "id": "e1-2", "source": "1", "target": "2" }
+        ]
+    }
+    """
     try:
         session_id = request.json.get("session_id", str(uuid4()))
         topic = request.json.get("topic", "IVF process diagram")
 
-        # ✅ Updated prompt: instruct LLM to NOT use step numbers in labels
+        # Prompt to generate a simple JSON flow for React Flow
         rag_prompt = (
-            f"You are a diagram assistant. "
-            f"For the topic '{topic}', generate a clear, labeled flow diagram "
-            f"in valid Mermaid syntax. Use short, clean labels WITHOUT numbering (do not include step numbers). "
-            f"Use this exact format:\n"
-            "```mermaid\n"
-            "graph TD\n"
-            "StepA --> StepB --> StepC\n"
-            "```\n"
-            "Return ONLY the Mermaid syntax, wrapped in triple backticks."
+            f"You are a diagram assistant. For the topic '{topic}', "
+            f"generate a JSON flow chart compatible with React Flow. "
+            f"Use this JSON schema exactly:\n"
+            "{\n"
+            '  "nodes": [\n'
+            '    { "id": "1", "data": { "label": "Root" }, "position": { "x": 0, "y": 0 } },\n'
+            '    { "id": "2", "data": { "label": "Step 1" }, "position": { "x": 200, "y": 0 } }\n'
+            "  ],\n"
+            '  "edges": [\n'
+            '    { "id": "e1-2", "source": "1", "target": "2" }\n'
+            "  ]\n"
+            "}\n"
+            "Return strictly valid JSON only — do NOT wrap in markdown or add explanations."
         )
 
-        # ✅ Call your existing chain
+        # Call your chain with memory
         response = chain_with_memory.invoke(
             {"input": rag_prompt},
             config={"configurable": {"session_id": session_id}},
         )
         raw_answer = response["answer"]
 
-        # ✅ Extract Mermaid block robustly
-        match = re.search(r"```mermaid([\s\S]+?)```", raw_answer)
-        mermaid_code = match.group(1).strip() if match else raw_answer.strip()
-        cleaned_mermaid = re.sub(r'\[(\d+\.\s*)([^\]]+)\]', r'[\2]', mermaid_code)
+        # Clean: remove accidental ```json
+        raw_cleaned = re.sub(r"```json|```", "", raw_answer).strip()
+        flow_data = json.loads(raw_cleaned)
+
+        # Validate
+        if not isinstance(flow_data, dict) or "nodes" not in flow_data or "edges" not in flow_data:
+            raise ValueError("Invalid flow structure.")
 
         return jsonify({
-            "mermaid": cleaned_mermaid,
+            "nodes": flow_data["nodes"],
+            "edges": flow_data["edges"],
             "session_id": session_id
-        }), 200
+        })
 
     except Exception as e:
         print("❌ Diagram generation error:", str(e))
         return jsonify({
-            "error": "Failed to generate Mermaid diagram.",
+            "error": "Failed to generate React Flow diagram.",
             "details": str(e)
         }), 500
 

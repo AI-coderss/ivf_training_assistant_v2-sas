@@ -3,7 +3,7 @@ import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SearchLoader from "./SearchLoader";
-import { MermaidDiagram } from "@lightenna/react-mermaid-diagram"; // ✅ NEW
+import mermaid from "mermaid"; // ✅ NEW
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -26,6 +26,9 @@ const Chat = () => {
   const chatContentRef = useRef(null);
   const scrollAnchorRef = useRef(null);
 
+  // ✅ Mermaid container refs
+  const mermaidRefs = useRef({});
+
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chats, isLoading]);
@@ -36,6 +39,26 @@ const Chat = () => {
       .then((data) => setSuggestedQuestions(data.suggested_questions || []))
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
+
+  useEffect(() => {
+    // ✅ After chats update, render Mermaid diagrams if any
+    chats.forEach((chat, index) => {
+      if (
+        chat.msg &&
+        chat.msg.includes("```mermaid") &&
+        mermaidRefs.current[index]
+      ) {
+        const mermaidCode = chat.msg.match(/```mermaid([\s\S]*?)```/);
+        if (mermaidCode && mermaidCode[1]) {
+          mermaid.initialize({ startOnLoad: false });
+          const uniqueId = `mermaid-${index}`;
+          mermaid.render(uniqueId, mermaidCode[1], (svgCode) => {
+            mermaidRefs.current[index].innerHTML = svgCode;
+          });
+        }
+      }
+    });
+  }, [chats]);
 
   const handleNewMessage = async (data) => {
     if (!data.text) return;
@@ -49,9 +72,6 @@ const Chat = () => {
     const url = webSearchActive
       ? "https://ivf-backend-server.onrender.com/websearch"
       : "https://ivf-backend-server.onrender.com/stream";
-
-    // ✅ Detect if user wants a diagram
-    const userWantsDiagram = /diagram|flowchart|flow chart/i.test(data.text);
 
     try {
       const response = await fetch(url, {
@@ -94,15 +114,7 @@ const Chat = () => {
         }
 
         if (isFirstChunk) {
-          // ✅ If user asked for diagram, prepare bubble with diagram slot
-          setChats((prev) => [
-            ...prev,
-            {
-              msg: "",
-              who: "bot",
-              diagram: userWantsDiagram ? "" : null,
-            },
-          ]);
+          setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           isFirstChunk = false;
         }
 
@@ -113,31 +125,6 @@ const Chat = () => {
           const updated = [...prev];
           if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
             updated[updated.length - 1].msg = aiMessage;
-          }
-          return updated;
-        });
-      }
-
-      // ✅ If user wanted a diagram, call /diagram AFTER streaming ends
-      if (userWantsDiagram) {
-        const diagramRes = await fetch(
-          "https://ivf-backend-server.onrender.com/diagram",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              topic: data.text,
-              session_id: sessionId,
-            }),
-          }
-        );
-        const diagramData = await diagramRes.json();
-        const mermaidText = diagramData.mermaid || "";
-
-        setChats((prev) => {
-          const updated = [...prev];
-          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
-            updated[updated.length - 1].diagram = mermaidText;
           }
           return updated;
         });
@@ -167,15 +154,12 @@ const Chat = () => {
               </figure>
             )}
             <div className="message-text">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {chat.msg}
-              </ReactMarkdown>
-
-              {/* ✅ If this bot message has a diagram, render it below text */}
-              {chat.diagram && (
-                <div style={{ marginTop: "1rem" }}>
-                  <MermaidDiagram>{chat.diagram}</MermaidDiagram>
-                </div>
+              {chat.msg.includes("```mermaid") ? (
+                <div ref={(el) => (mermaidRefs.current[index] = el)} />
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {chat.msg}
+                </ReactMarkdown>
               )}
             </div>
           </div>
