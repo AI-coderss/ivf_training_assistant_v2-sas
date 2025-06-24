@@ -3,7 +3,7 @@ import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SearchLoader from "./SearchLoader";
-import mermaid from "mermaid"; // ✅ NEW
+import Mermaid from "./Mermaid"; // ✅ Use your custom Mermaid component!
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -26,9 +26,6 @@ const Chat = () => {
   const chatContentRef = useRef(null);
   const scrollAnchorRef = useRef(null);
 
-  // ✅ Mermaid container refs
-  const mermaidRefs = useRef({});
-
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chats, isLoading]);
@@ -40,98 +37,115 @@ const Chat = () => {
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
 
-  useEffect(() => {
-    // ✅ After chats update, render Mermaid diagrams if any
-    chats.forEach((chat, index) => {
-      if (
-        chat.msg &&
-        chat.msg.includes("```mermaid") &&
-        mermaidRefs.current[index]
-      ) {
-        const mermaidCode = chat.msg.match(/```mermaid([\s\S]*?)```/);
-        if (mermaidCode && mermaidCode[1]) {
-          mermaid.initialize({ startOnLoad: false });
-          const uniqueId = `mermaid-${index}`;
-          mermaid.render(uniqueId, mermaidCode[1], (svgCode) => {
-            mermaidRefs.current[index].innerHTML = svgCode;
-          });
-        }
-      }
-    });
-  }, [chats]);
-
   const handleNewMessage = async (data) => {
     if (!data.text) return;
 
     setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
 
-    if (webSearchActive) {
-      setIsLoading(true);
-    }
+    // ✅ Detect diagram keywords
+    const diagramKeywords = ["diagram", "flowchart", "process map", "chart"];
+    const textLower = data.text.toLowerCase();
+    const wantsDiagram = diagramKeywords.some((kw) => textLower.includes(kw));
 
-    const url = webSearchActive
+    const url = wantsDiagram
+      ? "https://ivf-backend-server.onrender.com/diagram"
+      : webSearchActive
       ? "https://ivf-backend-server.onrender.com/websearch"
       : "https://ivf-backend-server.onrender.com/stream";
 
+    const payload = wantsDiagram
+      ? { topic: data.text, session_id: sessionId }
+      : { message: data.text, session_id: sessionId };
+
     try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: data.text, session_id: sessionId }),
-      });
+      if (wantsDiagram) {
+        setIsLoading(true);
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
-      if (!response.ok || !response.body) throw new Error("Response error");
+        const json = await res.json();
+        // ✅ Pass ONLY Mermaid code (no ```mermaid) to <Mermaid />
+        const mermaidCode = json.syntax;
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let aiMessage = "";
-      let isFirstChunk = true;
+        setChats((prev) => [
+          ...prev,
+          {
+            msg: mermaidCode,
+            who: "bot",
+            isMermaid: true,
+          },
+        ]);
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-
-        if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
+        setIsLoading(false);
+      } else {
+        if (webSearchActive) {
           setIsLoading(true);
+        }
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok || !response.body) throw new Error("Response error");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let aiMessage = "";
+        let isFirstChunk = true;
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+
+          if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
+            setIsLoading(true);
+            setChats((prev) => {
+              const updated = [...prev];
+              if (
+                updated.length > 0 &&
+                updated[updated.length - 1].who === "bot"
+              ) {
+                updated[updated.length - 1].msg = "";
+              }
+              return updated;
+            });
+            aiMessage = "";
+            continue;
+          }
+
+          if (isLoading && isFirstChunk) {
+            setIsLoading(false);
+          }
+
+          if (isFirstChunk) {
+            setChats((prev) => [...prev, { msg: "", who: "bot" }]);
+            isFirstChunk = false;
+          }
+
+          aiMessage += chunk;
+
           setChats((prev) => {
             const updated = [...prev];
             if (
               updated.length > 0 &&
               updated[updated.length - 1].who === "bot"
             ) {
-              updated[updated.length - 1].msg = "";
+              updated[updated.length - 1].msg = aiMessage;
             }
             return updated;
           });
-          aiMessage = "";
-          continue;
         }
-
-        if (isLoading && isFirstChunk) {
-          setIsLoading(false);
-        }
-
-        if (isFirstChunk) {
-          setChats((prev) => [...prev, { msg: "", who: "bot" }]);
-          isFirstChunk = false;
-        }
-
-        aiMessage += chunk;
-
-        // eslint-disable-next-line no-loop-func
-        setChats((prev) => {
-          const updated = [...prev];
-          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
-            updated[updated.length - 1].msg = aiMessage;
-          }
-          return updated;
-        });
       }
     } catch (err) {
       console.error("AI response error:", err);
-      if (isLoading) setIsLoading(false);
+      setIsLoading(false);
       setChats((prev) => [
         ...prev,
         {
@@ -154,8 +168,8 @@ const Chat = () => {
               </figure>
             )}
             <div className="message-text">
-              {chat.msg.includes("```mermaid") ? (
-                <div ref={(el) => (mermaidRefs.current[index] = el)} />
+              {chat.isMermaid ? (
+                <Mermaid chart={chat.msg} />
               ) : (
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {chat.msg}

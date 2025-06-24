@@ -329,24 +329,44 @@ def mindmap():
 # === /diagram ===
 @app.route("/diagram", methods=["POST"])
 def diagram():
+    """
+    Generates valid Mermaid code using OpenAI,
+    extracts only the mermaid block,
+    removes numbers inside square brackets.
+    """
     session_id = request.json.get("session_id", str(uuid4()))
-    topic = request.json.get("topic", "IVF process diagram")
+    topic = request.json.get("topic", "IVF Process Diagram")
 
-    rag_prompt = (
-        f"You are a diagram assistant. For topic '{topic}', generate a JSON flow chart compatible with React Flow. "
-        "Return strictly valid JSON — no markdown, no comments."
+    # Strict prompt for Mermaid syntax only
+    prompt = (
+        f"You are a diagram assistant. "
+        f"For the topic '{topic}', produce a clear Mermaid diagram in this format:\n"
+        "```mermaid\n"
+        "graph TD\n"
+        "Step1 --> Step2 --> Step3\n"
+        "```\n"
+        "Return ONLY the Mermaid block, wrapped in triple backticks. No explanations."
+        "Ensure that your mermaid syntax is clean"
     )
 
-    response = conversation_rag_chain.invoke(
-        {"chat_history": chat_sessions.get(session_id, []), "input": rag_prompt}
+    # Call OpenAI chat completion
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}]
     )
-    raw_cleaned = re.sub(r"```json|```", "", response["answer"]).strip()
-    flow_data = json.loads(raw_cleaned)
+    raw_answer = response.choices[0].message.content
+
+    # Extract Mermaid code
+    match = re.search(r"```mermaid([\s\S]+?)```", raw_answer, re.IGNORECASE)
+    mermaid_code = match.group(1).strip() if match else "graph TD\nA[Error] --> B[No diagram]"
+
+    # Remove numbers inside [ ... ] brackets (e.g., [Step 1] -> [Step ])
+    cleaned_mermaid = re.sub(r'\[([^\[\]]*?)\d+([^\[\]]*?)\]', r'[\1\2]', mermaid_code)
 
     return jsonify({
-        "nodes": flow_data.get("nodes", []),
-        "edges": flow_data.get("edges", []),
-        "session_id": session_id
+        "type": "mermaid",
+        "syntax": cleaned_mermaid,
+        "topic": topic
     })
 
 # === Run ===
