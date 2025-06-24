@@ -4,14 +4,10 @@ from uuid import uuid4
 from datetime import datetime
 import json
 import re
-import random
 import base64
-import io
-from uuid import uuid4
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
-import openai
 import qdrant_client
 from openai import OpenAI
 from prompts.prompt import engineeredprompt
@@ -23,30 +19,31 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.chat_message_histories.in_memory import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
-# Load environment variables
+# === Load env ===
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app, origins=["https://ivf-virtual-training-assistant-dsah.onrender.com","http://localhost:3000","https://ivfvirtualtrainingassistantdsah.onrender.com"])
 
 
-# === SESSION STATE ===
+# === Session store ===
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
+client_openai = OpenAI()
 
-
-# === VECTOR DB ===
+# === Qdrant Vector DB ===
 def get_vector_store():
     client = qdrant_client.QdrantClient(
         url=os.getenv("QDRANT_HOST"),
         api_key=os.getenv("QDRANT_API_KEY"),
+        timeout=60.0  # robust timeout!
     )
     embeddings = OpenAIEmbeddings()
     return Qdrant(client=client, collection_name=collection_name, embeddings=embeddings)
 
 vector_store = get_vector_store()
 
-# === CONVERSATIONAL RAG SETUP ===
+# === RAG Chain ===
 def get_context_retriever_chain():
     retriever = vector_store.as_retriever()
     prompt = ChatPromptTemplate.from_messages([
@@ -67,7 +64,7 @@ def get_conversational_rag_chain():
 
 rag_chain = get_conversational_rag_chain()
 
-# === MEMORY WRAPPER ===
+# === Memory Wrapper ===
 def get_memory(session_id):
     history = ChatMessageHistory()
     if session_id in chat_sessions:
@@ -85,7 +82,7 @@ chain_with_memory = RunnableWithMessageHistory(
     history_messages_key="chat_history",
 )
 
-# === /generate endpoint ===
+# === /generate ===
 @app.route("/generate", methods=["POST"])
 def generate():
     session_id = request.form.get("session_id") or request.args.get("session_id")
@@ -99,7 +96,7 @@ def generate():
             audio_path = temp.name
             audio_file.save(audio_path)
         with open(audio_path, "rb") as af:
-            transcript = openai.Audio.transcribe("whisper-1", af)["text"]
+            transcript = client_openai.audio.transcribe("whisper-1", af)["text"]
         os.remove(audio_path)
         data["message"] = transcript
     else:
@@ -111,14 +108,12 @@ def generate():
     session_id = session_id or data.get("session_id") or str(uuid4())
     user_input = data["message"]
 
-    # Invoke the RAG chain
     response = chain_with_memory.invoke(
         {"input": user_input},
         config={"configurable": {"session_id": session_id}},
     )
     answer = response["answer"]
 
-    # Store in session memory
     if session_id not in chat_sessions:
         chat_sessions[session_id] = []
     chat_sessions[session_id].append({"role": "user", "content": user_input})
@@ -128,8 +123,8 @@ def generate():
         "response": answer,
         "session_id": session_id
     })
-    
-# === /stream endpoint ===
+
+# === ✅ /stream with fallback ===
 @app.route("/stream", methods=["POST"])
 def stream():
     data = request.get_json()
@@ -137,28 +132,12 @@ def stream():
     user_input = data.get("message")
     if not user_input:
         return jsonify({"error": "No input message"}), 400
-    # Initialize OpenAI client
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    def generate_response():
+    def generate():
         answer = ""
         use_web_search = False
-        sources = []
 
-        # Step 1: Try RAG (vector-based)
-        try:
-            for chunk in chain_with_memory.stream(
-                {"input": user_input},
-                config={"configurable": {"session_id": session_id}},
-            ):
-                token = chunk.get("answer", "")
-                answer += token
-                yield token
-        except Exception as e:
-            yield f"\n[Vector error: {str(e)}]"
-            use_web_search = True
-
-        # Step 2: Fallback trigger phrases
+       # Step 2: Fallback trigger phrases
         fallback_triggers = [
             "i don't know", "i'm not sure", 
             "I can't browse the web",
@@ -175,91 +154,71 @@ def stream():
             "I cannot access the internet to look up current information",
 
         ]
+        try:
+            for chunk in chain_with_memory.stream(
+                {"input": user_input},
+                config={"configurable": {"session_id": session_id}},
+            ):
+                token = chunk.get("answer", "")
+                answer += token
+                yield token
+        except Exception as e:
+            yield f"\n[Vector error: {str(e)}]"
+            use_web_search = True
+
         if any(trigger in answer.lower() for trigger in fallback_triggers):
             use_web_search = True
 
-        # Step 3: If needed, switch to Web Search
         if use_web_search:
-            yield "[WEB_SEARCH_INITIATED]\n"
+            yield "\n[WEB_SEARCH_INITIATED]\n"
             try:
-                stream = client.responses.create(
-                    model="gpt-4.1",
-                    input=[{ "role": "user", "content": user_input }],
-                    tools=[{ "type": "web_search_preview" }],
+                stream = client_openai.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": user_input}],
+                    tools=[{"type": "web_search_preview"}],
                     stream=True
                 )
-
                 for event in stream:
-                    if hasattr(event, "delta") and event.delta:
-                        yield event.delta
-                    elif hasattr(event, "citations"):
-                        sources.extend(event.citations)
-                    elif getattr(event, "type", "") == "response.output_text.done":
-                        break
-
-                if sources:
-                    yield "\n\n📚 **Sources:**\n"
-                    for i, src in enumerate(sources, 1):
-                        title = src.get("title", f"Source {i}")
-                        url = src.get("url", "#")
-                        yield f"- [{title}]({url})\n"
-
+                    delta = getattr(event.choices[0].delta, "content", None)
+                    if delta:
+                        yield delta
             except Exception as e:
                 yield f"\n[Web search error: {str(e)}]"
 
-        # Step 4: Store chat memory
         if session_id not in chat_sessions:
             chat_sessions[session_id] = []
-
         chat_sessions[session_id].append({"role": "user", "content": user_input})
         chat_sessions[session_id].append({"role": "assistant", "content": answer})
 
-    return Response(generate_response(), content_type="text/plain")
+    return Response(generate(), content_type="text/plain")
 
-# === /websearch endpoint ===
+# === /websearch ===
 @app.route("/websearch", methods=["POST"])
 def websearch():
     data = request.get_json()
     user_input = data.get("message")
     if not user_input:
         return jsonify({"error": "Missing user input"}), 400
-    # Initialize OpenAI client
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def stream_web_response():
-        sources = []
-
         try:
-            stream = client.responses.create(
-                model="gpt-4.1",
-                input=[{ "role": "user", "content": user_input }],
-                tools=[{ "type": "web_search_preview" }],
+            stream = client_openai.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": user_input}],
+                tools=[{"type": "web_search_preview"}],
                 stream=True
             )
-
             for event in stream:
-                if hasattr(event, "delta") and event.delta:
-                    yield event.delta
-                elif hasattr(event, "citations"):
-                    sources.extend(event.citations)
-                elif getattr(event, "type", "") == "response.output_text.done":
-                    break
-
-            # 🔗 Append source links at the end
-            if sources:
-                yield "\n\n📚 **Sources:**\n"
-                for i, src in enumerate(sources, 1):
-                    title = src.get("title", f"Source {i}")
-                    url = src.get("url", "#")
-                    yield f"- [{title}]({url})\n"
-
+                delta = getattr(event.choices[0].delta, "content", None)
+                if delta:
+                    yield delta
         except Exception as e:
             yield f"\n[Web search error: {str(e)}]"
 
     return Response(stream_web_response(), content_type="text/plain")
-# === /tts endpoint ===
-# Initialize OpenAI TTS client
-tts_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# === /tts ===
+tts_client = OpenAI()
 @app.route("/tts", methods=["POST"])
 def tts():
     text = (request.json or {}).get("text", "").strip()
@@ -267,31 +226,25 @@ def tts():
         return jsonify({"error": "No text supplied"}), 400
 
     try:
-        # PCM streaming output
         pcm_stream = tts_client.audio.speech.with_streaming_response.create(
             model="gpt-4o-mini-tts",
             voice="coral",
             input=text,
             instructions="Speak in a friendly tone.",
-            response_format="pcm",  # raw 16-bit 48-kHz PCM stream
+            response_format="pcm",
         )
     except Exception as e:
-        print("TTS error:", e)
-        return jsonify({"error": "TTS failed"}), 500
+        return jsonify({"error": f"TTS failed: {str(e)}"}), 500
 
-    # Convert PCM-bytes → base64 chunk-by-chunk
     @stream_with_context
     def gen():
         for chunk in pcm_stream.iter_bytes():
-            # encode small chunk to base64 (keep chunks small for smooth stream)
-            b64 = base64.b64encode(chunk).decode("ascii")
-            yield b64
-        # mark end for the browser
+            yield base64.b64encode(chunk).decode("ascii")
         yield "[[END_OF_AUDIO]]"
 
-    # text/plain so fetch() treats it as text stream
     return Response(gen(), mimetype="text/plain")
-# === /reset endpoint ===
+
+# === /reset ===
 @app.route("/reset", methods=["POST"])
 def reset():
     session_id = request.json.get("session_id")

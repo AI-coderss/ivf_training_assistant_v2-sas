@@ -4,6 +4,9 @@
 A multi-page, full-stack AI-powered web application designed to support the virtual training of IVF doctors and fellows at **Doctor Samir Abbas Hospital**.
 
 The platform combines speech-enabled chat, medical context understanding, educational content, summaries, quizzes, and a 3D avatar to deliver an engaging and intelligent training experience.
+```mermaid
+  
+```
 
 ---
 
