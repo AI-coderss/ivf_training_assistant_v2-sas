@@ -17,7 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 
-# === Load env ===
+# Load env vars
 load_dotenv()
 
 app = Flask(__name__)
@@ -25,17 +25,19 @@ CORS(app, origins=["https://ivf-virtual-training-assistant-dsah.onrender.com"])
 
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
-client_openai = OpenAI()
 
-# === Vector store ===
+# Initialize OpenAI client
+client = OpenAI()
+
+# === VECTOR STORE ===
 def get_vector_store():
-    client_qdrant = qdrant_client.QdrantClient(
+    qdrant = qdrant_client.QdrantClient(
         url=os.getenv("QDRANT_HOST"),
         api_key=os.getenv("QDRANT_API_KEY"),
         timeout=60.0
     )
     embeddings = OpenAIEmbeddings()
-    return Qdrant(client=client_qdrant, collection_name=collection_name, embeddings=embeddings)
+    return Qdrant(client=qdrant, collection_name=collection_name, embeddings=embeddings)
 
 vector_store = get_vector_store()
 
@@ -44,7 +46,7 @@ def get_context_retriever_chain():
     llm = ChatOpenAI()
     retriever = vector_store.as_retriever()
     prompt = ChatPromptTemplate.from_messages([
-        MessagesPlaceholder(variable_name="chat_history"),
+        MessagesPlaceholder("chat_history"),
         ("user", "{input}"),
         ("user", "Given the above conversation, generate a search query to look up in order to get information relevant to the conversation"),
     ])
@@ -55,13 +57,28 @@ def get_conversational_rag_chain():
     llm = ChatOpenAI()
     prompt = ChatPromptTemplate.from_messages([
         ("system", engineeredprompt),
-        MessagesPlaceholder(variable_name="chat_history"),
+        MessagesPlaceholder("chat_history"),
         ("user", "{input}"),
     ])
-    stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
-    return create_retrieval_chain(retriever_chain, stuff_documents_chain)
+    return create_retrieval_chain(retriever_chain, create_stuff_documents_chain(llm, prompt))
 
 conversation_rag_chain = get_conversational_rag_chain()
+
+# === Fallback triggers ===
+fallback_triggers = [
+    "i don't know", "i am not sure", "i'm not sure", "i do not know",
+    "i have no information", "no relevant information", "cannot find",
+    "sorry", "unavailable", "not enough information", "insufficient information",
+    "i cannot answer that", "i do not have data", "i don't have data",
+    "i don't have that information", "i cannot access that information",
+    "this is beyond my training", "this is outside my expertise",
+    "i cannot help with that", "i can't help with that",
+    "i do not have browsing capabilities", "i cannot browse", "i can't browse",
+    "i cannot search the web", "i can't search the web",
+    "i cannot access the internet", "i can't access the internet",
+    "this requires real-time information",
+    "i currently do not have browsing capabilities"
+]
 
 # === /stream ===
 @app.route("/stream", methods=["POST"])
@@ -75,44 +92,11 @@ def stream():
     if session_id not in chat_sessions:
         chat_sessions[session_id] = []
 
-    fallback_triggers = [
-        "i don't know",
-        "i am not sure",
-        "i'm not sure",
-        "i do not know",
-        "i have no information",
-        "no relevant information",
-        "cannot find",
-        "sorry",
-        "unavailable",
-        "not enough information",
-        "insufficient information",
-        "i cannot answer that",
-        "i do not have data",
-        "i don't have data",
-        "i don't have that information",
-        "i cannot access that information",
-        "i can't access that information",
-        "this is beyond my training",
-        "this is outside my expertise",
-        "i cannot help with that",
-        "i can't help with that",
-        "i do not have browsing capabilities",
-        "i cannot browse",
-        "i can't browse",
-        "i cannot search the web",
-        "i can't search the web",
-        "i cannot access the internet",
-        "i can't access the internet",
-        "this requires real-time information",
-        "i currently do not have browsing capabilities"
-    ]
-
     def generate():
         answer = ""
-        used_web = False
+        use_web = False
 
-        # === First: Try RAG ===
+        # === Try RAG ===
         try:
             for chunk in conversation_rag_chain.stream(
                 {"chat_history": chat_sessions[session_id], "input": user_input}
@@ -122,25 +106,24 @@ def stream():
                 yield token
         except Exception as e:
             yield f"\n[Vector error: {str(e)}]"
-            used_web = True
+            use_web = True
 
-        # === Check fallback triggers ===
+        # === Check if fallback needed ===
         if any(trigger in answer.lower() for trigger in fallback_triggers) or len(answer.strip()) < 10:
-            used_web = True
+            use_web = True
 
-        if used_web:
+        if use_web:
             yield "\n[WEB_SEARCH_INITIATED]\n"
             try:
-                stream = client_openai.chat.completions.create(
+                stream_resp = client.responses.create(
                     model="gpt-4o",
-                    messages=[{"role": "user", "content": user_input}],
                     tools=[{"type": "web_search_preview"}],
+                    input=user_input,
                     stream=True
                 )
-                for event in stream:
-                    delta = getattr(event.choices[0].delta, "content", None)
-                    if delta:
-                        yield delta
+                for event in stream_resp:
+                    if hasattr(event, "output_text") and event.output_text:
+                        yield event.output_text
             except Exception as e:
                 yield f"\n[Web search error: {str(e)}]"
 
@@ -163,16 +146,15 @@ def websearch():
 
     def generate():
         try:
-            stream = client_openai.chat.completions.create(
+            stream_resp = client.responses.create(
                 model="gpt-4o",
-                messages=[{"role": "user", "content": user_input}],
                 tools=[{"type": "web_search_preview"}],
+                input=user_input,
                 stream=True
             )
-            for event in stream:
-                delta = getattr(event.choices[0].delta, "content", None)
-                if delta:
-                    yield delta
+            for event in stream_resp:
+                if hasattr(event, "output_text") and event.output_text:
+                    yield event.output_text
         except Exception as e:
             yield f"\n[Web search error: {str(e)}]"
 
@@ -211,7 +193,7 @@ def tts():
     if not text:
         return jsonify({"error": "No text supplied"}), 400
 
-    response = client_openai.audio.speech.create(
+    response = client.audio.speech.create(
         model="tts-1",
         voice="fable",
         input=text
@@ -230,7 +212,6 @@ def reset():
     if session_id in chat_sessions:
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
-
 # === /start-quiz ===
 @app.route("/start-quiz", methods=["POST"])
 def start_quiz():
