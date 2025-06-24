@@ -3,7 +3,7 @@ import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SearchLoader from "./SearchLoader";
-import Mermaid from "./Mermaid"; // ✅ Use your custom Mermaid component!
+import Mermaid from "./Mermaid";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -42,107 +42,91 @@ const Chat = () => {
 
     setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
 
-    // ✅ Detect diagram keywords
+    // ✅ Detect if it needs a diagram
     const diagramKeywords = ["diagram", "flowchart", "process map", "chart"];
     const textLower = data.text.toLowerCase();
     const wantsDiagram = diagramKeywords.some((kw) => textLower.includes(kw));
 
-    const url = wantsDiagram
-      ? "https://ivf-backend-server.onrender.com/diagram"
-      : webSearchActive
+    // ✅ Always use normal LLM stream for the explanation
+    const streamUrl = webSearchActive
       ? "https://ivf-backend-server.onrender.com/websearch"
       : "https://ivf-backend-server.onrender.com/stream";
 
-    const payload = wantsDiagram
-      ? { topic: data.text, session_id: sessionId }
-      : { message: data.text, session_id: sessionId };
+    // ✅ If diagram needed, call /diagram in parallel
+    const diagramUrl = "https://ivf-backend-server.onrender.com/diagram";
 
     try {
-      if (wantsDiagram) {
-        setIsLoading(true);
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+      setIsLoading(true);
 
-        const json = await res.json();
-        // ✅ Pass ONLY Mermaid code (no ```mermaid) to <Mermaid />
-        const mermaidCode = json.syntax;
+      // 🚀 Fire both requests in parallel
+      const diagramPromise = wantsDiagram
+        ? fetch(diagramUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topic: data.text,
+              session_id: sessionId,
+            }),
+          }).then((res) => res.json())
+        : Promise.resolve({ syntax: "" });
 
-        setChats((prev) => [
-          ...prev,
-          {
-            msg: mermaidCode,
-            who: "bot",
-            isMermaid: true,
-          },
-        ]);
+      const streamResponse = await fetch(streamUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: data.text, session_id: sessionId }),
+      });
 
-        setIsLoading(false);
-      } else {
-        if (webSearchActive) {
-          setIsLoading(true);
+      if (!streamResponse.ok || !streamResponse.body) throw new Error("Response error");
+
+      const reader = streamResponse.body.getReader();
+      const decoder = new TextDecoder();
+      let aiMessage = "";
+      let isFirstChunk = true;
+
+      // ✅ Stream LLM text while also waiting for diagram in background
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+
+        if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
+          // optional handling for web search
+          continue;
         }
 
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok || !response.body) throw new Error("Response error");
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let aiMessage = "";
-        let isFirstChunk = true;
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-
-          if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
-            setIsLoading(true);
-            setChats((prev) => {
-              const updated = [...prev];
-              if (
-                updated.length > 0 &&
-                updated[updated.length - 1].who === "bot"
-              ) {
-                updated[updated.length - 1].msg = "";
-              }
-              return updated;
-            });
-            aiMessage = "";
-            continue;
-          }
-
-          if (isLoading && isFirstChunk) {
-            setIsLoading(false);
-          }
-
-          if (isFirstChunk) {
-            setChats((prev) => [...prev, { msg: "", who: "bot" }]);
-            isFirstChunk = false;
-          }
-
-          aiMessage += chunk;
-
-          setChats((prev) => {
-            const updated = [...prev];
-            if (
-              updated.length > 0 &&
-              updated[updated.length - 1].who === "bot"
-            ) {
-              updated[updated.length - 1].msg = aiMessage;
-            }
-            return updated;
-          });
+        if (isFirstChunk) {
+          setChats((prev) => [...prev, { msg: "", who: "bot" }]);
+          isFirstChunk = false;
         }
+
+        aiMessage += chunk;
+
+        setChats((prev) => {
+          const updated = [...prev];
+          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+            updated[updated.length - 1].msg = aiMessage;
+          }
+          return updated;
+        });
       }
+
+      // ✅ Diagram finished too — get syntax
+      const diagramData = await diagramPromise;
+      const diagramSyntax = diagramData.syntax || "";
+
+      // ✅ Append diagram to the same bot message
+      if (diagramSyntax.trim()) {
+        setChats((prev) => {
+          const updated = [...prev];
+          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+            updated[updated.length - 1].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
+          }
+          return updated;
+        });
+      }
+
+      setIsLoading(false);
     } catch (err) {
       console.error("AI response error:", err);
       setIsLoading(false);
@@ -156,6 +140,35 @@ const Chat = () => {
     }
   };
 
+  // ✅ Split text & render Mermaid inline
+  const renderMessage = (message) => {
+    const regex = /```mermaid([\s\S]*?)```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(message))) {
+      const before = message.slice(lastIndex, match.index);
+      const code = match[1];
+      if (before) parts.push({ type: "text", content: before });
+      parts.push({ type: "mermaid", content: code });
+      lastIndex = regex.lastIndex;
+    }
+
+    const after = message.slice(lastIndex);
+    if (after) parts.push({ type: "text", content: after });
+
+    return parts.map((part, idx) =>
+      part.type === "mermaid" ? (
+        <Mermaid key={idx} chart={part.content.trim()} />
+      ) : (
+        <ReactMarkdown key={idx} remarkPlugins={[remarkGfm]}>
+          {part.content}
+        </ReactMarkdown>
+      )
+    );
+  };
+
   return (
     <div className="chat-layout">
       {/* Chat Area */}
@@ -167,15 +180,7 @@ const Chat = () => {
                 <img src="/av.gif" alt="avatar" />
               </figure>
             )}
-            <div className="message-text">
-              {chat.isMermaid ? (
-                <Mermaid chart={chat.msg} />
-              ) : (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {chat.msg}
-                </ReactMarkdown>
-              )}
-            </div>
+            <div className="message-text">{renderMessage(chat.msg)}</div>
           </div>
         ))}
 
