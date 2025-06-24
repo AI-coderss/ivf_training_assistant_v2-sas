@@ -50,11 +50,12 @@ const Chat = () => {
     const websearchUrl = "https://ivf-backend-server.onrender.com/websearch";
     const diagramUrl = "https://ivf-backend-server.onrender.com/diagram";
 
-    // ✅ Show loader only for explicit web search toggle
+    // ✅ Loader only for web search or fallback
     setIsWebSearchLoading(webSearchActive);
 
+    // ✅ Correct payload: message key for BOTH endpoints
     const streamPayload = { message: data.text, session_id: sessionId };
-    const webPayload = { query: data.text, session_id: sessionId };
+    const webPayload = { message: data.text, session_id: sessionId };
 
     const diagramPromise = wantsDiagram
       ? fetch(diagramUrl, {
@@ -87,10 +88,12 @@ const Chat = () => {
         const chunk = decoder.decode(value, { stream: true });
 
         if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
-          console.log("[WEB_SEARCH_INITIATED] detected — switching to web search");
+          console.log(
+            "[WEB_SEARCH_INITIATED] detected — switching to web search"
+          );
           reader.cancel();
           setIsWebSearchLoading(true);
-          // Create new bubble for web search fallback:
+          // ✅ Start a new bubble for fallback
           setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           await runStream(websearchUrl, webPayload, true);
           return;
@@ -127,7 +130,9 @@ const Chat = () => {
         setChats((prev) => {
           const updated = [...prev];
           if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
-            updated[updated.length - 1].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
+            updated[
+              updated.length - 1
+            ].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
           }
           return updated;
         });
@@ -247,5 +252,3 @@ const Chat = () => {
 };
 
 export default Chat;
-
-
