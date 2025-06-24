@@ -50,12 +50,11 @@ const Chat = () => {
     const websearchUrl = "https://ivf-backend-server.onrender.com/websearch";
     const diagramUrl = "https://ivf-backend-server.onrender.com/diagram";
 
-    // ✅ Loader only for web search or fallback
+    // ✅ Show loader only for explicit web search toggle
     setIsWebSearchLoading(webSearchActive);
 
-    // ✅ Correct payload: message key for BOTH endpoints
     const streamPayload = { message: data.text, session_id: sessionId };
-    const webPayload = { message: data.text, session_id: sessionId };
+    const webPayload = { query: data.text, session_id: sessionId };
 
     const diagramPromise = wantsDiagram
       ? fetch(diagramUrl, {
@@ -93,7 +92,7 @@ const Chat = () => {
           );
           reader.cancel();
           setIsWebSearchLoading(true);
-          // ✅ Start a new bubble for fallback
+          // Create new bubble for web search fallback:
           setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           await runStream(websearchUrl, webPayload, true);
           return;
