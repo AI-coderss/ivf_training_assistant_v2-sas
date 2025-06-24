@@ -75,16 +75,106 @@ def stream():
     if session_id not in chat_sessions:
         chat_sessions[session_id] = []
 
+    fallback_triggers = [
+        "i don't know",
+        "i am not sure",
+        "i'm not sure",
+        "i do not know",
+        "i have no information",
+        "no relevant information",
+        "cannot find",
+        "sorry",
+        "unavailable",
+        "not enough information",
+        "insufficient information",
+        "i cannot answer that",
+        "i do not have data",
+        "i don't have data",
+        "i don't have that information",
+        "i cannot access that information",
+        "i can't access that information",
+        "this is beyond my training",
+        "this is outside my expertise",
+        "i cannot help with that",
+        "i can't help with that",
+        "i do not have browsing capabilities",
+        "i cannot browse",
+        "i can't browse",
+        "i cannot search the web",
+        "i can't search the web",
+        "i cannot access the internet",
+        "i can't access the internet",
+        "this requires real-time information",
+        "i currently do not have browsing capabilities"
+    ]
+
     def generate():
         answer = ""
-        for chunk in conversation_rag_chain.stream(
-            {"chat_history": chat_sessions[session_id], "input": user_input}
-        ):
-            token = chunk.get("answer", "")
-            answer += token
-            yield token
+        used_web = False
+
+        # === First: Try RAG ===
+        try:
+            for chunk in conversation_rag_chain.stream(
+                {"chat_history": chat_sessions[session_id], "input": user_input}
+            ):
+                token = chunk.get("answer", "")
+                answer += token
+                yield token
+        except Exception as e:
+            yield f"\n[Vector error: {str(e)}]"
+            used_web = True
+
+        # === Check fallback triggers ===
+        if any(trigger in answer.lower() for trigger in fallback_triggers) or len(answer.strip()) < 10:
+            used_web = True
+
+        if used_web:
+            yield "\n[WEB_SEARCH_INITIATED]\n"
+            try:
+                stream = client_openai.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": user_input}],
+                    tools=[{"type": "web_search_preview"}],
+                    stream=True
+                )
+                for event in stream:
+                    delta = getattr(event.choices[0].delta, "content", None)
+                    if delta:
+                        yield delta
+            except Exception as e:
+                yield f"\n[Web search error: {str(e)}]"
+
         chat_sessions[session_id].append({"role": "user", "content": user_input})
         chat_sessions[session_id].append({"role": "assistant", "content": answer})
+
+    return Response(
+        stream_with_context(generate()),
+        content_type="text/plain",
+        headers={"Access-Control-Allow-Origin": "https://ivf-virtual-training-assistant-dsah.onrender.com"}
+    )
+
+# === /websearch ===
+@app.route("/websearch", methods=["POST"])
+def websearch():
+    data = request.get_json()
+    user_input = data.get("message", "")
+    if not user_input:
+        return jsonify({"error": "No input message"}), 400
+
+    def generate():
+        try:
+            stream = client_openai.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": user_input}],
+                tools=[{"type": "web_search_preview"}],
+                stream=True
+            )
+            for event in stream:
+                delta = getattr(event.choices[0].delta, "content", None)
+                if delta:
+                    yield delta
+        except Exception as e:
+            yield f"\n[Web search error: {str(e)}]"
 
     return Response(
         stream_with_context(generate()),
