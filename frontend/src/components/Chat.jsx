@@ -50,10 +50,11 @@ const Chat = () => {
     const websearchUrl = "https://ivf-backend-server.onrender.com/websearch";
     const diagramUrl = "https://ivf-backend-server.onrender.com/diagram";
 
-    // Loader only ON if user toggled 🌐 manually
+    // ✅ Show loader only for explicit web search toggle
     setIsWebSearchLoading(webSearchActive);
 
-    const payload = { message: data.text, session_id: sessionId };
+    const streamPayload = { message: data.text, session_id: sessionId };
+    const webPayload = { query: data.text, session_id: sessionId };
 
     const diagramPromise = wantsDiagram
       ? fetch(diagramUrl, {
@@ -66,9 +67,7 @@ const Chat = () => {
         }).then((res) => res.json())
       : Promise.resolve({ syntax: "" });
 
-    let activeReader;
-
-    const runStream = async (url, isFallback = false) => {
+    const runStream = async (url, payload, append = false) => {
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,7 +76,6 @@ const Chat = () => {
       if (!res.ok || !res.body) throw new Error("Stream failed");
 
       const reader = res.body.getReader();
-      activeReader = reader;
       const decoder = new TextDecoder();
       let message = "";
       let isFirstChunk = true;
@@ -88,16 +86,17 @@ const Chat = () => {
 
         const chunk = decoder.decode(value, { stream: true });
 
-        // Fallback trigger: switch to /websearch if [WEB_SEARCH_INITIATED]
         if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
           console.log("[WEB_SEARCH_INITIATED] detected — switching to web search");
+          reader.cancel();
           setIsWebSearchLoading(true);
-          reader.cancel(); // Stop current stream
-          await runStream(websearchUrl, true);
+          // Create new bubble for web search fallback:
+          setChats((prev) => [...prev, { msg: "", who: "bot" }]);
+          await runStream(websearchUrl, webPayload, true);
           return;
         }
 
-        if (isFirstChunk && !isFallback) {
+        if (isFirstChunk && !append) {
           setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           isFirstChunk = false;
         }
@@ -106,10 +105,7 @@ const Chat = () => {
 
         setChats((prev) => {
           const updated = [...prev];
-          if (
-            updated.length > 0 &&
-            updated[updated.length - 1].who === "bot"
-          ) {
+          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
             updated[updated.length - 1].msg = message;
           }
           return updated;
@@ -118,8 +114,11 @@ const Chat = () => {
     };
 
     try {
-      // If user toggled 🌐, use /websearch; else start with /stream
-      await runStream(webSearchActive ? websearchUrl : streamUrl);
+      if (webSearchActive) {
+        await runStream(websearchUrl, webPayload);
+      } else {
+        await runStream(streamUrl, streamPayload);
+      }
 
       const diagramData = await diagramPromise;
       const diagramSyntax = diagramData.syntax || "";
@@ -248,4 +247,5 @@ const Chat = () => {
 };
 
 export default Chat;
+
 
