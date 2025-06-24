@@ -46,40 +46,40 @@ const Chat = () => {
     const textLower = data.text.toLowerCase();
     const wantsDiagram = diagramKeywords.some((kw) => textLower.includes(kw));
 
-    const streamUrl = webSearchActive
-      ? "https://ivf-backend-server.onrender.com/websearch"
-      : "https://ivf-backend-server.onrender.com/stream";
-
+    const streamUrl = "https://ivf-backend-server.onrender.com/stream";
+    const websearchUrl = "https://ivf-backend-server.onrender.com/websearch";
     const diagramUrl = "https://ivf-backend-server.onrender.com/diagram";
 
-    try {
-      // ✅ Loader ON only if user toggled Web Search
-      setIsWebSearchLoading(webSearchActive);
+    // Loader only ON if user toggled 🌐 manually
+    setIsWebSearchLoading(webSearchActive);
 
-      // 🚀 Parallel requests
-      const diagramPromise = wantsDiagram
-        ? fetch(diagramUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              topic: data.text,
-              session_id: sessionId,
-            }),
-          }).then((res) => res.json())
-        : Promise.resolve({ syntax: "" });
+    const payload = { message: data.text, session_id: sessionId };
 
-      const streamResponse = await fetch(streamUrl, {
+    const diagramPromise = wantsDiagram
+      ? fetch(diagramUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topic: data.text,
+            session_id: sessionId,
+          }),
+        }).then((res) => res.json())
+      : Promise.resolve({ syntax: "" });
+
+    let activeReader;
+
+    const runStream = async (url, isFallback = false) => {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: data.text, session_id: sessionId }),
+        body: JSON.stringify(payload),
       });
+      if (!res.ok || !res.body) throw new Error("Stream failed");
 
-      if (!streamResponse.ok || !streamResponse.body)
-        throw new Error("Response error");
-
-      const reader = streamResponse.body.getReader();
+      const reader = res.body.getReader();
+      activeReader = reader;
       const decoder = new TextDecoder();
-      let aiMessage = "";
+      let message = "";
       let isFirstChunk = true;
 
       while (true) {
@@ -88,17 +88,21 @@ const Chat = () => {
 
         const chunk = decoder.decode(value, { stream: true });
 
+        // Fallback trigger: switch to /websearch if [WEB_SEARCH_INITIATED]
         if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
+          console.log("[WEB_SEARCH_INITIATED] detected — switching to web search");
           setIsWebSearchLoading(true);
-          continue;
+          reader.cancel(); // Stop current stream
+          await runStream(websearchUrl, true);
+          return;
         }
 
-        if (isFirstChunk) {
+        if (isFirstChunk && !isFallback) {
           setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           isFirstChunk = false;
         }
 
-        aiMessage += chunk;
+        message += chunk;
 
         setChats((prev) => {
           const updated = [...prev];
@@ -106,13 +110,17 @@ const Chat = () => {
             updated.length > 0 &&
             updated[updated.length - 1].who === "bot"
           ) {
-            updated[updated.length - 1].msg = aiMessage;
+            updated[updated.length - 1].msg = message;
           }
           return updated;
         });
       }
+    };
 
-      // ✅ Append diagram if needed
+    try {
+      // If user toggled 🌐, use /websearch; else start with /stream
+      await runStream(webSearchActive ? websearchUrl : streamUrl);
+
       const diagramData = await diagramPromise;
       const diagramSyntax = diagramData.syntax || "";
 
@@ -240,3 +248,4 @@ const Chat = () => {
 };
 
 export default Chat;
+
