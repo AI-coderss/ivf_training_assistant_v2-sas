@@ -15,7 +15,7 @@ const Chat = () => {
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [webSearchActive, setWebSearchActive] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isWebSearchLoading, setIsWebSearchLoading] = useState(false);
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
@@ -28,7 +28,7 @@ const Chat = () => {
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chats, isLoading]);
+  }, [chats, isWebSearchLoading]);
 
   useEffect(() => {
     fetch("https://ivf-backend-server.onrender.com/suggestions")
@@ -42,23 +42,21 @@ const Chat = () => {
 
     setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
 
-    // ✅ Detect if it needs a diagram
     const diagramKeywords = ["diagram", "flowchart", "process map", "chart"];
     const textLower = data.text.toLowerCase();
     const wantsDiagram = diagramKeywords.some((kw) => textLower.includes(kw));
 
-    // ✅ Always use normal LLM stream for the explanation
     const streamUrl = webSearchActive
       ? "https://ivf-backend-server.onrender.com/websearch"
       : "https://ivf-backend-server.onrender.com/stream";
 
-    // ✅ If diagram needed, call /diagram in parallel
     const diagramUrl = "https://ivf-backend-server.onrender.com/diagram";
 
     try {
-      setIsLoading(true);
+      // ✅ Loader ON only if user toggled Web Search
+      setIsWebSearchLoading(webSearchActive);
 
-      // 🚀 Fire both requests in parallel
+      // 🚀 Parallel requests
       const diagramPromise = wantsDiagram
         ? fetch(diagramUrl, {
             method: "POST",
@@ -76,14 +74,14 @@ const Chat = () => {
         body: JSON.stringify({ message: data.text, session_id: sessionId }),
       });
 
-      if (!streamResponse.ok || !streamResponse.body) throw new Error("Response error");
+      if (!streamResponse.ok || !streamResponse.body)
+        throw new Error("Response error");
 
       const reader = streamResponse.body.getReader();
       const decoder = new TextDecoder();
       let aiMessage = "";
       let isFirstChunk = true;
 
-      // ✅ Stream LLM text while also waiting for diagram in background
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -91,7 +89,7 @@ const Chat = () => {
         const chunk = decoder.decode(value, { stream: true });
 
         if (chunk.includes("[WEB_SEARCH_INITIATED]")) {
-          // optional handling for web search
+          setIsWebSearchLoading(true);
           continue;
         }
 
@@ -104,18 +102,20 @@ const Chat = () => {
 
         setChats((prev) => {
           const updated = [...prev];
-          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+          if (
+            updated.length > 0 &&
+            updated[updated.length - 1].who === "bot"
+          ) {
             updated[updated.length - 1].msg = aiMessage;
           }
           return updated;
         });
       }
 
-      // ✅ Diagram finished too — get syntax
+      // ✅ Append diagram if needed
       const diagramData = await diagramPromise;
       const diagramSyntax = diagramData.syntax || "";
 
-      // ✅ Append diagram to the same bot message
       if (diagramSyntax.trim()) {
         setChats((prev) => {
           const updated = [...prev];
@@ -126,10 +126,10 @@ const Chat = () => {
         });
       }
 
-      setIsLoading(false);
+      setIsWebSearchLoading(false);
     } catch (err) {
       console.error("AI response error:", err);
-      setIsLoading(false);
+      setIsWebSearchLoading(false);
       setChats((prev) => [
         ...prev,
         {
@@ -140,7 +140,6 @@ const Chat = () => {
     }
   };
 
-  // ✅ Split text & render Mermaid inline
   const renderMessage = (message) => {
     const regex = /```mermaid([\s\S]*?)```/g;
     const parts = [];
@@ -184,7 +183,7 @@ const Chat = () => {
           </div>
         ))}
 
-        {isLoading && (
+        {isWebSearchLoading && (
           <div className="chat-message bot">
             <div className="message-text">
               <SearchLoader />
@@ -199,7 +198,7 @@ const Chat = () => {
       <div className="chat-footer">
         <ChatInputWidget
           onSendMessage={handleNewMessage}
-          disabled={isLoading}
+          disabled={isWebSearchLoading}
         />
         <div className="web-search-toggle-container">
           <label className="toggle-switch">
