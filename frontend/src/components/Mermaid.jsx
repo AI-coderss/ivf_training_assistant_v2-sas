@@ -1,9 +1,8 @@
 // src/components/Mermaid.js
-
 import React, { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 
-// Initialize once globally
+// Initialize only once
 try {
   mermaid.initialize({
     startOnLoad: false,
@@ -16,36 +15,29 @@ try {
 }
 
 const Mermaid = ({ chart }) => {
-  const containerRef = useRef(null);
+  const ref = useRef(null);
 
   useEffect(() => {
-    if (chart && containerRef.current) {
-      const id = `mermaid-svg-${Math.random().toString(36).substring(2, 9)}`;
+    if (!chart || !ref.current) return;
 
+    const renderChart = async () => {
       try {
-        // ✅ Validate Mermaid syntax first
-        mermaid.parse(chart);
-
-        // ✅ Create a dummy temp div as target
-        const tempDiv = document.createElement('div');
-
-        // ✅ Render into the temp div
-        mermaid.render(id, chart, (svgCode) => {
-          if (containerRef.current) {
-            containerRef.current.innerHTML = svgCode;
-          }
-        }, tempDiv);
+        mermaid.parse(chart); // validate syntax
+        const { svg } = await mermaid.render(
+          `mermaid-${Math.random().toString(36).substr(2, 9)}`,
+          chart
+        );
+        ref.current.innerHTML = svg;
       } catch (e) {
-        // If parse or render fails, show raw text
-        if (containerRef.current) {
-          containerRef.current.innerHTML = `<pre>Invalid Mermaid syntax:\n${chart}</pre>`;
-        }
-        console.error("Mermaid rendering failed for chart:", chart, e);
+        ref.current.innerHTML = `<pre>Invalid Mermaid syntax:\n${chart}</pre>`;
+        console.error("Mermaid render failed:", e);
       }
-    }
+    };
+
+    renderChart();
   }, [chart]);
 
-  return <div key={chart} ref={containerRef} />;
+  return <div key={chart} ref={ref} />;
 };
 
 export default Mermaid;
