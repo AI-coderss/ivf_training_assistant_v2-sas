@@ -79,11 +79,7 @@ const Chat = () => {
         const chunk = decoder.decode(value, { stream: true });
 
         if (isFirstChunk) {
-          // create a new bot message bubble with empty diagram field
-          setChats((prev) => [
-            ...prev,
-            { msg: "", who: "bot", diagram: "" },
-          ]);
+          setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           isFirstChunk = false;
         }
 
@@ -91,28 +87,23 @@ const Chat = () => {
 
         setChats((prev) => {
           const updated = [...prev];
-          if (
-            updated.length > 0 &&
-            updated[updated.length - 1].who === "bot"
-          ) {
+          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
             updated[updated.length - 1].msg = message;
           }
           return updated;
         });
       }
 
-      // when stream done, attach diagram if any
       const diagramData = await diagramPromise;
       const diagramSyntax = diagramData.syntax || "";
 
       if (diagramSyntax.trim()) {
         setChats((prev) => {
           const updated = [...prev];
-          if (
-            updated.length > 0 &&
-            updated[updated.length - 1].who === "bot"
-          ) {
-            updated[updated.length - 1].diagram = diagramSyntax;
+          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+            updated[
+              updated.length - 1
+            ].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
           }
           return updated;
         });
@@ -130,16 +121,31 @@ const Chat = () => {
     }
   };
 
-  const renderMessage = (chat) => {
-    return (
-      <>
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {chat.msg}
+  const renderMessage = (message) => {
+    const regex = /```mermaid([\s\S]*?)```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(message))) {
+      const before = message.slice(lastIndex, match.index);
+      const code = match[1];
+      if (before) parts.push({ type: "text", content: before });
+      parts.push({ type: "mermaid", content: code });
+      lastIndex = regex.lastIndex;
+    }
+
+    const after = message.slice(lastIndex);
+    if (after) parts.push({ type: "text", content: after });
+
+    return parts.map((part, idx) =>
+      part.type === "mermaid" ? (
+        <Mermaid key={idx} chart={part.content.trim()} />
+      ) : (
+        <ReactMarkdown key={idx} remarkPlugins={[remarkGfm]}>
+          {part.content}
         </ReactMarkdown>
-        {chat.diagram && (
-          <Mermaid chart={chat.diagram.trim()} />
-        )}
-      </>
+      )
     );
   };
 
@@ -154,7 +160,7 @@ const Chat = () => {
                 <img src="/av.gif" alt="avatar" />
               </figure>
             )}
-            <div className="message-text">{renderMessage(chat)}</div>
+            <div className="message-text">{renderMessage(chat.msg)}</div>
           </div>
         ))}
 
@@ -191,4 +197,3 @@ const Chat = () => {
 };
 
 export default Chat;
-
