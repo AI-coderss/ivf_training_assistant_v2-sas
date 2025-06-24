@@ -64,22 +64,6 @@ def get_conversational_rag_chain():
 
 conversation_rag_chain = get_conversational_rag_chain()
 
-# === Fallback triggers ===
-fallback_triggers = [
-    "i don't know", "i am not sure", "i'm not sure", "i do not know",
-    "i have no information", "no relevant information", "cannot find",
-    "sorry", "unavailable", "not enough information", "insufficient information",
-    "i cannot answer that", "i do not have data", "i don't have data",
-    "i don't have that information", "i cannot access that information",
-    "this is beyond my training", "this is outside my expertise",
-    "i cannot help with that", "i can't help with that",
-    "i do not have browsing capabilities", "i cannot browse", "i can't browse",
-    "i cannot search the web", "i can't search the web",
-    "i cannot access the internet", "i can't access the internet",
-    "this requires real-time information",
-    "i currently do not have browsing capabilities"
-]
-
 # === /stream ===
 @app.route("/stream", methods=["POST"])
 def stream():
@@ -94,9 +78,8 @@ def stream():
 
     def generate():
         answer = ""
-        use_web = False
 
-        # === Try RAG ===
+        # === Pure RAG only ===
         try:
             for chunk in conversation_rag_chain.stream(
                 {"chat_history": chat_sessions[session_id], "input": user_input}
@@ -106,57 +89,10 @@ def stream():
                 yield token
         except Exception as e:
             yield f"\n[Vector error: {str(e)}]"
-            use_web = True
 
-        # === Check if fallback needed ===
-        if any(trigger in answer.lower() for trigger in fallback_triggers) or len(answer.strip()) < 10:
-            use_web = True
-
-        if use_web:
-            yield "\n[WEB_SEARCH_INITIATED]\n"
-            try:
-                stream_resp = client.responses.create(
-                    model="gpt-4o",
-                    tools=[{"type": "web_search_preview"}],
-                    input=user_input,
-                    stream=True
-                )
-                for event in stream_resp:
-                    if hasattr(event, "output_text") and event.output_text:
-                        yield event.output_text
-            except Exception as e:
-                yield f"\n[Web search error: {str(e)}]"
-
+        # Save session
         chat_sessions[session_id].append({"role": "user", "content": user_input})
         chat_sessions[session_id].append({"role": "assistant", "content": answer})
-
-    return Response(
-        stream_with_context(generate()),
-        content_type="text/plain",
-        headers={"Access-Control-Allow-Origin": "https://ivf-virtual-training-assistant-dsah.onrender.com"}
-    )
-
-# === /websearch ===
-@app.route("/websearch", methods=["POST"])
-def websearch():
-    data = request.get_json()
-    user_input = data.get("message", "")
-    if not user_input:
-        return jsonify({"error": "No input message"}), 400
-
-    def generate():
-        try:
-            stream_resp = client.responses.create(
-                model="gpt-4o",
-                tools=[{"type": "web_search_preview"}],
-                input=user_input,
-                stream=True
-            )
-            for event in stream_resp:
-                if hasattr(event, "output_text") and event.output_text:
-                    yield event.output_text
-        except Exception as e:
-            yield f"\n[Web search error: {str(e)}]"
 
     return Response(
         stream_with_context(generate()),
@@ -212,6 +148,7 @@ def reset():
     if session_id in chat_sessions:
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
+
 # === /start-quiz ===
 @app.route("/start-quiz", methods=["POST"])
 def start_quiz():
