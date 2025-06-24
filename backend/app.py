@@ -339,7 +339,7 @@ def diagram():
 
     # Strict prompt for Mermaid syntax only
     prompt = (
-        f"You are a diagram assistant. "
+        f"You are a diagram assistant for IVF related topics and training for IVF fellowships using diagrams and flowcharts to explain concepts. "
         f"For the topic '{topic}', produce a clear Mermaid diagram in this format:\n"
         "```mermaid\n"
         "graph TD\n"
