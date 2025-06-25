@@ -1,49 +1,61 @@
-/* src/styles/Summary/SummariesPage.css */
-
 .sp-summary-page {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 32px 24px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+}
+
+.sp-summary-page h2 {
+  text-align: center;
+  margin-bottom: 32px;
+  font-size: 2rem;
+  color: #2d3748;
+  letter-spacing: 1px;
+}
+
+.sp-two-column-layout {
+  display: flex;
+  gap: 32px;
+}
+
+.sp-left-column {
+  flex: 1 1 320px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 300px;
+  /* This column can be used for the music player */
+}
+
+.sp-right-column {
+  flex: 2 1 600px;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 100vw;
-  background: #ffffff;
-  padding: 1rem;
-  box-sizing: border-box;
-  overflow: hidden;
+  gap: 24px;
+  min-width: 350px;
+  /* This column can be used for the chat */
 }
 
-.sp-layout {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1.5fr 7.5fr;  /* bookshelf – suggestions – chat */
-  gap: 2rem;  /* Adjust gap if needed */
-  height: 100%;
-  padding-top: 0.5rem;
-}
-
-
-/* column 1 ––––––––––––––––––––––––––––––––––––––– */
-.sp-bookshelf {
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-.sp-bookshelf::-webkit-scrollbar { display: none; }
-
-/* column 2 ––––––––––––––––––––––––––––––––––––––– */
 .sp-chat {
+  background: #edf2f7;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  min-height: 320px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;   /* keeps chat nicely clipped */
-}
-@media (max-width: 1024px) {
-  .sp-layout {
-    grid-template-columns: 20% 25% 55%;
-  }
 }
 
-@media (max-width: 768px) {
-  .sp-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+/* Removed .sp-bookshelf */
+
+@media (max-width: 900px) {
+  .sp-two-column-layout {
+    flex-direction: column;
+    gap: 24px;
+  }
+  .sp-left-column, .sp-right-column {
+    min-width: 0;
   }
 }
-

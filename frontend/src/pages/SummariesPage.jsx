@@ -1,9 +1,6 @@
-// src/pages/SummariesPage.jsx
 import React, { useState } from "react";
-import SummaryBookShelf from "../components/Summary/SummaryBookShelf";
+import MusicPlayer from "../components/Summary/MusicPlayer";
 import ChatWithBook from "../components/Summary/ChatWithBook";
-
-
 import "../styles/Summary/SummariesPage.css";
 
 const SummariesPage = () => {
@@ -12,18 +9,14 @@ const SummariesPage = () => {
   return (
     <div className="sp-summary-page">
       <h2>📚 Quick Summaries</h2>
-
-      {/* ⬇️ new class --> sp-layout  */}
-      <div className="sp-layout">
-        <div className="sp-bookshelf">
-          <SummaryBookShelf
-            onSelectBook={(book) => setSelectedBook(book)}
-            selectedBookUrl={selectedBook?.pdfUrl}
-          />
+      <div className="sp-two-column-layout">
+        <div className="sp-left-column">
+          <MusicPlayer />
         </div>
-
-        <div className="sp-chat">
-          <ChatWithBook book={selectedBook} />
+        <div className="sp-right-column">
+          <div className="sp-chat">
+            <ChatWithBook book={selectedBook} />
+          </div>
         </div>
       </div>
     </div>

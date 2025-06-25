@@ -39,7 +39,7 @@ const Chat = () => {
 
     setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
 
-    const diagramKeywords = ["diagram", "flowchart", "process map", "chart","process","cycle", "steps"];
+    const diagramKeywords = ["diagram", "flowchart", "process map", "chart"];
     const textLower = data.text.toLowerCase();
     const wantsDiagram = diagramKeywords.some((kw) => textLower.includes(kw));
 
