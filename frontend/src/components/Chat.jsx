@@ -1,11 +1,8 @@
-// Chat.jsx
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Mermaid from "./Mermaid";
-import Highcharts from "highcharts";
-import HighchartsReact from "highcharts-react-official";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -42,19 +39,12 @@ const Chat = () => {
 
     setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
 
+    const diagramKeywords = ["diagram", "flowchart", "process map", "chart"];
     const textLower = data.text.toLowerCase();
-    const diagramTriggers = ["diagram", "flowchart", "process map"];
-    const chartTriggers = [
-      "chart", "bar", "line chart", "pie chart", "column chart",
-      "trend", "trends", "historical", "data over time", "evolution", "growth", "decline"
-    ];
-
-    const wantsDiagram = diagramTriggers.some((kw) => textLower.includes(kw));
-    const wantsChart = chartTriggers.some((kw) => textLower.includes(kw));
+    const wantsDiagram = diagramKeywords.some((kw) => textLower.includes(kw));
 
     const streamUrl = "https://ivf-backend-server.onrender.com/stream";
     const diagramUrl = "https://ivf-backend-server.onrender.com/diagram";
-    const chartUrl = "https://ivf-backend-server.onrender.com/websearch_trend";
 
     const streamPayload = { message: data.text, session_id: sessionId };
 
@@ -62,17 +52,12 @@ const Chat = () => {
       ? fetch(diagramUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic: data.text, session_id: sessionId }),
+          body: JSON.stringify({
+            topic: data.text,
+            session_id: sessionId,
+          }),
         }).then((res) => res.json())
       : Promise.resolve({ syntax: "" });
-
-    const chartPromise = wantsChart
-      ? fetch(chartUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic: data.text, session_id: sessionId }),
-        }).then((res) => res.json())
-      : Promise.resolve({ chart: null });
 
     try {
       const res = await fetch(streamUrl, {
@@ -92,15 +77,17 @@ const Chat = () => {
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
+
         if (isFirstChunk) {
-          setChats((prev) => [...prev, { msg: "", who: "bot", diagram: null, chart: null }]);
+          setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           isFirstChunk = false;
         }
+
         message += chunk;
 
         setChats((prev) => {
           const updated = [...prev];
-          if (updated[updated.length - 1].who === "bot") {
+          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
             updated[updated.length - 1].msg = message;
           }
           return updated;
@@ -108,37 +95,63 @@ const Chat = () => {
       }
 
       const diagramData = await diagramPromise;
-      const chartData = await chartPromise;
+      const diagramSyntax = diagramData.syntax || "";
 
-      setChats((prev) => {
-        const updated = [...prev];
-        if (updated[updated.length - 1].who === "bot") {
-          updated[updated.length - 1].diagram = diagramData.syntax || null;
-          updated[updated.length - 1].chart = chartData.chart || null;
-        }
-        return updated;
-      });
+      if (diagramSyntax.trim()) {
+        setChats((prev) => {
+          const updated = [...prev];
+          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+            updated[
+              updated.length - 1
+            ].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
+          }
+          return updated;
+        });
+      }
+
     } catch (err) {
       console.error("AI response error:", err);
       setChats((prev) => [
         ...prev,
-        { msg: "Sorry, something went wrong with the response.", who: "bot" },
+        {
+          msg: "Sorry, something went wrong with the response.",
+          who: "bot",
+        },
       ]);
     }
   };
 
-  const renderMessage = (chat) => {
-    return (
-      <>
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{chat.msg}</ReactMarkdown>
-        {chat.diagram && <Mermaid chart={chat.diagram.trim()} />}
-        {chat.chart && <HighchartsReact highcharts={Highcharts} options={chat.chart} />}
-      </>
+  const renderMessage = (message) => {
+    const regex = /```mermaid([\s\S]*?)```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(message))) {
+      const before = message.slice(lastIndex, match.index);
+      const code = match[1];
+      if (before) parts.push({ type: "text", content: before });
+      parts.push({ type: "mermaid", content: code });
+      lastIndex = regex.lastIndex;
+    }
+
+    const after = message.slice(lastIndex);
+    if (after) parts.push({ type: "text", content: after });
+
+    return parts.map((part, idx) =>
+      part.type === "mermaid" ? (
+        <Mermaid key={idx} chart={part.content.trim()} />
+      ) : (
+        <ReactMarkdown key={idx} remarkPlugins={[remarkGfm]}>
+          {part.content}
+        </ReactMarkdown>
+      )
     );
   };
 
   return (
     <div className="chat-layout">
+      {/* Chat Area */}
       <div className="chat-content" ref={chatContentRef}>
         {chats.map((chat, index) => (
           <div key={index} className={`chat-message ${chat.who}`}>
@@ -147,12 +160,14 @@ const Chat = () => {
                 <img src="/av.gif" alt="avatar" />
               </figure>
             )}
-            <div className="message-text">{renderMessage(chat)}</div>
+            <div className="message-text">{renderMessage(chat.msg)}</div>
           </div>
         ))}
+
         <div ref={scrollAnchorRef} />
       </div>
 
+      {/* Footer & Suggestions */}
       <div className="chat-footer">
         <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
@@ -167,7 +182,9 @@ const Chat = () => {
               style={{ "--i": idx }}
               onClick={() => {
                 handleNewMessage({ text: q });
-                setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
+                setSuggestedQuestions((prev) =>
+                  prev.filter((item) => item !== q)
+                );
               }}
             >
               {q}
