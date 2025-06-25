@@ -1,9 +1,11 @@
+// Chat.jsx
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Mermaid from "./Mermaid";
-import HighchartBubble from "./HighChartBubble";
+import Highcharts from "highcharts";
+import HighchartsReact from "highcharts-react-official";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -40,12 +42,19 @@ const Chat = () => {
 
     setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
 
-    const diagramKeywords = ["diagram", "flowchart", "process map", "chart"];
     const textLower = data.text.toLowerCase();
-    const wantsDiagram = diagramKeywords.some((kw) => textLower.includes(kw));
+    const diagramTriggers = ["diagram", "flowchart", "process map"];
+    const chartTriggers = [
+      "chart", "bar", "line chart", "pie chart", "column chart",
+      "trend", "trends", "historical", "data over time", "evolution", "growth", "decline"
+    ];
+
+    const wantsDiagram = diagramTriggers.some((kw) => textLower.includes(kw));
+    const wantsChart = chartTriggers.some((kw) => textLower.includes(kw));
 
     const streamUrl = "https://ivf-backend-server.onrender.com/stream";
     const diagramUrl = "https://ivf-backend-server.onrender.com/diagram";
+    const chartUrl = "https://ivf-backend-server.onrender.com/chart";
 
     const streamPayload = { message: data.text, session_id: sessionId };
 
@@ -53,12 +62,17 @@ const Chat = () => {
       ? fetch(diagramUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            topic: data.text,
-            session_id: sessionId,
-          }),
+          body: JSON.stringify({ topic: data.text, session_id: sessionId }),
         }).then((res) => res.json())
       : Promise.resolve({ syntax: "" });
+
+    const chartPromise = wantsChart
+      ? fetch(chartUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic: data.text, session_id: sessionId }),
+        }).then((res) => res.json())
+      : Promise.resolve({ chart: null });
 
     try {
       const res = await fetch(streamUrl, {
@@ -70,7 +84,7 @@ const Chat = () => {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
+      let message = "";
       let isFirstChunk = true;
 
       while (true) {
@@ -78,101 +92,53 @@ const Chat = () => {
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-
         if (isFirstChunk) {
-          setChats((prev) => [...prev, { msg: "", who: "bot" }]);
+          setChats((prev) => [...prev, { msg: "", who: "bot", diagram: null, chart: null }]);
           isFirstChunk = false;
         }
+        message += chunk;
 
         setChats((prev) => {
           const updated = [...prev];
-          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
-            updated[updated.length - 1].msg = buffer;
+          if (updated[updated.length - 1].who === "bot") {
+            updated[updated.length - 1].msg = message;
           }
           return updated;
         });
       }
 
       const diagramData = await diagramPromise;
-      const diagramSyntax = diagramData.syntax || "";
+      const chartData = await chartPromise;
 
-      if (diagramSyntax.trim()) {
-        setChats((prev) => {
-          const updated = [...prev];
-          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
-            updated[updated.length - 1].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
-          }
-          return updated;
-        });
-      }
+      setChats((prev) => {
+        const updated = [...prev];
+        if (updated[updated.length - 1].who === "bot") {
+          updated[updated.length - 1].diagram = diagramData.syntax || null;
+          updated[updated.length - 1].chart = chartData.chart || null;
+        }
+        return updated;
+      });
     } catch (err) {
       console.error("AI response error:", err);
       setChats((prev) => [
         ...prev,
-        {
-          msg: "Sorry, something went wrong with the response.",
-          who: "bot",
-        },
+        { msg: "Sorry, something went wrong with the response.", who: "bot" },
       ]);
     }
   };
 
-  const renderMessage = (message) => {
-    const mermaidPattern = /```mermaid([\s\S]*?)```/g;
-    const highchartsPattern = /```__highcharts__([\s\S]*?)```/g;
-    const parts = [];
-    let lastIndex = 0;
-
-    const pushText = (text) => {
-      if (text) {
-        parts.push({ type: "text", content: text });
-      }
-    };
-
-    // Process Mermaid charts
-    let match;
-    while ((match = mermaidPattern.exec(message))) {
-      pushText(message.slice(lastIndex, match.index));
-      parts.push({ type: "mermaid", content: match[1].trim() });
-      lastIndex = mermaidPattern.lastIndex;
-    }
-
-    // After Mermaid, check for Highcharts
-    message = message.slice(lastIndex);
-    lastIndex = 0;
-
-    while ((match = highchartsPattern.exec(message))) {
-      pushText(message.slice(lastIndex, match.index));
-      try {
-        const json = JSON.parse(match[1]);
-        parts.push({ type: "highcharts", content: json });
-      } catch (e) {
-        console.warn("Failed to parse Highcharts JSON:", e);
-      }
-      lastIndex = highchartsPattern.lastIndex;
-    }
-
-    pushText(message.slice(lastIndex));
-
-    return parts.map((part, idx) => {
-      if (part.type === "mermaid") {
-        return <Mermaid key={idx} chart={part.content} />;
-      } else if (part.type === "highcharts") {
-        return <HighchartBubble key={idx} config={part.content} />;
-      } else {
-        return (
-          <ReactMarkdown key={idx} remarkPlugins={[remarkGfm]}>
-            {part.content}
-          </ReactMarkdown>
-        );
-      }
-    });
+  const renderMessage = (chat) => {
+    return (
+      <>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{chat.msg}</ReactMarkdown>
+        {chat.diagram && <Mermaid chart={chat.diagram.trim()} />}
+        {chat.chart && <HighchartsReact highcharts={Highcharts} options={chat.chart} />}
+      </>
+    );
   };
 
   return (
     <div className="chat-layout">
-      {/* Chat Area */}
       <div className="chat-content" ref={chatContentRef}>
         {chats.map((chat, index) => (
           <div key={index} className={`chat-message ${chat.who}`}>
@@ -181,13 +147,12 @@ const Chat = () => {
                 <img src="/av.gif" alt="avatar" />
               </figure>
             )}
-            <div className="message-text">{renderMessage(chat.msg)}</div>
+            <div className="message-text">{renderMessage(chat)}</div>
           </div>
         ))}
         <div ref={scrollAnchorRef} />
       </div>
 
-      {/* Footer & Suggestions */}
       <div className="chat-footer">
         <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
@@ -202,9 +167,7 @@ const Chat = () => {
               style={{ "--i": idx }}
               onClick={() => {
                 handleNewMessage({ text: q });
-                setSuggestedQuestions((prev) =>
-                  prev.filter((item) => item !== q)
-                );
+                setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
               }}
             >
               {q}
