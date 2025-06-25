@@ -54,7 +54,7 @@ const Chat = () => {
 
     const streamUrl = "https://ivf-backend-server.onrender.com/stream";
     const diagramUrl = "https://ivf-backend-server.onrender.com/diagram";
-    const chartUrl = "https://ivf-backend-server.onrender.com/chart";
+    const chartUrl = "https://ivf-backend-server.onrender.com/websearch_trend";
 
     const streamPayload = { message: data.text, session_id: sessionId };
 
