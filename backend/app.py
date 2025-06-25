@@ -306,6 +306,45 @@ def diagram():
         "topic": topic
     })
 
+@app.route("/websearch_trend", methods=["POST"])
+def websearch_trend():
+    try:
+        data = request.get_json()
+        user_input = data.get("query", "")
+
+        if not user_input:
+            return jsonify({"error": "No query provided"}), 400
+
+        # Use OpenAI Responses API with web search tool
+        stream = client.responses.create(
+            model="gpt-4o",
+            tools=[{"type": "web_search_preview"}],
+            input=(
+                f"For this query: '{user_input}', "
+                f"search the web and return two fields:\n"
+                f"1. A short explanation of the trend (under 400 characters).\n"
+                f"2. A valid Highcharts JSON config using column or line chart.\n\n"
+                f"Respond as a JSON object with two fields: 'explanation' and 'chartConfig'."
+            )
+        )
+
+        # Convert the result to usable JSON
+        raw_output = stream.output_text.strip()
+        try:
+            # Attempt to parse directly
+            json_match = re.search(r"{.*}", raw_output, re.DOTALL)
+            if json_match:
+                parsed = json.loads(json_match.group())
+                return jsonify(parsed), 200
+            else:
+                return jsonify({"error": "No JSON found in response", "raw": raw_output}), 400
+        except json.JSONDecodeError:
+            return jsonify({"error": "Malformed JSON in response", "raw": raw_output}), 400
+
+    except Exception as e:
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+
 # === Run ===
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)

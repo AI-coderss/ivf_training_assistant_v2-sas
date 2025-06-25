@@ -3,6 +3,7 @@ import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Mermaid from "./Mermaid";
+import HighchartBubble from "./HighChartBubble";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -69,7 +70,7 @@ const Chat = () => {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let message = "";
+      let buffer = "";
       let isFirstChunk = true;
 
       while (true) {
@@ -77,18 +78,17 @@ const Chat = () => {
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
 
         if (isFirstChunk) {
           setChats((prev) => [...prev, { msg: "", who: "bot" }]);
           isFirstChunk = false;
         }
 
-        message += chunk;
-
         setChats((prev) => {
           const updated = [...prev];
           if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
-            updated[updated.length - 1].msg = message;
+            updated[updated.length - 1].msg = buffer;
           }
           return updated;
         });
@@ -101,14 +101,11 @@ const Chat = () => {
         setChats((prev) => {
           const updated = [...prev];
           if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
-            updated[
-              updated.length - 1
-            ].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
+            updated[updated.length - 1].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
           }
           return updated;
         });
       }
-
     } catch (err) {
       console.error("AI response error:", err);
       setChats((prev) => [
@@ -122,31 +119,55 @@ const Chat = () => {
   };
 
   const renderMessage = (message) => {
-    const regex = /```mermaid([\s\S]*?)```/g;
+    const mermaidPattern = /```mermaid([\s\S]*?)```/g;
+    const highchartsPattern = /```__highcharts__([\s\S]*?)```/g;
     const parts = [];
     let lastIndex = 0;
-    let match;
 
-    while ((match = regex.exec(message))) {
-      const before = message.slice(lastIndex, match.index);
-      const code = match[1];
-      if (before) parts.push({ type: "text", content: before });
-      parts.push({ type: "mermaid", content: code });
-      lastIndex = regex.lastIndex;
+    const pushText = (text) => {
+      if (text) {
+        parts.push({ type: "text", content: text });
+      }
+    };
+
+    // Process Mermaid charts
+    let match;
+    while ((match = mermaidPattern.exec(message))) {
+      pushText(message.slice(lastIndex, match.index));
+      parts.push({ type: "mermaid", content: match[1].trim() });
+      lastIndex = mermaidPattern.lastIndex;
     }
 
-    const after = message.slice(lastIndex);
-    if (after) parts.push({ type: "text", content: after });
+    // After Mermaid, check for Highcharts
+    message = message.slice(lastIndex);
+    lastIndex = 0;
 
-    return parts.map((part, idx) =>
-      part.type === "mermaid" ? (
-        <Mermaid key={idx} chart={part.content.trim()} />
-      ) : (
-        <ReactMarkdown key={idx} remarkPlugins={[remarkGfm]}>
-          {part.content}
-        </ReactMarkdown>
-      )
-    );
+    while ((match = highchartsPattern.exec(message))) {
+      pushText(message.slice(lastIndex, match.index));
+      try {
+        const json = JSON.parse(match[1]);
+        parts.push({ type: "highcharts", content: json });
+      } catch (e) {
+        console.warn("Failed to parse Highcharts JSON:", e);
+      }
+      lastIndex = highchartsPattern.lastIndex;
+    }
+
+    pushText(message.slice(lastIndex));
+
+    return parts.map((part, idx) => {
+      if (part.type === "mermaid") {
+        return <Mermaid key={idx} chart={part.content} />;
+      } else if (part.type === "highcharts") {
+        return <HighchartBubble key={idx} config={part.content} />;
+      } else {
+        return (
+          <ReactMarkdown key={idx} remarkPlugins={[remarkGfm]}>
+            {part.content}
+          </ReactMarkdown>
+        );
+      }
+    });
   };
 
   return (
@@ -163,7 +184,6 @@ const Chat = () => {
             <div className="message-text">{renderMessage(chat.msg)}</div>
           </div>
         ))}
-
         <div ref={scrollAnchorRef} />
       </div>
 
