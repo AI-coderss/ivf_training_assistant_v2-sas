@@ -85,6 +85,7 @@ const Chat = () => {
 
         message += chunk;
 
+        // eslint-disable-next-line no-loop-func
         setChats((prev) => {
           const updated = [...prev];
           if (updated.length > 0 && updated[updated.length - 1].who === "bot") {

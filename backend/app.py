@@ -54,7 +54,7 @@ def get_context_retriever_chain():
 
 def get_conversational_rag_chain():
     retriever_chain = get_context_retriever_chain()
-    llm = ChatOpenAI()
+    llm = ChatOpenAI(model="gpt-4o")
     prompt = ChatPromptTemplate.from_messages([
         ("system", engineeredprompt),
         MessagesPlaceholder("chat_history"),
