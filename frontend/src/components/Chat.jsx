@@ -140,8 +140,10 @@ const Chat = () => {
 
     return parts.map((part, idx) =>
       part.type === "mermaid" ? (
-        <details key={idx} className="collapsible-diagram">
-          <summary>➕ View Diagram</summary>
+        <details className="collapsible-diagram" key={idx}>
+          <summary>
+            <span className="toggle-icon"></span> View Diagram
+          </summary>
           <Mermaid chart={part.content.trim()} />
         </details>
       ) : (
@@ -200,4 +202,5 @@ const Chat = () => {
 };
 
 export default Chat;
+
 
