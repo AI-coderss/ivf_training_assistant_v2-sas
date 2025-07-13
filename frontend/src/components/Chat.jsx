@@ -101,15 +101,22 @@ const Chat = () => {
       if (diagramSyntax.trim()) {
         setChats((prev) => {
           const updated = [...prev];
-          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+          const lastBotMsg = updated[updated.length - 1]?.msg || "";
+          const alreadyHasMermaid = lastBotMsg.includes("```mermaid");
+
+          if (
+            !alreadyHasMermaid &&
+            updated.length > 0 &&
+            updated[updated.length - 1].who === "bot"
+          ) {
             updated[
               updated.length - 1
             ].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
           }
+
           return updated;
         });
       }
-
     } catch (err) {
       console.error("AI response error:", err);
       setChats((prev) => [
