@@ -477,34 +477,29 @@
 }
 .collapsible-diagram {
   background: #feffff;
-  border-radius: 8px;
   border: 1px solid #ddd;
-  padding: 0.75rem 1rem;
+  border-radius: 8px;
   margin: 1rem 0;
+  padding: 0.75rem 1rem;
 }
 
-.collapsible-diagram summary {
+.collapsible-header {
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  list-style: none;
   user-select: none;
 }
 
-.collapsible-diagram summary::-webkit-details-marker {
-  display: none;
-}
-
-.toggle-icon::before {
-  content: "+";
-  display: inline-block;
+.toggle-icon {
   font-size: 1rem;
   width: 1rem;
+  display: inline-block;
   text-align: center;
 }
 
-.collapsible-diagram[open] .toggle-icon::before {
-  content: "-";
+.collapsible-body {
+  overflow: hidden;
+  padding-top: 0.75rem;
 }

@@ -3,6 +3,7 @@ import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Mermaid from "./Mermaid";
+import { motion, AnimatePresence } from "framer-motion";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -140,12 +141,7 @@ const Chat = () => {
 
     return parts.map((part, idx) =>
       part.type === "mermaid" ? (
-        <details className="collapsible-diagram" key={idx}>
-          <summary>
-            <span className="toggle-icon"></span> View Diagram
-          </summary>
-          <Mermaid chart={part.content.trim()} />
-        </details>
+        <CollapsibleDiagram chart={part.content.trim()} key={idx} />
       ) : (
         <ReactMarkdown key={idx} remarkPlugins={[remarkGfm]}>
           {part.content}
@@ -168,7 +164,6 @@ const Chat = () => {
             <div className="message-text">{renderMessage(chat.msg)}</div>
           </div>
         ))}
-
         <div ref={scrollAnchorRef} />
       </div>
 
@@ -202,5 +197,36 @@ const Chat = () => {
 };
 
 export default Chat;
+
+// Inline component: CollapsibleDiagram
+const CollapsibleDiagram = ({ chart }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="collapsible-diagram">
+      <div
+        className="collapsible-header"
+        onClick={() => setIsOpen((prev) => !prev)}
+      >
+        <span className="toggle-icon">{isOpen ? "–" : "+"}</span> View Diagram
+      </div>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="collapsible-body"
+          >
+            <Mermaid chart={chart} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 
 
