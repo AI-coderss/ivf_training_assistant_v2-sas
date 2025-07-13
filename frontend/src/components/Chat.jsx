@@ -109,7 +109,6 @@ const Chat = () => {
           return updated;
         });
       }
-
     } catch (err) {
       console.error("AI response error:", err);
       setChats((prev) => [
@@ -141,7 +140,10 @@ const Chat = () => {
 
     return parts.map((part, idx) =>
       part.type === "mermaid" ? (
-        <Mermaid key={idx} chart={part.content.trim()} />
+        <details key={idx} className="collapsible-diagram">
+          <summary>➕ View Diagram</summary>
+          <Mermaid chart={part.content.trim()} />
+        </details>
       ) : (
         <ReactMarkdown key={idx} remarkPlugins={[remarkGfm]}>
           {part.content}
@@ -198,3 +200,4 @@ const Chat = () => {
 };
 
 export default Chat;
+

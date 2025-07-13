@@ -475,3 +475,19 @@
     transform: translateY(-10px);
   }
 }
+.collapsible-diagram {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  background: #f4f4f4;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+}
+
+.collapsible-diagram summary {
+  cursor: pointer;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  outline: none;
+}
