@@ -503,3 +503,145 @@
   overflow: hidden;
   padding-top: 0.75rem;
 }
+.voice-assistant-wrapper {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Center orb at top center */
+.orb-top {
+  position: absolute;
+  top: 25vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  z-index: 2;
+}
+
+.mic-icon-btn {
+  background-color: #007BFF;
+  color: white;
+  width: 60px; /* Slightly larger for prominence */
+  height: 60px; /* Slightly larger for prominence */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  font-size: 1.5rem; /* Larger icon */
+  position: absolute;   /* MODIFIED */
+  bottom: 20px;         /* MODIFIED - Adjust as needed */
+  left: 50%;            /* MODIFIED */
+  transform: translateX(-50%); /* MODIFIED - To center it */
+  z-index: 1005;        /* MODIFIED - Ensure it's above content */
+  overflow: visible;
+}
+
+.mic-icon-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 80px; /* Adjusted for new button size */
+  height: 80px; /* Adjusted for new button size */
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid #007BFF;
+  opacity: 0.5;
+  pointer-events: none;
+  animation: mic-radiate 1.2s infinite;
+}
+
+@keyframes mic-radiate {
+  0% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 0.2;
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+}
+
+.mic-icon-btn:hover {
+  background-color: #0069d9;
+  transform: translateX(-50%) translateY(-2px); /* MODIFIED - Maintain X transform */
+}
+
+.close-btn {
+  /* padding: 12px 18px; */ /* Padding is less relevant with fixed size */
+  color: white;
+  background-color: #ffa3a3;
+  width: 40px;  /* Adjusted size */
+  height: 40px; /* Adjusted size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  font-size: 1rem;
+  position: absolute; /* MODIFIED */
+  top: 15px;          /* MODIFIED - Adjust as needed (respecting parent padding) */
+  right: 15px;         /* MODIFIED - Adjust as needed (respecting parent padding) */
+  z-index: 1005;       /* MODIFIED - Ensure it's above content and orb */
+}
+
+.close-btn:hover {
+  background-color: #dc2626;
+  transform: translateY(-2px);
+}
+
+/* Voice Mode Toggle Button (bottom right of screen) */
+.voice-toggle-button {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  font-size: 26px;
+  border: none;
+  background: white;
+  border-radius: 50%;
+  padding: 0.75rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  z-index: 9999;
+}
+/* Custom pulse animation */
+@keyframes pulse {
+  0% {
+    transform: translateX(-50%) scale(1);
+    box-shadow: 0 0 0 0 rgba(233, 30, 99, 0.6);
+  }
+  70% {
+    transform: translateX(-50%) scale(1.1);
+    box-shadow: 0 0 0 15px rgba(233, 30, 99, 0);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    box-shadow: 0 0 0 0 rgba(233, 30, 99, 0);
+  }
+}
+
+/* Exit button at bottom-left */
+.exit-button {
+  position: absolute;
+  bottom: 5vh;
+  left: 5vw;
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  color: #e91e63;
+  cursor: pointer;
+  z-index: 10;
+}

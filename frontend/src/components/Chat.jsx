@@ -3,6 +3,8 @@ import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Mermaid from "./Mermaid";
+import BaseOrb from "./BaseOrb";
+import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import "../styles/chat.css";
 
@@ -14,6 +16,10 @@ const Chat = () => {
     },
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [micStream, setMicStream] = useState(null);
+  const [isMicActive, setIsMicActive] = useState(false);
+  const [peerConnection, setPeerConnection] = useState(null);
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
@@ -35,6 +41,50 @@ const Chat = () => {
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
 
+  // WebRTC setup
+  useEffect(() => {
+    if (!isVoiceMode) return;
+
+    const startWebRTC = async () => {
+      const pc = new RTCPeerConnection();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getAudioTracks().forEach((track) =>
+        pc.addTransceiver(track, { direction: "sendrecv" })
+      );
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const res = await fetch("https://patient-assistant-avatar-server-webrtc.onrender.com/api/rtc-connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: offer.sdp,
+      });
+
+      const answer = await res.text();
+      await pc.setRemoteDescription({ type: "answer", sdp: answer });
+
+      setPeerConnection(pc);
+      setMicStream(stream);
+    };
+
+    startWebRTC();
+
+    return () => {
+      micStream?.getTracks().forEach((track) => track.stop());
+      peerConnection?.close();
+      setMicStream(null);
+      setPeerConnection(null);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVoiceMode]);
+
+  const toggleMic = () => {
+    if (!micStream) return;
+    const enabled = !isMicActive;
+    micStream.getAudioTracks().forEach((track) => (track.enabled = enabled));
+    setIsMicActive(enabled);
+  };
+
   const handleNewMessage = async (data) => {
     if (!data.text) return;
 
@@ -53,10 +103,7 @@ const Chat = () => {
       ? fetch(diagramUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            topic: data.text,
-            session_id: sessionId,
-          }),
+          body: JSON.stringify({ topic: data.text, session_id: sessionId }),
         }).then((res) => res.json())
       : Promise.resolve({ syntax: "" });
 
@@ -150,9 +197,31 @@ const Chat = () => {
     );
   };
 
+  // ✅ VOICE MODE LAYOUT
+  if (isVoiceMode) {
+    return (
+      <div className="voice-assistant-wrapper">
+      <div className="orb-top">
+        <BaseOrb />
+      </div>
+
+      <button
+        className={`mic-icon-btn ${isMicActive ? "active" : ""}`}
+        onClick={toggleMic}
+      >
+        <FaMicrophoneAlt />
+      </button>
+
+      <button className="close-btn" onClick={() => setIsVoiceMode(false)}>
+        ❌
+      </button>
+      </div>
+    );
+  }
+
+  // 💬 Default Chat Layout
   return (
     <div className="chat-layout">
-      {/* Chat Area */}
       <div className="chat-content" ref={chatContentRef}>
         {chats.map((chat, index) => (
           <div key={index} className={`chat-message ${chat.who}`}>
@@ -167,7 +236,6 @@ const Chat = () => {
         <div ref={scrollAnchorRef} />
       </div>
 
-      {/* Footer & Suggestions */}
       <div className="chat-footer">
         <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
@@ -192,22 +260,22 @@ const Chat = () => {
           ))}
         </div>
       </div>
+
+      <button className="voice-toggle-button" onClick={() => setIsVoiceMode(true)}>
+        🎤
+      </button>
     </div>
   );
 };
 
 export default Chat;
 
-// Inline component: CollapsibleDiagram
 const CollapsibleDiagram = ({ chart }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="collapsible-diagram">
-      <div
-        className="collapsible-header"
-        onClick={() => setIsOpen((prev) => !prev)}
-      >
+      <div className="collapsible-header" onClick={() => setIsOpen((prev) => !prev)}>
         <span className="toggle-icon">{isOpen ? "–" : "+"}</span> View Diagram
       </div>
       <AnimatePresence initial={false}>
@@ -227,6 +295,3 @@ const CollapsibleDiagram = ({ chart }) => {
     </div>
   );
 };
-
-
-

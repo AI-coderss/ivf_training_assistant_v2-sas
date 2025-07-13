@@ -36,6 +36,8 @@
     "reactflow": "^11.11.4",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
+    "sass": "^1.89.2",
+    "simplex-noise": "^4.0.3",
     "swiper": "^11.2.8",
     "uuid": "^9.0.1",
     "web-vitals": "^5.0.3",
