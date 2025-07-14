@@ -23,10 +23,9 @@ const Chat = () => {
   const [isMicActive, setIsMicActive] = useState(false);
   const [peerConnection, setPeerConnection] = useState(null);
   const [dataChannel, setDataChannel] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState("idle"); // idle, connecting, connected, error
-  // eslint-disable-next-line no-unused-vars
-  const { audioUrl, setAudioUrl, clearAudioUrl } = useAudioForVisualizerStore();
+  const [connectionStatus, setConnectionStatus] = useState("idle");
 
+  const { audioUrl, setAudioUrl, clearAudioUrl } = useAudioForVisualizerStore();
   const scrollAnchorRef = useRef(null);
   const audioPlayerRef = useRef(null);
   const [sessionId] = useState(() => {
@@ -46,7 +45,6 @@ const Chat = () => {
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
 
-  // Cleanup effect when component unmounts or voice mode is turned off
   useEffect(() => {
     return () => {
       if (!isVoiceMode) {
@@ -63,38 +61,38 @@ const Chat = () => {
   }, [isVoiceMode, micStream, peerConnection, dataChannel]);
 
   const startWebRTC = async () => {
-    // Prevent multiple connection attempts
-    if (peerConnection || connectionStatus === "connecting") {
-      console.warn(
-        "Connection attempt ignored, already connecting or connected."
-      );
-      return;
-    }
+    if (peerConnection || connectionStatus === "connecting") return;
 
     setConnectionStatus("connecting");
-    setIsMicActive(false); // Mic is not active until connection is complete
+    setIsMicActive(false);
 
     const pc = new RTCPeerConnection();
-    setPeerConnection(pc); // Set peer connection early for cleanup
+    setPeerConnection(pc);
 
     pc.ontrack = (event) => {
       console.log("🔊 Received remote audio track", event.track);
-      if (audioPlayerRef.current && event.streams && event.streams[0]) {
-        audioPlayerRef.current.srcObject = event.streams[0];
+      const audioStream = event.streams[0];
+
+      if (audioPlayerRef.current && audioStream) {
+        audioPlayerRef.current.srcObject = audioStream;
         audioPlayerRef.current.muted = false;
         audioPlayerRef.current
           .play()
+          .then(() => {
+            const blobUrl = URL.createObjectURL(audioStream);
+            setAudioUrl(blobUrl);
+            console.log("🎧 Visualizer activated.");
+          })
           .catch((error) => console.error("Audio playback failed:", error));
       }
     };
 
     const channel = pc.createDataChannel("response");
-    setDataChannel(channel); // Set data channel early for cleanup
+    setDataChannel(channel);
 
     channel.onopen = () => {
       console.log("✅ DataChannel opened");
       setConnectionStatus("connected");
-      // Activate mic on successful connection
       setIsMicActive(true);
       micStream?.getAudioTracks().forEach((track) => (track.enabled = true));
     };
@@ -113,32 +111,43 @@ const Chat = () => {
 
     channel.onmessage = (event) => {
       const msg = JSON.parse(event.data);
-      if (msg.type === "response.text.delta") {
-        setChats((prev) => {
-          const updated = [...prev];
-          if (updated[updated.length - 1]?.who === "bot") {
-            updated[updated.length - 1].msg += msg.delta;
-          } else {
-            updated.push({ msg: msg.delta, who: "bot" });
-          }
-          return updated;
-        });
-      } else if (msg.type === "output_audio_buffer.stopped") {
-        clearAudioUrl();
+
+      switch (msg.type) {
+        case "response.text.delta":
+          // Suppressed text display for clean voice mode
+          // setChats((prev) => {
+          //   const updated = [...prev];
+          //   if (updated[updated.length - 1]?.who === "bot") {
+          //     updated[updated.length - 1].msg += msg.delta;
+          //   } else {
+          //     updated.push({ msg: msg.delta, who: "bot" });
+          //   }
+          //   return updated;
+          // });
+          break;
+
+        case "response.audio_transcript.delta":
+          console.log("📡 Audio transcript streaming...");
+          break;
+
+        case "output_audio_buffer.stopped":
+          console.log("🛑 Audio finished");
+          clearAudioUrl();
+          break;
+
+        default:
+          console.log("📥 Unhandled message:", msg.type);
       }
     };
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Keep mic disabled until channel is open
       stream.getAudioTracks().forEach((track) => (track.enabled = false));
       setMicStream(stream);
 
-      stream
-        .getAudioTracks()
-        .forEach((track) =>
-          pc.addTransceiver(track, { direction: "sendrecv" })
-        );
+      stream.getAudioTracks().forEach((track) =>
+        pc.addTransceiver(track, { direction: "sendrecv" })
+      );
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -153,7 +162,6 @@ const Chat = () => {
       );
 
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
     } catch (error) {
@@ -164,13 +172,11 @@ const Chat = () => {
   };
 
   const toggleMic = () => {
-    // If disconnected, this button's first job is to connect.
     if (connectionStatus === "idle" || connectionStatus === "error") {
       startWebRTC();
       return;
     }
 
-    // If already connected, this button toggles the mic mute state.
     if (connectionStatus === "connected" && micStream) {
       const newMicState = !isMicActive;
       setIsMicActive(newMicState);
@@ -182,7 +188,6 @@ const Chat = () => {
 
   const handleEnterVoiceMode = () => {
     setIsVoiceMode(true);
-    // Prime the audio element for playback as soon as the user enters voice mode
     if (audioPlayerRef.current) {
       audioPlayerRef.current.muted = true;
       audioPlayerRef.current.play().catch(() => {});
@@ -280,7 +285,7 @@ const Chat = () => {
             <FaMicrophoneAlt />
           </button>
           <button className="closed-btn" onClick={() => setIsVoiceMode(false)}>
-            ✖ 
+            ✖
           </button>
         </div>
       </div>
@@ -305,15 +310,13 @@ const Chat = () => {
       </div>
 
       <div className="chat-footer">
-        {/* Accordion for suggested questions on mobile */}
         <SuggestedQuestionsAccordion
-            questions={suggestedQuestions}
-            onQuestionClick={handleNewMessage}
+          questions={suggestedQuestions}
+          onQuestionClick={handleNewMessage}
         />
         <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
 
-      {/* Sidebar for suggested questions on desktop */}
       <div className="suggestion-column">
         <h4 className="suggestion-title">💡 Suggested Questions</h4>
         <div className="suggestion-list">
@@ -340,7 +343,6 @@ export default Chat;
 
 const CollapsibleDiagram = ({ chart }) => {
   const [isOpen, setIsOpen] = useState(false);
-
   return (
     <div className="collapsible-diagram">
       <div
@@ -367,44 +369,42 @@ const CollapsibleDiagram = ({ chart }) => {
   );
 };
 
-// New component for the accordion
 const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
-    const [isOpen, setIsOpen] = useState(false);
-  
-    if (!questions.length) return null;
-  
-    return (
-      <div className="suggested-questions-accordion">
-        <button className="accordion-toggle" onClick={() => setIsOpen(!isOpen)}>
-          <span className="accordion-toggle-icon">{isOpen ? "−" : "+"}</span> 
-          Suggested Questions
-        </button>
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              className="accordion-content"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-            >
-              <div className="suggestion-list-mobile">
-                {questions.map((q, idx) => (
-                  <button
-                    key={idx}
-                    className="suggestion-item-mobile"
-                    onClick={() => {
-                      onQuestionClick({ text: q });
-                      setIsOpen(false); // Optionally close accordion on click
-                    }}
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    );
-  };
+  const [isOpen, setIsOpen] = useState(false);
+  if (!questions.length) return null;
+
+  return (
+    <div className="suggested-questions-accordion">
+      <button className="accordion-toggle" onClick={() => setIsOpen(!isOpen)}>
+        <span className="accordion-toggle-icon">{isOpen ? "−" : "+"}</span>
+        Suggested Questions
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="accordion-content"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <div className="suggestion-list-mobile">
+              {questions.map((q, idx) => (
+                <button
+                  key={idx}
+                  className="suggestion-item-mobile"
+                  onClick={() => {
+                    onQuestionClick({ text: q });
+                    setIsOpen(false);
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
