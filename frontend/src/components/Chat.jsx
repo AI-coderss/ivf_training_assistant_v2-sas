@@ -54,7 +54,7 @@ const Chat = () => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const res = await fetch("https://patient-assistant-avatar-server-webrtc.onrender.com/api/rtc-connect", {
+      const res = await fetch("https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect", {
         method: "POST",
         headers: { "Content-Type": "application/sdp" },
         body: offer.sdp,
