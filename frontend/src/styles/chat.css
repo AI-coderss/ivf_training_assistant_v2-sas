@@ -503,10 +503,15 @@
   overflow: hidden;
   padding-top: 0.75rem;
 }
+/* Voice Assistant Wrapper */
 .voice-assistant-wrapper {
   position: relative;
   height: 100vh;
-  width: 100vw;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 
@@ -521,129 +526,112 @@
   z-index: 2;
 }
 
-.mic-icon-btn {
-  background-color: #007BFF;
-  color: white;
-  width: 60px; /* Slightly larger for prominence */
-  height: 60px; /* Slightly larger for prominence */
+.orb-top canvas.container {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  box-shadow: 0 0 24px rgba(0, 183, 255, 0.4);
+}
+
+/* Mic & Close Button Group */
+.mic-controls {
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.mic-icon-btn {
+  background-color: #e0f7fa;
   border: none;
   border-radius: 50%;
-  padding: 0;
+  padding: 1rem;
+  font-size: 1.8rem;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
-  font-size: 1.5rem; /* Larger icon */
-  position: absolute;   /* MODIFIED */
-  bottom: 10px;         /* MODIFIED - Adjust as needed */
-  left: 50%;            /* MODIFIED */
-  transform: translateX(-50%); /* MODIFIED - To center it */
-  z-index: 1005;        /* MODIFIED - Ensure it's above content */
-  overflow: visible;
-  margin-bottom: 28px;  /* Added margin at the bottom */
+  transition: background 0.3s ease, transform 0.3s ease;
+  animation: pulseMic 2s infinite;
 }
 
-.mic-icon-btn::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 80px; /* Adjusted for new button size */
-  height: 80px; /* Adjusted for new button size */
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 2px solid #007BFF;
-  opacity: 0.5;
-  pointer-events: none;
-  animation: mic-radiate 1.2s infinite;
-}
-
-@keyframes mic-radiate {
-  0% {
-    opacity: 0.5;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  70% {
-    opacity: 0.2;
-    transform: translate(-50%, -50%) scale(1.4);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(1.7);
-  }
+.mic-icon-btn.active {
+  background-color: #ff5252;
+  color: white;
 }
 
 .mic-icon-btn:hover {
-  background-color: #0069d9;
-  transform: translateX(-50%) translateY(-2px); /* MODIFIED - Maintain X transform */
+  transform: scale(1.1);
 }
 
-.close-btn {
-  /* padding: 12px 18px; */ /* Padding is less relevant with fixed size */
-  color: white;
-  background-color: #ffa3a3;
-  width: 40px;  /* Adjusted size */
-  height: 40px; /* Adjusted size */
+.closed-btn {
+  background: #eeeeee;
+  border: none;
+  border-radius: 50%;
+  padding: 0.9rem 1rem;
+  font-size: 1.4rem;
+  color: #333;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  position: absolute;
+  bottom: 18px; /* raised above a bit */
+  left: 40%;
+  transform: translateX(-50%);
+  margin-right: 25px; /* add margin to right */
+}
+
+.closed-btn:hover {
+  transform: rotate(90deg);
+}
+
+@keyframes pulseMic {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(255, 82, 82, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
+  }
+}
+
+
+.voice-toggle-button {
+  position: fixed;
+  height: 50px;
+  width: 50px;
+  bottom: 30px;
+  right: 550px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background:  #007bff;
+
+  color: #fff;
   border: none;
+  font-size: 20px;
+  padding: 16px 18px;
   border-radius: 50%;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
-  font-size: 1rem;
-  position: absolute; /* MODIFIED */
-  top: 0; 
-  bottom: 0;         /* MODIFIED - Adjust as needed (respecting parent padding) */
-  right: 15px;         /* MODIFIED - Adjust as needed (respecting parent padding) */
-  z-index: 1005;       /* MODIFIED - Ensure it's above content and orb */
+  box-shadow: 0 8px 16px rgba(0, 183, 255, 0.3);
+  z-index: 10;
+  transition: all 0.3s ease;
+  animation: pulse 2s infinite;
 }
 
-.close-btn:hover {
-  background-color: #dc2626;
-  transform: translateY(-2px);
+.voice-toggle-button:hover {
+  background-color: #d100ae;
+  transform: scale(1.1);
 }
 
-/* Voice Mode Toggle Button (bottom right of screen) */
-.voice-toggle-button {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  font-size: 26px;
-  border: none;
-  background: white;
-  border-radius: 50%;
-  padding: 0.75rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-  cursor: pointer;
-  z-index: 9999;
-}
-/* Custom pulse animation */
 @keyframes pulse {
   0% {
-    transform: translateX(-50%) scale(1);
-    box-shadow: 0 0 0 0 rgba(233, 30, 99, 0.6);
+    box-shadow: 0 0 0 0 rgba(0, 183, 255, 0.5);
   }
   70% {
-    transform: translateX(-50%) scale(1.1);
-    box-shadow: 0 0 0 15px rgba(233, 30, 99, 0);
+    box-shadow: 0 0 0 12px rgba(0, 183, 255, 0);
   }
   100% {
-    transform: translateX(-50%) scale(1);
-    box-shadow: 0 0 0 0 rgba(233, 30, 99, 0);
+    box-shadow: 0 0 0 0 rgba(0, 183, 255, 0);
   }
-}
-
-/* Exit button at bottom-left */
-.exit-button {
-  position: absolute;
-  bottom: 5vh;
-  left: 5vw;
-  background: transparent;
-  border: none;
-  font-size: 28px;
-  color: #e91e63;
-  cursor: pointer;
-  z-index: 10;
 }

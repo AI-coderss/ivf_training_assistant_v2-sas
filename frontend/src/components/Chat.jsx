@@ -4,30 +4,28 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Mermaid from "./Mermaid";
 import BaseOrb from "./BaseOrb";
+import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import "../styles/chat.css";
 
 const Chat = () => {
   const [chats, setChats] = useState([
-    {
-      msg: "Hi there! How can I assist you today with your IVF Training?",
-      who: "bot",
-    },
+    { msg: "Hi there! How can I assist you today with your IVF Training?", who: "bot" }
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [micStream, setMicStream] = useState(null);
+  const [isMicActive, setIsMicActive] = useState(false);
   const [peerConnection, setPeerConnection] = useState(null);
 
+  const chatContentRef = useRef(null);
+  const scrollAnchorRef = useRef(null);
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
     localStorage.setItem("sessionId", id);
     return id;
   });
-
-  const chatContentRef = useRef(null);
-  const scrollAnchorRef = useRef(null);
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -40,17 +38,14 @@ const Chat = () => {
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
 
-  // WebRTC Setup
   useEffect(() => {
     if (!isVoiceMode) return;
 
-    const setupConnection = async () => {
+    const startWebRTC = async () => {
       const pc = new RTCPeerConnection();
-      // eslint-disable-next-line no-unused-vars
-      const audioContext = new AudioContext();
-
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) =>
+
+      stream.getAudioTracks().forEach((track) =>
         pc.addTransceiver(track, { direction: "sendrecv" })
       );
 
@@ -60,7 +55,7 @@ const Chat = () => {
       const res = await fetch("https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect", {
         method: "POST",
         headers: { "Content-Type": "application/sdp" },
-        body: offer.sdp,
+        body: offer.sdp
       });
 
       const answer = await res.text();
@@ -70,6 +65,7 @@ const Chat = () => {
         const remoteStream = event.streams[0];
         const audio = new Audio();
         audio.srcObject = remoteStream;
+        audio.autoplay = true;
         audio.play().catch(console.error);
       };
 
@@ -77,7 +73,7 @@ const Chat = () => {
       setMicStream(stream);
     };
 
-    setupConnection();
+    startWebRTC();
 
     return () => {
       micStream?.getTracks().forEach((track) => track.stop());
@@ -88,25 +84,31 @@ const Chat = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVoiceMode]);
 
+  const toggleMic = () => {
+    if (!micStream) return;
+    const enabled = !isMicActive;
+    micStream.getAudioTracks().forEach((track) => (track.enabled = enabled));
+    setIsMicActive(enabled);
+  };
+
   const handleNewMessage = async (data) => {
     if (!data.text) return;
-
     setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
 
     const diagramKeywords = ["diagram", "flowchart", "process map", "chart"];
-    const textLower = data.text.toLowerCase();
-    const wantsDiagram = diagramKeywords.some((kw) => textLower.includes(kw));
+    const wantsDiagram = diagramKeywords.some((kw) =>
+      data.text.toLowerCase().includes(kw)
+    );
 
     const streamUrl = "https://ivf-backend-server.onrender.com/stream";
     const diagramUrl = "https://ivf-backend-server.onrender.com/diagram";
-
     const streamPayload = { message: data.text, session_id: sessionId };
 
     const diagramPromise = wantsDiagram
       ? fetch(diagramUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic: data.text, session_id: sessionId }),
+          body: JSON.stringify({ topic: data.text, session_id: sessionId })
         }).then((res) => res.json())
       : Promise.resolve({ syntax: "" });
 
@@ -114,7 +116,7 @@ const Chat = () => {
       const res = await fetch(streamUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(streamPayload),
+        body: JSON.stringify(streamPayload)
       });
 
       if (!res.ok || !res.body) throw new Error("Stream failed");
@@ -136,11 +138,10 @@ const Chat = () => {
         }
 
         message += chunk;
-
         // eslint-disable-next-line no-loop-func
         setChats((prev) => {
           const updated = [...prev];
-          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+          if (updated[updated.length - 1]?.who === "bot") {
             updated[updated.length - 1].msg = message;
           }
           return updated;
@@ -153,7 +154,7 @@ const Chat = () => {
       if (diagramSyntax.trim()) {
         setChats((prev) => {
           const updated = [...prev];
-          if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
+          if (updated[updated.length - 1]?.who === "bot") {
             updated[updated.length - 1].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
           }
           return updated;
@@ -163,10 +164,7 @@ const Chat = () => {
       console.error("AI response error:", err);
       setChats((prev) => [
         ...prev,
-        {
-          msg: "Sorry, something went wrong with the response.",
-          who: "bot",
-        },
+        { msg: "Sorry, something went wrong with the response.", who: "bot" }
       ]);
     }
   };
@@ -199,7 +197,7 @@ const Chat = () => {
     );
   };
 
-  // ✅ Voice Mode Layout
+  // 🔊 Voice Assistant Layout
   if (isVoiceMode) {
     return (
       <div className="voice-assistant-wrapper">
@@ -207,21 +205,23 @@ const Chat = () => {
           <BaseOrb />
         </div>
 
-        <motion.button
-          className="mic-icon-btn"
-          onClick={() => setIsVoiceMode(false)}
-          whileTap={{ rotate: 90 }}
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0 }}
-        >
-          ❌
-        </motion.button>
+        <div className="mic-controls">
+          <button
+            className={`mic-icon-btn ${isMicActive ? "active" : ""}`}
+            onClick={toggleMic}
+          >
+            <FaMicrophoneAlt />
+          </button>
+
+          <button className="closed-btn" onClick={() => setIsVoiceMode(false)}>
+            ❌
+          </button>
+        </div>
       </div>
     );
   }
 
-  // 💬 Chat Layout
+  // 💬 Default Chat Layout
   return (
     <div className="chat-layout">
       <div className="chat-content" ref={chatContentRef}>
@@ -249,7 +249,6 @@ const Chat = () => {
             <button
               key={idx}
               className="suggestion-item"
-              style={{ "--i": idx }}
               onClick={() => {
                 handleNewMessage({ text: q });
                 setSuggestedQuestions((prev) =>
@@ -263,43 +262,32 @@ const Chat = () => {
         </div>
       </div>
 
-      <motion.button
-        className="voice-toggle-button"
-        onClick={() => setIsVoiceMode(true)}
-        whileTap={{ scale: 0.8, rotate: 180 }}
-        transition={{ type: "spring", stiffness: 300 }}
-      >
-        🎤
-      </motion.button>
+      <button className="voice-toggle-button" onClick={() => setIsVoiceMode(true)}>
+        💬
+      </button>
     </div>
   );
 };
 
 export default Chat;
 
+// Diagram collapse component
 const CollapsibleDiagram = ({ chart }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="collapsible-diagram">
       <div className="collapsible-header" onClick={() => setIsOpen((prev) => !prev)}>
-        <motion.span
-          className="toggle-icon"
-          animate={{ rotate: isOpen ? 45 : 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          +
-        </motion.span>{" "}
-        View Diagram
+        <span className="toggle-icon">{isOpen ? "–" : "+"}</span> View Diagram
       </div>
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
-            key="diagram"
+            key="content"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
             className="collapsible-body"
           >
             <Mermaid chart={chart} />
