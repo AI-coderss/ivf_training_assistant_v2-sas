@@ -23,12 +23,12 @@ const Chat = () => {
   const [isMicActive, setIsMicActive] = useState(false);
   const [peerConnection, setPeerConnection] = useState(null);
   const [dataChannel, setDataChannel] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState("idle");
+  const [connectionStatus, setConnectionStatus] = useState("idle"); // idle, connecting, connected, error
   // eslint-disable-next-line no-unused-vars
   const { audioUrl, setAudioUrl, clearAudioUrl } = useAudioForVisualizerStore();
 
   const scrollAnchorRef = useRef(null);
-  const audioPlayerRef = useRef(null); // Ref for the audio element
+  const audioPlayerRef = useRef(null);
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
     localStorage.setItem("sessionId", id);
@@ -46,142 +46,147 @@ const Chat = () => {
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
 
+  // Cleanup effect when component unmounts or voice mode is turned off
   useEffect(() => {
-    if (!isVoiceMode) return;
-
-    const startWebRTC = async () => {
-      setConnectionStatus("connecting");
-
-      const pc = new RTCPeerConnection();
-
-      // **FIX #1: More robust ontrack handler**
-      pc.ontrack = (event) => {
-        console.log("🔊 Received remote audio track", event.track);
-        if (audioPlayerRef.current && event.streams && event.streams[0]) {
-          audioPlayerRef.current.srcObject = event.streams[0];
-          audioPlayerRef.current.muted = false; // Ensure player is unmuted
-          audioPlayerRef.current
-            .play()
-            .catch((error) => console.error("Audio playback failed:", error));
-        }
-      };
-
-      const channel = pc.createDataChannel("response");
-
-      channel.onopen = () => {
-        console.log("✅ DataChannel opened");
-        setConnectionStatus("connected");
-      };
-      channel.onclose = () => {
-        console.log("⚠️ DataChannel closed");
+    return () => {
+      if (!isVoiceMode) {
+        micStream?.getTracks().forEach((track) => track.stop());
+        peerConnection?.close();
+        dataChannel?.close();
+        setMicStream(null);
+        setPeerConnection(null);
+        setDataChannel(null);
         setConnectionStatus("idle");
-      };
-      channel.onerror = (error) => {
-        console.error("❌ DataChannel error:", error);
-        setConnectionStatus("error");
-      };
-      channel.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.type === "response.text.delta") {
-          setChats((prev) => {
-            const updated = [...prev];
-            if (updated[updated.length - 1]?.who === "bot") {
-              updated[updated.length - 1].msg += msg.delta;
-            } else {
-              updated.push({ msg: msg.delta, who: "bot" });
-            }
-            return updated;
-          });
-        } else if (msg.type === "output_audio_buffer.stopped") {
-          clearAudioUrl();
-        }
-      };
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        stream
-          .getAudioTracks()
-          .forEach((track) =>
-            pc.addTransceiver(track, { direction: "sendrecv" })
-          );
-
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        const res = await fetch(
-          "https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/sdp" },
-            body: offer.sdp,
-          }
-        );
-
-        if (!res.ok) {
-          throw new Error(`Server responded with ${res.status}`);
-        }
-
-        const answer = await res.text();
-        await pc.setRemoteDescription({ type: "answer", sdp: answer });
-
-        setMicStream(stream);
-        setPeerConnection(pc);
-        setDataChannel(channel);
-      } catch (error) {
-        console.error("WebRTC connection failed:", error);
-        setConnectionStatus("error");
+        setIsMicActive(false);
       }
     };
+  }, [isVoiceMode, micStream, peerConnection, dataChannel]);
 
-    startWebRTC();
-
-    return () => {
-      micStream?.getTracks().forEach((track) => track.stop());
-      peerConnection?.close();
-      dataChannel?.close();
-      setMicStream(null);
-      setPeerConnection(null);
-      setDataChannel(null);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVoiceMode]);
-
-  // **FIX #2: New handler to unlock audio on user click**
-  const handleEnterVoiceMode = () => {
-    if (audioPlayerRef.current) {
-      console.log("Priming audio element...");
-      audioPlayerRef.current.muted = true;
-      audioPlayerRef.current.play().catch((e) => {
-        // This is expected to fail in some cases, we can ignore the error.
-        // The main goal is to signal user intent to the browser.
-        console.warn("Audio priming play() call was interrupted.", e.message);
-      });
-    }
-    setIsVoiceMode(true);
-  };
-
-  const toggleMic = () => {
-    if (!micStream || !dataChannel || dataChannel.readyState !== "open") {
-      console.warn("Mic toggle attempted but dataChannel is not open");
+  const startWebRTC = async () => {
+    // Prevent multiple connection attempts
+    if (peerConnection || connectionStatus === "connecting") {
+      console.warn(
+        "Connection attempt ignored, already connecting or connected."
+      );
       return;
     }
 
-    const enabled = !isMicActive;
-    micStream.getAudioTracks().forEach((track) => (track.enabled = enabled));
-    setIsMicActive(enabled);
+    setConnectionStatus("connecting");
+    setIsMicActive(false); // Mic is not active until connection is complete
 
-    dataChannel.send(
-      JSON.stringify({
-        type: "session.update",
-        session: {
-          modalities: ["text", "audio"],
-          turn_detection: null,
-          input_audio_transcription: { model: "whisper-1" },
-        },
-      })
-    );
+    const pc = new RTCPeerConnection();
+    setPeerConnection(pc); // Set peer connection early for cleanup
+
+    pc.ontrack = (event) => {
+      console.log("🔊 Received remote audio track", event.track);
+      if (audioPlayerRef.current && event.streams && event.streams[0]) {
+        audioPlayerRef.current.srcObject = event.streams[0];
+        audioPlayerRef.current.muted = false;
+        audioPlayerRef.current
+          .play()
+          .catch((error) => console.error("Audio playback failed:", error));
+      }
+    };
+
+    const channel = pc.createDataChannel("response");
+    setDataChannel(channel); // Set data channel early for cleanup
+
+    channel.onopen = () => {
+      console.log("✅ DataChannel opened");
+      setConnectionStatus("connected");
+      // Activate mic on successful connection
+      setIsMicActive(true);
+      micStream?.getAudioTracks().forEach((track) => (track.enabled = true));
+    };
+
+    channel.onclose = () => {
+      console.log("⚠️ DataChannel closed");
+      setConnectionStatus("idle");
+      setIsMicActive(false);
+    };
+
+    channel.onerror = (error) => {
+      console.error("❌ DataChannel error:", error);
+      setConnectionStatus("error");
+      setIsMicActive(false);
+    };
+
+    channel.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === "response.text.delta") {
+        setChats((prev) => {
+          const updated = [...prev];
+          if (updated[updated.length - 1]?.who === "bot") {
+            updated[updated.length - 1].msg += msg.delta;
+          } else {
+            updated.push({ msg: msg.delta, who: "bot" });
+          }
+          return updated;
+        });
+      } else if (msg.type === "output_audio_buffer.stopped") {
+        clearAudioUrl();
+      }
+    };
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Keep mic disabled until channel is open
+      stream.getAudioTracks().forEach((track) => (track.enabled = false));
+      setMicStream(stream);
+
+      stream
+        .getAudioTracks()
+        .forEach((track) =>
+          pc.addTransceiver(track, { direction: "sendrecv" })
+        );
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const res = await fetch(
+        "https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/sdp" },
+          body: offer.sdp,
+        }
+      );
+
+      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
+      const answer = await res.text();
+      await pc.setRemoteDescription({ type: "answer", sdp: answer });
+    } catch (error) {
+      console.error("WebRTC connection failed:", error);
+      setConnectionStatus("error");
+      setIsMicActive(false);
+    }
+  };
+
+  const toggleMic = () => {
+    // If disconnected, this button's first job is to connect.
+    if (connectionStatus === "idle" || connectionStatus === "error") {
+      startWebRTC();
+      return;
+    }
+
+    // If already connected, this button toggles the mic mute state.
+    if (connectionStatus === "connected" && micStream) {
+      const newMicState = !isMicActive;
+      setIsMicActive(newMicState);
+      micStream
+        .getAudioTracks()
+        .forEach((track) => (track.enabled = newMicState));
+    }
+  };
+
+  const handleEnterVoiceMode = () => {
+    setIsVoiceMode(true);
+    // Prime the audio element for playback as soon as the user enters voice mode
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.muted = true;
+      audioPlayerRef.current.play().catch(() => {});
+    }
   };
 
   const handleNewMessage = async ({ text }) => {
@@ -264,26 +269,13 @@ const Chat = () => {
         </div>
 
         <div className="mic-controls">
-          {connectionStatus !== "connected" && (
-            <div className={`connection-status ${connectionStatus}`}>
-              {connectionStatus === "connecting" ? (
-                <>
-                  🔄 Connecting
-                  <span className="dots">
-                    <span>.</span>
-                    <span>.</span>
-                    <span>.</span>
-                  </span>
-                </>
-              ) : (
-                "❌ Failed to connect. Try again."
-              )}
-            </div>
+          {connectionStatus === "connecting" && (
+            <div className="connection-status connecting">🔄 Connecting...</div>
           )}
           <button
             className={`mic-icon-btn ${isMicActive ? "active" : ""}`}
             onClick={toggleMic}
-            disabled={connectionStatus !== "connected"}
+            disabled={connectionStatus === "connecting"}
           >
             <FaMicrophoneAlt />
           </button>
@@ -297,7 +289,6 @@ const Chat = () => {
 
   return (
     <div className="chat-layout">
-      {/* **FIX #3: Add audio player to the DOM (it can be hidden)** */}
       <audio ref={audioPlayerRef} playsInline style={{ display: "none" }} />
       <div className="chat-content">
         {chats.map((chat, index) => (
@@ -332,11 +323,7 @@ const Chat = () => {
         </div>
       </div>
 
-      <button
-        className="voice-toggle-button"
-        // **FIX #4: Use the new handler on the button**
-        onClick={handleEnterVoiceMode}
-      >
+      <button className="voice-toggle-button" onClick={handleEnterVoiceMode}>
         🎙️
       </button>
     </div>
