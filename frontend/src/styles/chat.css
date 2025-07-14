@@ -912,10 +912,16 @@
   .suggested-questions-accordion {
     display: block;
     width: 100%;
-    margin-bottom: 60px; /* Controlled by gap in footer */
+    margin-bottom: 110px; /* Controlled by gap in footer */
     position: relative;
     z-index: 1005;
     order: -1; /* Appear above chat input if DOM not reordered */
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255,255,255,0.25);
   }
 
   .accordion-toggle {
