@@ -912,7 +912,7 @@
   .suggested-questions-accordion {
     display: block;
     width: 100%;
-    margin-bottom: 110px; /* Controlled by gap in footer */
+    margin-bottom: 250px; /* Controlled by gap in footer */
     position: relative;
     z-index: 1005;
     order: -1; /* Appear above chat input if DOM not reordered */
@@ -946,14 +946,17 @@
   }
 
   .accordion-content {
-    background: #ffffff;
-    border: 1px solid #e0e0e0;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255,255,255,0.25);
     border-top: none;
     border-radius: 0 0 12px 12px;
     overflow: hidden;
     padding: 4px;
     max-height: 150px;
     overflow-y: auto;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
   }
 
   .suggestion-list-mobile {
@@ -961,6 +964,12 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 14px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255,255,255,0.25);
   }
 
   .suggestion-item-mobile {
@@ -1010,5 +1019,22 @@
   *::before,
   *::after {
     animation: none !important;
+  }
+}
+/* Responsive table inside chat bubble */
+@media (max-width: 768px) {
+  .message-text table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+  }
+  .message-text th,
+  .message-text td {
+    white-space: nowrap;
+    padding: 6px 8px;
+    font-size: 0.8rem;
   }
 }
