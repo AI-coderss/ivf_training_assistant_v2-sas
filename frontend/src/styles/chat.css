@@ -854,3 +854,149 @@
     animation: none !important;
   }
 }
+/* =================================================================== */
+/* =========== CORRECTED CSS FOR MOBILE & SMALL DEVICES ============ */
+/* =================================================================== */
+
+@media (max-width: 768px) {
+
+  /*
+    CORRECTION 1: Adjust .chat-content
+    The 'bottom' property creates a fixed space at the bottom of the screen
+    that the content cannot enter, making room for the footer.
+  */
+  .chat-content {
+    width: 100%;
+    transform: none; /* Reset transform for simpler positioning */
+    left: 0;
+    right: 0;
+    top: 70px;
+    /* This value is crucial. It must be large enough to show the last
+       chat bubble even when the accordion is open. Adjust if needed. */
+    bottom: 250px;
+    padding-bottom: 1rem;
+  }
+
+  /*
+    CORRECTION 2: Fix .chat-footer to the viewport bottom
+    This is the primary fix. It ensures the footer (and the accordion inside it)
+    is rendered on top of the chat content layer.
+  */
+  .chat-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000; /* Must be higher than .chat-content's z-index of 1 */
+    background-color: #f8f9fa; /* A background is needed to hide content scrolling behind it */
+    padding: 10px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+    flex-direction: column; /* Stacks the accordion and chat input vertically */
+    transform: none; /* Reset transform */
+  }
+
+  /* Hide the original desktop sidebar */
+  .suggestion-column {
+    display: none;
+  }
+
+  /*
+    CORRECTION 3: Style the accordion for the new layout
+    Ensure it takes up the full width inside the footer and has appropriate margin.
+  */
+  .suggested-questions-accordion {
+    display: block;
+    width: 100%;
+    margin-bottom: 8px; /* Space between accordion and chat input */
+    position: relative; /* Keep this as relative */
+    z-index: 1005;      /* This correctly places it on top of other footer items */
+  }
+
+  .accordion-toggle {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #333;
+    display: flex;
+    align-items: center;
+  }
+
+  .accordion-toggle-icon {
+    margin-right: 8px;
+    font-weight: bold;
+    color: #007bff;
+  }
+
+  .accordion-content {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+    padding: 4px;
+    /* Optional: Limit the height if the question list is very long */
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .suggestion-list-mobile {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .suggestion-item-mobile {
+    width: 100%;
+    padding: 10px;
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: #444;
+    transition: background-color 0.2s;
+  }
+
+  .suggestion-item-mobile:hover {
+    background-color: #e0e0e0;
+  }
+
+  /* --- Other necessary mobile adjustments --- */
+  .message-text {
+    font-size: 0.85rem;
+    padding: 0.7rem 0.9rem;
+    line-height: 1.4;
+    width: 100%;
+  }
+
+  .chat-message.me .message-text {
+    transform: translateX(0);
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    margin-right: 8px;
+  }
+
+  .toggle-button {
+    right: 20px;
+    font-size: 1.5rem;
+  }
+
+  /* Disable animations on mobile for performance */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+  }
+}
