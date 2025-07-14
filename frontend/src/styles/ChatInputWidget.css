@@ -93,10 +93,10 @@
   }
 
   .icon-btn {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
+    width: 45px;
+    height: 45px;
+    min-width: 45px;
+    min-height: 45px;
     font-size: 13px;
   }
 }
@@ -117,10 +117,10 @@
   }
 
   .icon-btn {
-    width: 30px;
-    height: 30px;
-    min-width: 28px;
-    min-height: 28px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
     font-size: 8px;
   }
 }

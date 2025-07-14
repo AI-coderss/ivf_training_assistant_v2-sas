@@ -680,7 +680,7 @@
     display: block;
     margin: 0 10px 8px; /* Spacing above the chat input */
     position: relative;
-    z-index: 100; /* Ensure it's on top */
+    z-index: 1005; /* Ensure it's on top */
   }
 
   .accordion-toggle {
