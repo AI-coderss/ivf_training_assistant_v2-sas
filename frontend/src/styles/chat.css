@@ -860,57 +860,62 @@
 
 @media (max-width: 768px) {
 
-  /*
-    CORRECTION 1: Adjust .chat-content
-    The 'bottom' property creates a fixed space at the bottom of the screen
-    that the content cannot enter, making room for the footer.
-  */
+  /* ============================ */
+  /* CHAT CONTENT POSITIONING FIX */
+  /* ============================ */
   .chat-content {
     width: 100%;
     transform: none; /* Reset transform for simpler positioning */
     left: 0;
     right: 0;
     top: 70px;
-    /* This value is crucial. It must be large enough to show the last
-       chat bubble even when the accordion is open. Adjust if needed. */
-    bottom: 250px;
-    padding-bottom: 1rem;
+
+    /* Ensures room for chat footer and accordion */
+    bottom: 0;
+    padding-bottom: 300px; /* Space for accordion + input */
+    overflow-y: auto;
+    position: absolute;
+    z-index: 1;
   }
 
-  /*
-    CORRECTION 2: Fix .chat-footer to the viewport bottom
-    This is the primary fix. It ensures the footer (and the accordion inside it)
-    is rendered on top of the chat content layer.
-  */
+  /* ============================ */
+  /* CHAT FOOTER FIX */
+  /* ============================ */
   .chat-footer {
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
-    z-index: 1000; /* Must be higher than .chat-content's z-index of 1 */
-    background-color: #f8f9fa; /* A background is needed to hide content scrolling behind it */
+    z-index: 1000; /* Ensure it's above chat content */
+    background-color: #f8f9fa;
     padding: 10px;
     box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
     box-sizing: border-box;
-    flex-direction: column; /* Stacks the accordion and chat input vertically */
-    transform: none; /* Reset transform */
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 6px; /* Spacing between accordion and chat input */
+    transform: none;
   }
 
-  /* Hide the original desktop sidebar */
+  /* ============================ */
+  /* HIDE DESKTOP SUGGESTIONS SIDEBAR */
+  /* ============================ */
   .suggestion-column {
     display: none;
   }
 
-  /*
-    CORRECTION 3: Style the accordion for the new layout
-    Ensure it takes up the full width inside the footer and has appropriate margin.
-  */
+  /* ============================ */
+  /* ACCORDION FIX */
+  /* ============================ */
   .suggested-questions-accordion {
     display: block;
     width: 100%;
-    margin-bottom: 8px; /* Space between accordion and chat input */
-    position: relative; /* Keep this as relative */
-    z-index: 1005;      /* This correctly places it on top of other footer items */
+    margin-bottom: 0; /* Controlled by gap in footer */
+    position: relative;
+    z-index: 1005;
+    order: -1; /* Appear above chat input if DOM not reordered */
   }
 
   .accordion-toggle {
@@ -941,7 +946,6 @@
     border-radius: 0 0 12px 12px;
     overflow: hidden;
     padding: 4px;
-    /* Optional: Limit the height if the question list is very long */
     max-height: 150px;
     overflow-y: auto;
   }
@@ -970,7 +974,9 @@
     background-color: #e0e0e0;
   }
 
-  /* --- Other necessary mobile adjustments --- */
+  /* ============================ */
+  /* CHAT MESSAGE STYLING */
+  /* ============================ */
   .message-text {
     font-size: 0.85rem;
     padding: 0.7rem 0.9rem;
@@ -993,7 +999,7 @@
     font-size: 1.5rem;
   }
 
-  /* Disable animations on mobile for performance */
+  /* Disable animations on mobile for better performance */
   *,
   *::before,
   *::after {
