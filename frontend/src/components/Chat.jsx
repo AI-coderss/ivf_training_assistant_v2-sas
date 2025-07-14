@@ -298,7 +298,7 @@ const Chat = () => {
         className="voice-toggle-button"
         onClick={() => setIsVoiceMode(true)}
       >
-        🎤
+        🎙️
       </button>
     </div>
   );
