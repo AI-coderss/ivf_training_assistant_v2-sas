@@ -1,11 +1,14 @@
+/* eslint-disable no-loop-func */
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Mermaid from "./Mermaid";
 import BaseOrb from "./BaseOrb";
+import AudioWave from "./AudioWave";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import useAudioForVisualizerStore from "../store/useAudioForVisualizerStore";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -18,7 +21,9 @@ const Chat = () => {
   const [isMicActive, setIsMicActive] = useState(false);
   const [peerConnection, setPeerConnection] = useState(null);
   const [dataChannel, setDataChannel] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState("idle"); // idle | connecting | connected | error
+  const [connectionStatus, setConnectionStatus] = useState("idle");
+  // eslint-disable-next-line no-unused-vars
+  const { audioUrl, setAudioUrl, clearAudioUrl } = useAudioForVisualizerStore();
 
   const chatContentRef = useRef(null);
   const scrollAnchorRef = useRef(null);
@@ -89,6 +94,7 @@ const Chat = () => {
             break;
           case "output_audio_buffer.stopped":
             console.log("Audio buffer stopped.");
+            clearAudioUrl();
             break;
           default:
             console.log("Unhandled message:", msg.type);
@@ -188,7 +194,6 @@ const Chat = () => {
       }
 
       message += chunk;
-      // eslint-disable-next-line no-loop-func
       setChats((prev) => {
         const updated = [...prev];
         updated[updated.length - 1].msg = message;
@@ -230,13 +235,17 @@ const Chat = () => {
       <div className="voice-assistant-wrapper">
         <div className="orb-top">
           <BaseOrb />
+          {audioUrl && <AudioWave audioUrl={audioUrl} onEnded={clearAudioUrl} />}
         </div>
         <div className="mic-controls">
-          {connectionStatus === "connecting" && (
-            <div className="connection-status">🔄 Connecting to AI assistant...</div>
-          )}
-          {connectionStatus === "error" && (
-            <div className="connection-status error">❌ Failed to connect. Try again.</div>
+          {(connectionStatus === "connecting" || connectionStatus === "error") && (
+            <div className={`connection-status ${connectionStatus}`}>
+              {connectionStatus === "connecting" ? (
+                <>🔄 Connecting<span className="dots"><span>.</span><span>.</span><span>.</span></span></>
+              ) : (
+                "❌ Failed to connect. Try again."
+              )}
+            </div>
           )}
           <button className={`mic-icon-btn ${isMicActive ? "active" : ""}`} onClick={toggleMic}>
             <FaMicrophoneAlt />
