@@ -1,4 +1,3 @@
-/* eslint-disable no-loop-func */
 import React, { useState, useEffect, useRef } from "react";
 import ChatInputWidget from "./ChatInputWidget";
 import ReactMarkdown from "react-markdown";
@@ -13,7 +12,10 @@ import "../styles/chat.css";
 
 const Chat = () => {
   const [chats, setChats] = useState([
-    { msg: "Hi there! How can I assist you today with your IVF Training?", who: "bot" },
+    {
+      msg: "Hi there! How can I assist you today with your IVF Training?",
+      who: "bot",
+    },
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
@@ -25,9 +27,7 @@ const Chat = () => {
   // eslint-disable-next-line no-unused-vars
   const { audioUrl, setAudioUrl, clearAudioUrl } = useAudioForVisualizerStore();
 
-  const chatContentRef = useRef(null);
   const scrollAnchorRef = useRef(null);
-
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
     localStorage.setItem("sessionId", id);
@@ -52,59 +52,46 @@ const Chat = () => {
       setConnectionStatus("connecting");
 
       const pc = new RTCPeerConnection();
-
-      pc.ontrack = (event) => {
-        const el = document.createElement("audio");
-        el.srcObject = event.streams[0];
-        el.autoplay = true;
-        el.style.display = "none";
-        document.body.appendChild(el);
-      };
-
       const channel = pc.createDataChannel("response");
 
       channel.onopen = () => {
-        console.log("DataChannel opened");
+        console.log("✅ DataChannel opened");
         setConnectionStatus("connected");
       };
 
       channel.onclose = () => {
-        console.log("DataChannel closed");
+        console.log("⚠️ DataChannel closed");
         setConnectionStatus("idle");
       };
 
       channel.onerror = () => {
-        console.error("DataChannel error");
+        console.error("❌ DataChannel error");
         setConnectionStatus("error");
       };
 
       channel.onmessage = (event) => {
         const msg = JSON.parse(event.data);
-        switch (msg.type) {
-          case "response.text.delta":
-            setChats((prev) => {
-              const updated = [...prev];
-              if (updated[updated.length - 1]?.who === "bot") {
-                updated[updated.length - 1].msg += msg.delta;
-              } else {
-                updated.push({ msg: msg.delta, who: "bot" });
-              }
-              return updated;
-            });
-            break;
-          case "output_audio_buffer.stopped":
-            console.log("Audio buffer stopped.");
-            clearAudioUrl();
-            break;
-          default:
-            console.log("Unhandled message:", msg.type);
+        if (msg.type === "response.text.delta") {
+          setChats((prev) => {
+            const updated = [...prev];
+            if (updated[updated.length - 1]?.who === "bot") {
+              updated[updated.length - 1].msg += msg.delta;
+            } else {
+              updated.push({ msg: msg.delta, who: "bot" });
+            }
+            return updated;
+          });
+        } else if (msg.type === "output_audio_buffer.stopped") {
+          clearAudioUrl();
         }
       };
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getAudioTracks().forEach((track) =>
-        pc.addTransceiver(track, { direction: "sendrecv" })
-      );
+      stream
+        .getAudioTracks()
+        .forEach((track) =>
+          pc.addTransceiver(track, { direction: "sendrecv" })
+        );
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -121,59 +108,61 @@ const Chat = () => {
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
 
+      setMicStream(stream);
       setPeerConnection(pc);
       setDataChannel(channel);
-      setMicStream(stream);
     };
 
     startWebRTC();
 
     return () => {
-      micStream?.getTracks().forEach((t) => t.stop());
+      micStream?.getTracks().forEach((track) => track.stop());
       peerConnection?.close();
       dataChannel?.close();
       setMicStream(null);
       setPeerConnection(null);
       setDataChannel(null);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVoiceMode]);
 
   const toggleMic = () => {
-    if (!micStream) return;
+    if (!micStream || !dataChannel || dataChannel.readyState !== "open") {
+      console.warn("Mic toggle attempted but dataChannel is not open");
+      return;
+    }
 
     const enabled = !isMicActive;
     micStream.getAudioTracks().forEach((track) => (track.enabled = enabled));
     setIsMicActive(enabled);
 
-    if (dataChannel?.readyState === "open") {
-      dataChannel.send(
-        JSON.stringify({
-          type: "session.update",
-          session: {
-            modalities: ["text", "audio"],
-            turn_detection: null,
-            input_audio_transcription: { model: "whisper-1" },
-          },
-        })
-      );
-    } else {
-      console.warn("Mic toggle attempted but dataChannel is not open");
-    }
+    dataChannel.send(
+      JSON.stringify({
+        type: "session.update",
+        session: {
+          modalities: ["text", "audio"],
+          turn_detection: null,
+          input_audio_transcription: { model: "whisper-1" },
+        },
+      })
+    );
   };
 
-  const handleNewMessage = async (data) => {
-    if (!data.text) return;
-    setChats((prev) => [...prev, { msg: data.text, who: "me" }]);
+  const handleNewMessage = async ({ text }) => {
+    if (!text) return;
+    setChats((prev) => [...prev, { msg: text, who: "me" }]);
 
     const res = await fetch("https://ivf-backend-server.onrender.com/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: data.text, session_id: sessionId }),
+      body: JSON.stringify({ message: text, session_id: sessionId }),
     });
 
     if (!res.ok || !res.body) {
-      setChats((prev) => [...prev, { msg: "Something went wrong.", who: "bot" }]);
+      setChats((prev) => [
+        ...prev,
+        { msg: "Something went wrong.", who: "bot" },
+      ]);
       return;
     }
 
@@ -185,7 +174,6 @@ const Chat = () => {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-
       const chunk = decoder.decode(value, { stream: true });
 
       if (isFirstChunk) {
@@ -194,6 +182,7 @@ const Chat = () => {
       }
 
       message += chunk;
+      // eslint-disable-next-line no-loop-func
       setChats((prev) => {
         const updated = [...prev];
         updated[updated.length - 1].msg = message;
@@ -207,7 +196,6 @@ const Chat = () => {
     const parts = [];
     let lastIndex = 0;
     let match;
-
     while ((match = regex.exec(message))) {
       const before = message.slice(lastIndex, match.index);
       const code = match[1];
@@ -215,7 +203,6 @@ const Chat = () => {
       parts.push({ type: "mermaid", content: code });
       lastIndex = regex.lastIndex;
     }
-
     const after = message.slice(lastIndex);
     if (after) parts.push({ type: "text", content: after });
 
@@ -235,19 +222,33 @@ const Chat = () => {
       <div className="voice-assistant-wrapper">
         <div className="orb-top">
           <BaseOrb />
-          {audioUrl && <AudioWave audioUrl={audioUrl} onEnded={clearAudioUrl} />}
+          {audioUrl && (
+            <AudioWave audioUrl={audioUrl} onEnded={clearAudioUrl} />
+          )}
         </div>
+
         <div className="mic-controls">
-          {(connectionStatus === "connecting" || connectionStatus === "error") && (
+          {connectionStatus !== "connected" && (
             <div className={`connection-status ${connectionStatus}`}>
               {connectionStatus === "connecting" ? (
-                <>🔄 Connecting<span className="dots"><span>.</span><span>.</span><span>.</span></span></>
+                <>
+                  🔄 Connecting
+                  <span className="dots">
+                    <span>.</span>
+                    <span>.</span>
+                    <span>.</span>
+                  </span>
+                </>
               ) : (
                 "❌ Failed to connect. Try again."
               )}
             </div>
           )}
-          <button className={`mic-icon-btn ${isMicActive ? "active" : ""}`} onClick={toggleMic}>
+          <button
+            className={`mic-icon-btn ${isMicActive ? "active" : ""}`}
+            onClick={toggleMic}
+            disabled={connectionStatus !== "connected"}
+          >
             <FaMicrophoneAlt />
           </button>
           <button className="closed-btn" onClick={() => setIsVoiceMode(false)}>
@@ -260,7 +261,7 @@ const Chat = () => {
 
   return (
     <div className="chat-layout">
-      <div className="chat-content" ref={chatContentRef}>
+      <div className="chat-content">
         {chats.map((chat, index) => (
           <div key={index} className={`chat-message ${chat.who}`}>
             {chat.who === "bot" && (
@@ -285,10 +286,7 @@ const Chat = () => {
             <button
               key={idx}
               className="suggestion-item"
-              onClick={() => {
-                handleNewMessage({ text: q });
-                setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
-              }}
+              onClick={() => handleNewMessage({ text: q })}
             >
               {q}
             </button>
@@ -296,8 +294,11 @@ const Chat = () => {
         </div>
       </div>
 
-      <button className="voice-toggle-button" onClick={() => setIsVoiceMode(true)}>
-        💬
+      <button
+        className="voice-toggle-button"
+        onClick={() => setIsVoiceMode(true)}
+      >
+        🎤
       </button>
     </div>
   );
@@ -310,7 +311,10 @@ const CollapsibleDiagram = ({ chart }) => {
 
   return (
     <div className="collapsible-diagram">
-      <div className="collapsible-header" onClick={() => setIsOpen((prev) => !prev)}>
+      <div
+        className="collapsible-header"
+        onClick={() => setIsOpen((prev) => !prev)}
+      >
         <span className="toggle-icon">{isOpen ? "–" : "+"}</span> View Diagram
       </div>
       <AnimatePresence initial={false}>
