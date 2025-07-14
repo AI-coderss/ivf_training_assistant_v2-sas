@@ -18,6 +18,7 @@ const Chat = () => {
   const [isMicActive, setIsMicActive] = useState(false);
   const [peerConnection, setPeerConnection] = useState(null);
   const [dataChannel, setDataChannel] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState("idle"); // idle | connecting | connected | error
 
   const chatContentRef = useRef(null);
   const scrollAnchorRef = useRef(null);
@@ -43,6 +44,8 @@ const Chat = () => {
     if (!isVoiceMode) return;
 
     const startWebRTC = async () => {
+      setConnectionStatus("connecting");
+
       const pc = new RTCPeerConnection();
 
       pc.ontrack = (event) => {
@@ -57,6 +60,17 @@ const Chat = () => {
 
       channel.onopen = () => {
         console.log("DataChannel opened");
+        setConnectionStatus("connected");
+      };
+
+      channel.onclose = () => {
+        console.log("DataChannel closed");
+        setConnectionStatus("idle");
+      };
+
+      channel.onerror = () => {
+        console.error("DataChannel error");
+        setConnectionStatus("error");
       };
 
       channel.onmessage = (event) => {
@@ -74,7 +88,7 @@ const Chat = () => {
             });
             break;
           case "output_audio_buffer.stopped":
-            console.log("Audio stopped");
+            console.log("Audio buffer stopped.");
             break;
           default:
             console.log("Unhandled message:", msg.type);
@@ -89,11 +103,14 @@ const Chat = () => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const res = await fetch("https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/sdp" },
-        body: offer.sdp,
-      });
+      const res = await fetch(
+        "https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/sdp" },
+          body: offer.sdp,
+        }
+      );
 
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
@@ -118,11 +135,12 @@ const Chat = () => {
 
   const toggleMic = () => {
     if (!micStream) return;
+
     const enabled = !isMicActive;
     micStream.getAudioTracks().forEach((track) => (track.enabled = enabled));
     setIsMicActive(enabled);
 
-    if (dataChannel) {
+    if (dataChannel?.readyState === "open") {
       dataChannel.send(
         JSON.stringify({
           type: "session.update",
@@ -133,6 +151,8 @@ const Chat = () => {
           },
         })
       );
+    } else {
+      console.warn("Mic toggle attempted but dataChannel is not open");
     }
   };
 
@@ -212,6 +232,12 @@ const Chat = () => {
           <BaseOrb />
         </div>
         <div className="mic-controls">
+          {connectionStatus === "connecting" && (
+            <div className="connection-status">🔄 Connecting to AI assistant...</div>
+          )}
+          {connectionStatus === "error" && (
+            <div className="connection-status error">❌ Failed to connect. Try again.</div>
+          )}
           <button className={`mic-icon-btn ${isMicActive ? "active" : ""}`} onClick={toggleMic}>
             <FaMicrophoneAlt />
           </button>
