@@ -261,7 +261,7 @@ const Chat = () => {
   if (isVoiceMode) {
     return (
       <div className="voice-assistant-wrapper">
-        <div className="orb-top">
+        <div className="top-center-orb">
           <BaseOrb />
           {audioUrl && (
             <AudioWave audioUrl={audioUrl} onEnded={clearAudioUrl} />

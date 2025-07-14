@@ -1,0 +1,18 @@
+canvas {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0;
+  position: relative;
+  top: 0;
+}
+.top-center-orb {
+  display: flex;
+  justify-content: center;   /* center horizontally */
+  align-items: flex-start;   /* align to top */
+  padding-top: 20px;         /* optional spacing from top */
+  width: 100%;
+  position: relative;        /* or absolute if needed over something */
+  background-color: white;
+  margin-bottom: 225px;   /* ensure white background */
+}
