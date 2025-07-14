@@ -4,7 +4,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Mermaid from "./Mermaid";
 import BaseOrb from "./BaseOrb";
-import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import "../styles/chat.css";
 
@@ -18,8 +17,8 @@ const Chat = () => {
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [micStream, setMicStream] = useState(null);
-  const [isMicActive, setIsMicActive] = useState(false);
   const [peerConnection, setPeerConnection] = useState(null);
+
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
@@ -41,16 +40,20 @@ const Chat = () => {
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
 
-  // WebRTC setup
+  // WebRTC Setup
   useEffect(() => {
     if (!isVoiceMode) return;
 
-    const startWebRTC = async () => {
+    const setupConnection = async () => {
       const pc = new RTCPeerConnection();
+      // eslint-disable-next-line no-unused-vars
+      const audioContext = new AudioContext();
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getAudioTracks().forEach((track) =>
+      stream.getTracks().forEach((track) =>
         pc.addTransceiver(track, { direction: "sendrecv" })
       );
+
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
@@ -63,11 +66,18 @@ const Chat = () => {
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
 
+      pc.ontrack = (event) => {
+        const remoteStream = event.streams[0];
+        const audio = new Audio();
+        audio.srcObject = remoteStream;
+        audio.play().catch(console.error);
+      };
+
       setPeerConnection(pc);
       setMicStream(stream);
     };
 
-    startWebRTC();
+    setupConnection();
 
     return () => {
       micStream?.getTracks().forEach((track) => track.stop());
@@ -77,13 +87,6 @@ const Chat = () => {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVoiceMode]);
-
-  const toggleMic = () => {
-    if (!micStream) return;
-    const enabled = !isMicActive;
-    micStream.getAudioTracks().forEach((track) => (track.enabled = enabled));
-    setIsMicActive(enabled);
-  };
 
   const handleNewMessage = async (data) => {
     if (!data.text) return;
@@ -113,6 +116,7 @@ const Chat = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(streamPayload),
       });
+
       if (!res.ok || !res.body) throw new Error("Stream failed");
 
       const reader = res.body.getReader();
@@ -150,9 +154,7 @@ const Chat = () => {
         setChats((prev) => {
           const updated = [...prev];
           if (updated.length > 0 && updated[updated.length - 1].who === "bot") {
-            updated[
-              updated.length - 1
-            ].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
+            updated[updated.length - 1].msg += `\n\n\`\`\`mermaid\n${diagramSyntax}\n\`\`\``;
           }
           return updated;
         });
@@ -197,29 +199,29 @@ const Chat = () => {
     );
   };
 
-  // ✅ VOICE MODE LAYOUT
+  // ✅ Voice Mode Layout
   if (isVoiceMode) {
     return (
       <div className="voice-assistant-wrapper">
-      <div className="orb-top">
-        <BaseOrb />
-      </div>
+        <div className="orb-top">
+          <BaseOrb />
+        </div>
 
-      <button
-        className={`mic-icon-btn ${isMicActive ? "active" : ""}`}
-        onClick={toggleMic}
-      >
-        <FaMicrophoneAlt />
-      </button>
-
-      <button className="close-btn" onClick={() => setIsVoiceMode(false)}>
-        ❌
-      </button>
+        <motion.button
+          className="mic-icon-btn"
+          onClick={() => setIsVoiceMode(false)}
+          whileTap={{ rotate: 90 }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          exit={{ scale: 0 }}
+        >
+          ❌
+        </motion.button>
       </div>
     );
   }
 
-  // 💬 Default Chat Layout
+  // 💬 Chat Layout
   return (
     <div className="chat-layout">
       <div className="chat-content" ref={chatContentRef}>
@@ -261,9 +263,14 @@ const Chat = () => {
         </div>
       </div>
 
-      <button className="voice-toggle-button" onClick={() => setIsVoiceMode(true)}>
+      <motion.button
+        className="voice-toggle-button"
+        onClick={() => setIsVoiceMode(true)}
+        whileTap={{ scale: 0.8, rotate: 180 }}
+        transition={{ type: "spring", stiffness: 300 }}
+      >
         🎤
-      </button>
+      </motion.button>
     </div>
   );
 };
@@ -276,16 +283,23 @@ const CollapsibleDiagram = ({ chart }) => {
   return (
     <div className="collapsible-diagram">
       <div className="collapsible-header" onClick={() => setIsOpen((prev) => !prev)}>
-        <span className="toggle-icon">{isOpen ? "–" : "+"}</span> View Diagram
+        <motion.span
+          className="toggle-icon"
+          animate={{ rotate: isOpen ? 45 : 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          +
+        </motion.span>{" "}
+        View Diagram
       </div>
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
-            key="content"
+            key="diagram"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
+            transition={{ duration: 0.4 }}
             className="collapsible-body"
           >
             <Mermaid chart={chart} />
