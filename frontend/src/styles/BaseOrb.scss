@@ -18,9 +18,9 @@ ul {
 }
 
 // Variables
-$orb-size: 200px;
-$time: 14s;
-$total-particles: 300;
+$orb-size:160px;
+$time: 50s;
+$total-particles: 450;
 
 // Wrap class
 .wrap {
@@ -60,18 +60,19 @@ $total-particles: 300;
       20% {
         opacity: 1;
       }
-  
+
       30% {
         transform: rotateZ(-$z) rotateY($y) translateX($orb-size) rotateZ($z);
       }
-  
+
       80% {
         opacity: 1;
         transform: rotateZ(-$z) rotateY($y) translateX($orb-size) rotateZ($z);
       }
-  
+
       100% {
-        transform: rotateZ(-$z) rotateY($y) translateX(($orb-size * 3)) rotateZ($z);
+        opacity: 1;
+        transform: rotateZ(-$z) rotateY($y) translateX($orb-size) rotateZ($z); // Keep at orb surface
       }
     }
   }

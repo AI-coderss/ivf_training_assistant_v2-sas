@@ -593,7 +593,8 @@
   transition: background 0.3s ease, transform 0.2s ease;
   font-size: 1rem;
   position: absolute; /* MODIFIED */
-  top: 15px;          /* MODIFIED - Adjust as needed (respecting parent padding) */
+  top: 0; 
+  bottom: 0;         /* MODIFIED - Adjust as needed (respecting parent padding) */
   right: 15px;         /* MODIFIED - Adjust as needed (respecting parent padding) */
   z-index: 1005;       /* MODIFIED - Ensure it's above content and orb */
 }
