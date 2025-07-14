@@ -28,6 +28,7 @@ const Chat = () => {
   const { audioUrl, setAudioUrl, clearAudioUrl } = useAudioForVisualizerStore();
 
   const scrollAnchorRef = useRef(null);
+  const audioPlayerRef = useRef(null); // Ref for the audio element
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
     localStorage.setItem("sessionId", id);
@@ -52,6 +53,18 @@ const Chat = () => {
       setConnectionStatus("connecting");
 
       const pc = new RTCPeerConnection();
+
+      // **FIX STARTS HERE: Handle incoming audio track**
+      pc.ontrack = (event) => {
+        console.log("🔊 Received remote audio track", event.track);
+        const stream = event.streams[0];
+        if (audioPlayerRef.current) {
+          audioPlayerRef.current.srcObject = stream;
+          audioPlayerRef.current.play().catch(error => console.error("Audio play failed:", error));
+        }
+      };
+      // **FIX ENDS HERE**
+
       const channel = pc.createDataChannel("response");
 
       channel.onopen = () => {
@@ -64,8 +77,8 @@ const Chat = () => {
         setConnectionStatus("idle");
       };
 
-      channel.onerror = () => {
-        console.error("❌ DataChannel error");
+      channel.onerror = (error) => {
+        console.error("❌ DataChannel error:", error);
         setConnectionStatus("error");
       };
 
@@ -86,31 +99,41 @@ const Chat = () => {
         }
       };
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream
-        .getAudioTracks()
-        .forEach((track) =>
-          pc.addTransceiver(track, { direction: "sendrecv" })
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream
+          .getAudioTracks()
+          .forEach((track) =>
+            pc.addTransceiver(track, { direction: "sendrecv" })
+          );
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        const res = await fetch(
+          "https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/sdp" },
+            body: offer.sdp,
+          }
         );
 
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      const res = await fetch(
-        "https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/sdp" },
-          body: offer.sdp,
+        if (!res.ok) {
+           throw new Error(`Server responded with ${res.status}`);
         }
-      );
+        
+        const answer = await res.text();
+        await pc.setRemoteDescription({ type: "answer", sdp: answer });
+        
+        setMicStream(stream);
+        setPeerConnection(pc);
+        setDataChannel(channel);
 
-      const answer = await res.text();
-      await pc.setRemoteDescription({ type: "answer", sdp: answer });
-
-      setMicStream(stream);
-      setPeerConnection(pc);
-      setDataChannel(channel);
+      } catch (error) {
+          console.error("WebRTC connection failed:", error);
+          setConnectionStatus("error");
+      }
     };
 
     startWebRTC();
@@ -220,6 +243,7 @@ const Chat = () => {
   if (isVoiceMode) {
     return (
       <div className="voice-assistant-wrapper">
+        <audio ref={audioPlayerRef} style={{ display: "none" }} />
         <div className="orb-top">
           <BaseOrb />
           {audioUrl && (
