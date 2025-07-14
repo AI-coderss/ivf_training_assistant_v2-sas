@@ -54,16 +54,17 @@ const Chat = () => {
 
       const pc = new RTCPeerConnection();
 
-      // **FIX STARTS HERE: Handle incoming audio track**
+      // **FIX #1: More robust ontrack handler**
       pc.ontrack = (event) => {
         console.log("🔊 Received remote audio track", event.track);
-        const stream = event.streams[0];
-        if (audioPlayerRef.current) {
-          audioPlayerRef.current.srcObject = stream;
-          audioPlayerRef.current.play().catch(error => console.error("Audio play failed:", error));
+        if (audioPlayerRef.current && event.streams && event.streams[0]) {
+          audioPlayerRef.current.srcObject = event.streams[0];
+          audioPlayerRef.current.muted = false; // Ensure player is unmuted
+          audioPlayerRef.current
+            .play()
+            .catch((error) => console.error("Audio playback failed:", error));
         }
       };
-      // **FIX ENDS HERE**
 
       const channel = pc.createDataChannel("response");
 
@@ -71,17 +72,14 @@ const Chat = () => {
         console.log("✅ DataChannel opened");
         setConnectionStatus("connected");
       };
-
       channel.onclose = () => {
         console.log("⚠️ DataChannel closed");
         setConnectionStatus("idle");
       };
-
       channel.onerror = (error) => {
         console.error("❌ DataChannel error:", error);
         setConnectionStatus("error");
       };
-
       channel.onmessage = (event) => {
         const msg = JSON.parse(event.data);
         if (msg.type === "response.text.delta") {
@@ -100,7 +98,9 @@ const Chat = () => {
       };
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
         stream
           .getAudioTracks()
           .forEach((track) =>
@@ -120,19 +120,18 @@ const Chat = () => {
         );
 
         if (!res.ok) {
-           throw new Error(`Server responded with ${res.status}`);
+          throw new Error(`Server responded with ${res.status}`);
         }
-        
+
         const answer = await res.text();
         await pc.setRemoteDescription({ type: "answer", sdp: answer });
-        
+
         setMicStream(stream);
         setPeerConnection(pc);
         setDataChannel(channel);
-
       } catch (error) {
-          console.error("WebRTC connection failed:", error);
-          setConnectionStatus("error");
+        console.error("WebRTC connection failed:", error);
+        setConnectionStatus("error");
       }
     };
 
@@ -148,6 +147,20 @@ const Chat = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVoiceMode]);
+
+  // **FIX #2: New handler to unlock audio on user click**
+  const handleEnterVoiceMode = () => {
+    if (audioPlayerRef.current) {
+      console.log("Priming audio element...");
+      audioPlayerRef.current.muted = true;
+      audioPlayerRef.current.play().catch((e) => {
+        // This is expected to fail in some cases, we can ignore the error.
+        // The main goal is to signal user intent to the browser.
+        console.warn("Audio priming play() call was interrupted.", e.message);
+      });
+    }
+    setIsVoiceMode(true);
+  };
 
   const toggleMic = () => {
     if (!micStream || !dataChannel || dataChannel.readyState !== "open") {
@@ -243,7 +256,6 @@ const Chat = () => {
   if (isVoiceMode) {
     return (
       <div className="voice-assistant-wrapper">
-        <audio ref={audioPlayerRef} style={{ display: "none" }} />
         <div className="orb-top">
           <BaseOrb />
           {audioUrl && (
@@ -285,6 +297,8 @@ const Chat = () => {
 
   return (
     <div className="chat-layout">
+      {/* **FIX #3: Add audio player to the DOM (it can be hidden)** */}
+      <audio ref={audioPlayerRef} playsInline style={{ display: "none" }} />
       <div className="chat-content">
         {chats.map((chat, index) => (
           <div key={index} className={`chat-message ${chat.who}`}>
@@ -320,7 +334,8 @@ const Chat = () => {
 
       <button
         className="voice-toggle-button"
-        onClick={() => setIsVoiceMode(true)}
+        // **FIX #4: Use the new handler on the button**
+        onClick={handleEnterVoiceMode}
       >
         🎙️
       </button>
