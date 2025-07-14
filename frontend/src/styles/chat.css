@@ -1,6 +1,6 @@
 /* Chat Content (Scrollable Area) */
 .chat-content {
-  position: fixed;
+  position: absolute;
   bottom: 80px;
   top: 90px;
   width: 50%;
