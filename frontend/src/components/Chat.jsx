@@ -23,8 +23,7 @@ const Chat = () => {
   const [isMicActive, setIsMicActive] = useState(false);
   const [peerConnection, setPeerConnection] = useState(null);
   const [dataChannel, setDataChannel] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState("idle");
-
+  const [connectionStatus, setConnectionStatus] = useState("idle"); // idle, connecting, connected, error
   // eslint-disable-next-line no-unused-vars
   const { audioUrl, setAudioUrl, clearAudioUrl } = useAudioForVisualizerStore();
 
@@ -47,6 +46,7 @@ const Chat = () => {
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
 
+  // Cleanup effect when component unmounts or voice mode is turned off
   useEffect(() => {
     return () => {
       if (!isVoiceMode) {
@@ -63,34 +63,44 @@ const Chat = () => {
   }, [isVoiceMode, micStream, peerConnection, dataChannel]);
 
   const startWebRTC = async () => {
-    if (peerConnection || connectionStatus === "connecting") return;
+    // Prevent multiple connection attempts
+    if (peerConnection || connectionStatus === "connecting") {
+      console.warn(
+        "Connection attempt ignored, already connecting or connected."
+      );
+      return;
+    }
 
     setConnectionStatus("connecting");
-    setIsMicActive(false);
+    setIsMicActive(false); // Mic is not active until connection is complete
 
     const pc = new RTCPeerConnection();
-    setPeerConnection(pc);
+    setPeerConnection(pc); // Set peer connection early for cleanup
 
     pc.ontrack = (event) => {
+      console.log("🔊 Received remote audio track", event.track);
       if (audioPlayerRef.current && event.streams && event.streams[0]) {
         audioPlayerRef.current.srcObject = event.streams[0];
         audioPlayerRef.current.muted = false;
-        audioPlayerRef.current.play().catch((error) =>
-          console.error("Audio playback failed:", error)
-        );
+        audioPlayerRef.current
+          .play()
+          .catch((error) => console.error("Audio playback failed:", error));
       }
     };
 
     const channel = pc.createDataChannel("response");
-    setDataChannel(channel);
+    setDataChannel(channel); // Set data channel early for cleanup
 
     channel.onopen = () => {
+      console.log("✅ DataChannel opened");
       setConnectionStatus("connected");
+      // Activate mic on successful connection
       setIsMicActive(true);
       micStream?.getAudioTracks().forEach((track) => (track.enabled = true));
     };
 
     channel.onclose = () => {
+      console.log("⚠️ DataChannel closed");
       setConnectionStatus("idle");
       setIsMicActive(false);
     };
@@ -120,12 +130,15 @@ const Chat = () => {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Keep mic disabled until channel is open
       stream.getAudioTracks().forEach((track) => (track.enabled = false));
       setMicStream(stream);
 
-      stream.getAudioTracks().forEach((track) =>
-        pc.addTransceiver(track, { direction: "sendrecv" })
-      );
+      stream
+        .getAudioTracks()
+        .forEach((track) =>
+          pc.addTransceiver(track, { direction: "sendrecv" })
+        );
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -151,11 +164,13 @@ const Chat = () => {
   };
 
   const toggleMic = () => {
+    // If disconnected, this button's first job is to connect.
     if (connectionStatus === "idle" || connectionStatus === "error") {
       startWebRTC();
       return;
     }
 
+    // If already connected, this button toggles the mic mute state.
     if (connectionStatus === "connected" && micStream) {
       const newMicState = !isMicActive;
       setIsMicActive(newMicState);
@@ -167,6 +182,7 @@ const Chat = () => {
 
   const handleEnterVoiceMode = () => {
     setIsVoiceMode(true);
+    // Prime the audio element for playback as soon as the user enters voice mode
     if (audioPlayerRef.current) {
       audioPlayerRef.current.muted = true;
       audioPlayerRef.current.play().catch(() => {});
@@ -184,7 +200,10 @@ const Chat = () => {
     });
 
     if (!res.ok || !res.body) {
-      setChats((prev) => [...prev, { msg: "Something went wrong.", who: "bot" }]);
+      setChats((prev) => [
+        ...prev,
+        { msg: "Something went wrong.", who: "bot" },
+      ]);
       return;
     }
 
@@ -248,6 +267,7 @@ const Chat = () => {
             <AudioWave audioUrl={audioUrl} onEnded={clearAudioUrl} />
           )}
         </div>
+
         <div className="mic-controls">
           {connectionStatus === "connecting" && (
             <div className="connection-status connecting">🔄 Connecting...</div>
@@ -260,7 +280,7 @@ const Chat = () => {
             <FaMicrophoneAlt />
           </button>
           <button className="closed-btn" onClick={() => setIsVoiceMode(false)}>
-            ✖
+            ✖ 
           </button>
         </div>
       </div>
@@ -285,10 +305,15 @@ const Chat = () => {
       </div>
 
       <div className="chat-footer">
+        {/* Accordion for suggested questions on mobile */}
+        <SuggestedQuestionsAccordion
+            questions={suggestedQuestions}
+            onQuestionClick={handleNewMessage}
+        />
         <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
 
-      {/* Desktop Sidebar Suggestions */}
+      {/* Sidebar for suggested questions on desktop */}
       <div className="suggestion-column">
         <h4 className="suggestion-title">💡 Suggested Questions</h4>
         <div className="suggestion-list">
@@ -302,24 +327,6 @@ const Chat = () => {
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Mobile Accordion Suggestions */}
-      <div className="mobile-suggestions">
-        <details className="mobile-suggestion-accordion">
-          <summary className="mobile-suggestion-title">+ Suggested Questions</summary>
-          <div className="mobile-suggestion-list">
-            {suggestedQuestions.map((q, idx) => (
-              <button
-                key={idx}
-                className="mobile-suggestion-item"
-                onClick={() => handleNewMessage({ text: q })}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </details>
       </div>
 
       <button className="voice-toggle-button" onClick={handleEnterVoiceMode}>
@@ -359,3 +366,45 @@ const CollapsibleDiagram = ({ chart }) => {
     </div>
   );
 };
+
+// New component for the accordion
+const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
+    const [isOpen, setIsOpen] = useState(false);
+  
+    if (!questions.length) return null;
+  
+    return (
+      <div className="suggested-questions-accordion">
+        <button className="accordion-toggle" onClick={() => setIsOpen(!isOpen)}>
+          <span className="accordion-toggle-icon">{isOpen ? "−" : "+"}</span> 
+          Suggested Questions
+        </button>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              className="accordion-content"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+            >
+              <div className="suggestion-list-mobile">
+                {questions.map((q, idx) => (
+                  <button
+                    key={idx}
+                    className="suggestion-item-mobile"
+                    onClick={() => {
+                      onQuestionClick({ text: q });
+                      setIsOpen(false); // Optionally close accordion on click
+                    }}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };

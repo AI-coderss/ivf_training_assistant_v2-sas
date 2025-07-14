@@ -659,54 +659,84 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-/* Hide sidebar suggestions on small devices */
+/* ---------------------------------- */
+/* STYLES FOR SUGGESTED Qs ACCORDION  */
+/* ---------------------------------- */
+
+/* By default, the mobile accordion is hidden */
+.suggested-questions-accordion {
+  display: none;
+}
+
+/* --- Media Query for Mobile & Small Devices --- */
 @media (max-width: 768px) {
+  /* 1. Hide the original sidebar */
   .suggestion-column {
     display: none;
   }
 
-  .mobile-suggestions {
+  /* 2. Display the new accordion inside the chat flow */
+  .suggested-questions-accordion {
     display: block;
-    z-index: 9999;
+    margin: 0 10px 8px; /* Spacing above the chat input */
     position: relative;
-    margin: 10px;
+    z-index: 100; /* Ensure it's on top */
   }
 
-  .mobile-suggestion-accordion summary {
+  .accordion-toggle {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 16px;
     cursor: pointer;
-    font-size: 0.75rem;
-    background-color: #f0f0f0;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-weight: bold;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    z-index: 9999;
-    position: relative;
+    text-align: left;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #333;
+    display: flex;
+    align-items: center;
   }
 
-  .mobile-suggestion-list {
+  .accordion-toggle-icon {
+    margin-right: 8px;
+    font-weight: bold;
+    color: #007bff;
+  }
+
+  .accordion-content {
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden; /* Important for the animation */
+    padding: 4px;
+  }
+  
+  .suggestion-list-mobile {
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-
-  .mobile-suggestion-item {
-    font-size: 0.65rem;
-    padding: 6px 8px;
-    background-color: #fefefe;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
+  
+  .suggestion-item-mobile {
+    width: 100%;
+    padding: 10px;
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 10px;
     text-align: left;
+    cursor: pointer;
+    font-size: 0.75rem; /* <-- Extra small text */
+    color: #444;
+    transition: background-color 0.2s;
+  }
+
+  .suggestion-item-mobile:hover {
+    background-color: #f0f0f0;
   }
 }
-
-/* Default hidden on large screens */
-.mobile-suggestions {
-  display: none;
-}
-
 /* Responsive styles for voice assistant */
 @media (max-width: 1024px) {
   .voice-toggle-button {
