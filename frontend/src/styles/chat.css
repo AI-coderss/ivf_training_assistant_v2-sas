@@ -583,8 +583,6 @@
   transform: rotate(90deg);
 }
 
-
-
 .voice-toggle-button {
   position: fixed;
   height: 50px;
@@ -659,4 +657,122 @@
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+/* Responsive styles for voice assistant */
+@media (max-width: 1024px) {
+  .voice-toggle-button {
+    right: 40px;
+    bottom: 30px;
+  }
+  .orb-top {
+    width: 150px;
+    height: 150px;
+  }
+  .orb-top canvas.container {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .voice-assistant-wrapper {
+    height: 100dvh;
+    padding: 0 0.5rem;
+  }
+  .orb-top {
+    width: 120px;
+    height: 120px;
+    top: 12vh;
+  }
+  .orb-top canvas.container {
+    width: 90px;
+    height: 90px;
+  }
+  .mic-controls {
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .mic-icon-btn {
+    padding: 0.7rem;
+    font-size: 1.3rem;
+    animation: none !important;
+  }
+  .closed-btn {
+    font-size: 1.1rem;
+    padding: 0.7rem 0.8rem;
+    left: 50%;
+    bottom: 10px;
+    margin-right: 0;
+  }
+  .voice-toggle-button {
+    right: 20px;
+    bottom: 5px;
+    height: 42px;
+    width: 42px;
+    font-size: 1.1rem;
+    padding: 10px 12px;
+    margin-bottom: 88px;
+  }
+  .connection-status {
+    margin-top: 320px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .voice-assistant-wrapper {
+    padding: 0 0.2rem;
+  }
+  .orb-top {
+    width: 90px;
+    height: 90px;
+    top: 8vh;
+  }
+  .orb-top canvas.container {
+    width: 60px;
+    height: 60px;
+  }
+  .mic-controls {
+    gap: 0.6rem;
+    margin-bottom: 1.2rem;
+  }
+  .mic-icon-btn {
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+  .closed-btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.6rem;
+    left: 50%;
+    bottom: 6px;
+  }
+  .voice-toggle-button {
+    right: 10px;
+    bottom: 10px;
+    height: 36px;
+    width: 36px;
+    font-size: 0.95rem;
+    padding: 6px 8px;
+  }
+  .connection-status {
+    margin-top: 180px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 768px) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@media (max-width: 768px) {
+  .voice-toggle-button {
+    animation: none !important;
+  }
+  .mic-icon-btn {
+    animation: none !important;
+  }
 }

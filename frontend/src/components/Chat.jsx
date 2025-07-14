@@ -280,7 +280,7 @@ const Chat = () => {
             <FaMicrophoneAlt />
           </button>
           <button className="closed-btn" onClick={() => setIsVoiceMode(false)}>
-            ❌
+           ✖ 
           </button>
         </div>
       </div>
