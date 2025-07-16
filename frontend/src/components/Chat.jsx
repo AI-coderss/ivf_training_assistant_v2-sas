@@ -56,8 +56,7 @@ const Chat = () => {
       setConnectionStatus("idle");
       setIsMicActive(false);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dataChannel, micStream, peerConnection]);
 
   const startWebRTC = async () => {
     if (peerConnection || connectionStatus === "connecting") return;
@@ -70,14 +69,15 @@ const Chat = () => {
 
     pc.ontrack = (event) => {
       const audioStream = event.streams[0];
+
       if (audioPlayerRef.current && audioStream) {
         audioPlayerRef.current.srcObject = audioStream;
         audioPlayerRef.current.muted = false;
         audioPlayerRef.current
           .play()
           .then(() => {
-            const blobUrl = URL.createObjectURL(audioStream);
-            setAudioUrl(blobUrl);
+            setAudioUrl(audioStream); // Pass MediaStream directly
+            console.log("🎧 Visualizer activated.");
           })
           .catch((error) => console.error("Audio playback failed:", error));
       }
@@ -98,18 +98,23 @@ const Chat = () => {
     };
 
     channel.onerror = (error) => {
+      console.error("❌ DataChannel error:", error);
       setConnectionStatus("error");
       setIsMicActive(false);
     };
 
     channel.onmessage = (event) => {
       const msg = JSON.parse(event.data);
+
       switch (msg.type) {
+        case "response.audio_transcript.delta":
+          console.log("📡 Audio transcript streaming...");
+          break;
         case "output_audio_buffer.stopped":
           clearAudioUrl();
           break;
         default:
-          break;
+          console.log("📥 Unhandled message:", msg.type);
       }
     };
 
@@ -125,12 +130,16 @@ const Chat = () => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const res = await fetch("https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/sdp" },
-        body: offer.sdp,
-      });
+      const res = await fetch(
+        "https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/sdp" },
+          body: offer.sdp,
+        }
+      );
 
+      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
     } catch (error) {
@@ -145,10 +154,13 @@ const Chat = () => {
       startWebRTC();
       return;
     }
+
     if (connectionStatus === "connected" && micStream) {
       const newMicState = !isMicActive;
       setIsMicActive(newMicState);
-      micStream.getAudioTracks().forEach((track) => (track.enabled = newMicState));
+      micStream
+        .getAudioTracks()
+        .forEach((track) => (track.enabled = newMicState));
     }
   };
 
@@ -171,7 +183,10 @@ const Chat = () => {
     });
 
     if (!res.ok || !res.body) {
-      setChats((prev) => [...prev, { msg: "Something went wrong.", who: "bot" }]);
+      setChats((prev) => [
+        ...prev,
+        { msg: "Something went wrong.", who: "bot" },
+      ]);
       return;
     }
 
@@ -184,10 +199,12 @@ const Chat = () => {
       const { value, done } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value, { stream: true });
+
       if (isFirstChunk) {
         setChats((prev) => [...prev, { msg: "", who: "bot" }]);
         isFirstChunk = false;
       }
+
       message += chunk;
       // eslint-disable-next-line no-loop-func
       setChats((prev) => {
@@ -229,7 +246,9 @@ const Chat = () => {
       <div className="voice-assistant-wrapper">
         <div className="top-center-orb">
           <BaseOrb />
-          {audioUrl && <AudioWave audioUrl={audioUrl} onEnded={clearAudioUrl} />}
+          {audioUrl && (
+            <AudioWave audioUrl={audioUrl} onEnded={clearAudioUrl} />
+          )}
         </div>
 
         <div className="mic-controls">
@@ -276,18 +295,38 @@ const Chat = () => {
         <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
 
+      <div className="suggestion-column">
+        <h4 className="suggestion-title">💡 Suggested Questions</h4>
+        <div className="suggestion-list">
+          {suggestedQuestions.map((q, idx) => (
+            <button
+              key={idx}
+              className="suggestion-item"
+              onClick={() => handleNewMessage({ text: q })}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <button className="voice-toggle-button" onClick={handleEnterVoiceMode}>
-        🎙️ 
+        🎙️
       </button>
     </div>
   );
 };
 
+export default Chat;
+
 const CollapsibleDiagram = ({ chart }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="collapsible-diagram">
-      <div className="collapsible-header" onClick={() => setIsOpen((prev) => !prev)}>
+      <div
+        className="collapsible-header"
+        onClick={() => setIsOpen((prev) => !prev)}
+      >
         <span className="toggle-icon">{isOpen ? "–" : "+"}</span> View Diagram
       </div>
       <AnimatePresence initial={false}>
@@ -347,5 +386,3 @@ const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
     </div>
   );
 };
-
-export default Chat;

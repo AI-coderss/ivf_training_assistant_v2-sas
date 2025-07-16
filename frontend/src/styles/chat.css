@@ -1041,3 +1041,22 @@
     font-size: 0.8rem;
   }
 }
+
+/* On mobile, bot message takes full width and hides avatar */
+@media (max-width: 768px) {
+  .chat-message.bot {
+    width: 100%;
+    padding-left: 0;
+    justify-content: center;
+  }
+  .avatar {
+    display: none;
+  }
+  .chat-message.bot .message-text {
+    width: 100%;
+    margin-left: 0;
+    border-radius: 12px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
