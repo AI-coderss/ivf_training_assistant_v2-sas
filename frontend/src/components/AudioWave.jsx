@@ -1,14 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import useAudioForVisualizerStore from '../store/useAudioForVisualizerStore';
-import '../styles/AudioWave.css';
-
-const AudioWave = ({ audioUrl = null, onEnded = () => {} }) => {
+import '../styles/AudioWave.css'; 
+const AudioWave = ({ audioUrl, onEnded }) => {
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const animationFrameIdRef = useRef(null);
-  const { audioStream } = useAudioForVisualizerStore(); // Zustand stream source
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -42,7 +39,7 @@ const AudioWave = ({ audioUrl = null, onEnded = () => {} }) => {
         ctx.strokeStyle = gradient;
 
         let x = 0;
-        const sliceWidth = canvas.width / dataArray.length;
+        const sliceWidth = (canvas.width * 1.0) / dataArray.length;
         let lastX = 0;
         let lastY = baseLine;
 
@@ -84,7 +81,12 @@ const AudioWave = ({ audioUrl = null, onEnded = () => {} }) => {
       animationFrameIdRef.current = requestAnimationFrame(animate);
     };
 
-    const setupVisualizer = async () => {
+    const setupAudioPlayback = () => {
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.crossOrigin = 'anonymous';
+      audio.play();
+
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       audioContextRef.current = audioContext;
 
@@ -92,46 +94,33 @@ const AudioWave = ({ audioUrl = null, onEnded = () => {} }) => {
       analyser.fftSize = 256;
       analyserRef.current = analyser;
 
-      let source;
+      const source = audioContext.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(audioContext.destination);
 
-      if (audioStream) {
-        // ✅ Live stream mode
-        source = audioContext.createMediaStreamSource(audioStream);
-      } else if (audioUrl) {
-        // ✅ Audio URL fallback
-        const audio = new Audio(audioUrl);
-        audio.crossOrigin = 'anonymous';
-        audioRef.current = audio;
-        await audio.play();
-        source = audioContext.createMediaElementSource(audio);
+      animate();
 
-        audio.addEventListener('ended', () => {
-          onEnded();
-          cancelAnimationFrame(animationFrameIdRef.current);
-          if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-            audioContextRef.current.close();
-          }
-        });
-      }
-
-      if (source) {
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-        animate();
-      }
+      audio.addEventListener('ended', () => {
+        onEnded();
+        cancelAnimationFrame(animationFrameIdRef.current);
+        // Check if the audioContext is still in a valid state before closing it
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+          audioContextRef.current.close();
+        }
+      });
     };
 
-    if (audioStream || audioUrl) {
-      setupVisualizer();
+    if (audioUrl) {
+      setupAudioPlayback();
     }
 
     return () => {
       cancelAnimationFrame(animationFrameIdRef.current);
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
+        audioContextRef.current.close(); // Ensure it's not closed already
       }
     };
-  }, [audioUrl, audioStream, onEnded]);
+  }, [audioUrl, onEnded]);
 
   return (
     <div className="container">
