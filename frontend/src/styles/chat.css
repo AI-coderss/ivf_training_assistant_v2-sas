@@ -684,7 +684,7 @@
   }
 
   .accordion-toggle {
-    width: 100%;
+    width: 90%;
     padding: 8px 12px;
     background-color: #fff;
     border: 1px solid #e0e0e0;
@@ -721,7 +721,7 @@
   }
   
   .suggestion-item-mobile {
-    width: 100%;
+    width: 90%;
     padding: 10px;
     background-color: #fff;
     border: 1px solid #eee;
