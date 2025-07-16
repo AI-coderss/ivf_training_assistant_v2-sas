@@ -70,7 +70,7 @@ const Chat = () => {
     pc.ontrack = (event) => {
       const remoteStream = event.streams[0];
       if (remoteStream) {
-        setAudioUrl(remoteStream); // send to Zustand
+        setAudioUrl(remoteStream);
         console.log("🎧 Received remote audio stream");
       }
     };
@@ -111,11 +111,9 @@ const Chat = () => {
       stream.getAudioTracks().forEach((track) => (track.enabled = false));
       setMicStream(stream);
 
-      stream
-        .getAudioTracks()
-        .forEach((track) =>
-          pc.addTransceiver(track, { direction: "sendrecv" })
-        );
+      stream.getAudioTracks().forEach((track) =>
+        pc.addTransceiver(track, { direction: "sendrecv" })
+      );
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -140,6 +138,7 @@ const Chat = () => {
 
   const toggleMic = () => {
     if (connectionStatus === "idle" || connectionStatus === "error") {
+      console.log("🎤 Attempting to connect mic...");
       startWebRTC();
       return;
     }
@@ -150,6 +149,8 @@ const Chat = () => {
       micStream
         .getAudioTracks()
         .forEach((track) => (track.enabled = newMicState));
+    } else {
+      console.warn("🎤 Mic toggle attempted but stream is not ready.");
     }
   };
 
@@ -159,6 +160,12 @@ const Chat = () => {
 
   const handleNewMessage = async ({ text }) => {
     if (!text) return;
+
+    // Remove selected question if present
+    setSuggestedQuestions((prev) =>
+      prev.filter((q) => q.trim() !== text.trim())
+    );
+
     setChats((prev) => [...prev, { msg: text, who: "me" }]);
 
     const res = await fetch("https://ivf-backend-server.onrender.com/stream", {
