@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import re
 import base64
+import random
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
@@ -235,13 +236,29 @@ def quiz_performance():
 # === /suggestions ===
 @app.route("/suggestions", methods=["GET"])
 def suggestions():
+    # --- SOLUTION ---
+    # 1. Create a list of different prompts
+    prompt_templates = [
+        "Please suggest 25 common and helpful questions a patient might ask about IVF, IVF protocols, and ESHREE guidelines. Format them as a numbered list.",
+        "Generate a list of 25 essential questions for someone considering IVF treatment, covering protocols and ESHREE guidelines. Present as a numbered list.",
+        "What are 25 frequently asked questions regarding IVF procedures and ESHREE guidelines? Return them in a numbered list format.",
+        "Suggest 25 diverse questions about the IVF journey, from initial consultation to post-transfer, referencing ESHREE guidelines. Provide a numbered list.",
+        "As an AI assistant, list 25 insightful questions about the financial, emotional, and medical aspects of IVF and its protocols. Return as a numbered list."
+    ]
+
+    # 2. Select a random prompt from the list
+    random_prompt = random.choice(prompt_templates)
+    # --- END SOLUTION ---
+
     response = conversation_rag_chain.invoke({
         "chat_history": [],
-        "input": "Suggest 25 common and helpful questions users may ask about IVF or IVF protocols and ESHREE guidelines. Return them as a numbered list."
+        "input": random_prompt # Use the randomized prompt here
     })
+    
     raw = response.get("answer", "")
     lines = raw.split("\n")
     questions = [re.sub(r"^[\s•\-\d\.\)]+", "", line).strip() for line in lines if line.strip()]
+    
     return jsonify({"suggested_questions": questions[:25]})
 
 # === /mindmap ===
