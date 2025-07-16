@@ -914,7 +914,7 @@
   /* ============================ */
   .suggested-questions-accordion {
     display: block;
-    width: 100%;
+    width: 90%;
     margin-bottom: 100px; /* Controlled by gap in footer */
     position: relative;
     z-index: 1005;
@@ -928,7 +928,7 @@
   }
 
   .accordion-toggle {
-    width: 100%;
+    width: 90%;
     padding: 8px 12px;
     background-color: #fff;
     border: 1px solid #e0e0e0;
@@ -976,7 +976,7 @@
   }
 
   .suggestion-item-mobile {
-    width: 100%;
+    width: 90%;
     padding: 10px;
     background-color: #fff;
     border: 1px solid #eee;

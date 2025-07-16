@@ -218,15 +218,21 @@ transform: translateX(115%);
   .navItemContainer {
     display: none;
   }
-
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
   .burgerMenu {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
   }
   .navLogo img {
     height: 40px;
     width: auto;
+    margin-right: 25px;
   }
 }
 
