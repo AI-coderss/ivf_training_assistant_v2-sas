@@ -262,7 +262,10 @@ const Chat = () => {
       <div className="suggestion-column">
         <SuggestedQuestionsAccordion
           questions={suggestedQuestions}
-          onQuestionClick={handleNewMessage}
+          onQuestionClick={(q) => {
+            handleNewMessage({ text: q });
+            setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
+          }}
         />
       </div>
 
@@ -283,7 +286,10 @@ const Chat = () => {
       <div className="chat-footer">
         <SuggestedQuestionsAccordion
           questions={suggestedQuestions}
-          onQuestionClick={handleNewMessage}
+          onQuestionClick={(q) => {
+            handleNewMessage({ text: q });
+            setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
+          }}
         />
         <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
@@ -331,7 +337,7 @@ const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
 
   return (
     <>
-      {/* 🌐 Desktop Sidebar */}
+      {/* Desktop */}
       <div className="suggestion-column-desktop">
         <h4 className="suggestion-title">Suggested Questions</h4>
         <div className="suggestion-list">
@@ -339,7 +345,7 @@ const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
             <button
               key={idx}
               className="suggestion-item"
-              onClick={() => onQuestionClick({ text: q })}
+              onClick={() => onQuestionClick(q)}
             >
               {q}
             </button>
@@ -347,7 +353,7 @@ const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
         </div>
       </div>
 
-      {/* 📱 Mobile Accordion */}
+      {/* Mobile */}
       <div className="mobile-suggestions">
         <button className="accordion-toggle" onClick={() => setIsOpen(!isOpen)}>
           <span className="accordion-toggle-icon">{isOpen ? "−" : "+"}</span>
@@ -368,7 +374,7 @@ const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
                     key={idx}
                     className="mobile-suggestion-item"
                     onClick={() => {
-                      onQuestionClick({ text: q });
+                      onQuestionClick(q);
                       setIsOpen(false);
                     }}
                   >
