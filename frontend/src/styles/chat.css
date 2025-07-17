@@ -795,9 +795,9 @@
     justify-content: center;
     left: 50%;
     bottom: 5px;
-    margin-right: 150px;
+    margin-right: 15vw;
     transform: translateX(150%);
-    margin-bottom: 93px;
+    margin-bottom: 11vh;
   }
   .voice-toggle-button {
     right: 20px;
