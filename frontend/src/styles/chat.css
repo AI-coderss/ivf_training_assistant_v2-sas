@@ -776,12 +776,16 @@
   }
   .mic-controls {
     gap: 1rem;
-    margin-bottom: 2rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .mic-icon-btn {
     padding: 0.7rem;
     font-size: 1.3rem;
     animation: none !important;
+    margin-bottom: 25%;
   }
   .closed-btn {
     font-size: 1.1rem;
@@ -797,7 +801,7 @@
     bottom: 5px;
     margin-right: 15vw;
     transform: translateX(150%);
-    margin-bottom: 11vh;
+    margin-bottom: 25%;
   }
   .voice-toggle-button {
     right: 20px;
