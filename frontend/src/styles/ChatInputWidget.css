@@ -81,14 +81,15 @@
   .chat-container {
     width: 90%;
     height: 54px;
-    padding: 5px 8px;
+    padding: 8px 8px;
     max-width: 98vw;
   }
 
   .chat-input {
     font-size: 13px;
-    padding: 6px 8px;
-    min-height: 32px;
+    padding: 8px 8px;
+    margin-left: 5px;
+    min-height: 45px;
     max-height: 50px;
   }
 
