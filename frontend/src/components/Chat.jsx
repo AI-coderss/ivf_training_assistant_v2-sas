@@ -196,7 +196,7 @@ const Chat = () => {
       });
     }
   };
-  
+
   const renderMessage = (message) => {
     const regex = /```mermaid([\s\S]*?)```/g;
     const parts = [];
