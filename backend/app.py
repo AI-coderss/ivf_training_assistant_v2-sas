@@ -360,6 +360,38 @@ def websearch_trend():
 
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
+# === /generate-followups ===
+@app.route("/generate-followups", methods=["POST"])
+def generate_followups():
+    data = request.get_json()
+    last_answer = data.get("last_answer", "")
+    if not last_answer:
+        return jsonify({"followups": []})
+
+    followup_prompt = (
+        f"Based on the following assistant response, generate 3 short and helpful follow-up questions "
+        f"that the user might want to ask next, analyze the last answer :\n\n{last_answer}\n\n and provide a set of follow-up questions that are relevant to the topic discussed. "
+        f"Format the response as a JSON array of strings."
+    )
+
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": followup_prompt}
+            ],
+            temperature=0.7
+        )
+
+        text = completion.choices[0].message.content.strip()
+        match = re.search(r'\[(.*?)\]', text, re.DOTALL)
+        questions = json.loads(f"[{match.group(1)}]") if match else []
+        return jsonify({"followups": questions})
+
+    except Exception as e:
+        print(f"Error generating followups: {e}")
+        return jsonify({"followups": []})
 
 
 # === Run ===

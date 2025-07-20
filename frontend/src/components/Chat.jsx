@@ -60,7 +60,6 @@ const Chat = () => {
 
   const startWebRTC = async () => {
     if (peerConnection || connectionStatus === "connecting") return;
-
     setConnectionStatus("connecting");
     setIsMicActive(false);
 
@@ -69,17 +68,12 @@ const Chat = () => {
 
     pc.ontrack = (event) => {
       const audioStream = event.streams[0];
-
       if (audioPlayerRef.current && audioStream) {
         audioPlayerRef.current.srcObject = audioStream;
         audioPlayerRef.current.muted = false;
-        audioPlayerRef.current
-          .play()
-          .then(() => {
-            setAudioUrl(audioStream);
-            console.log("🎧 Visualizer activated.");
-          })
-          .catch((error) => console.error("Audio playback failed:", error));
+        audioPlayerRef.current.play().then(() => {
+          setAudioUrl(audioStream);
+        });
       }
     };
 
@@ -98,7 +92,7 @@ const Chat = () => {
     };
 
     channel.onerror = (error) => {
-      console.error("❌ DataChannel error:", error);
+      console.error("DataChannel error:", error);
       setConnectionStatus("error");
       setIsMicActive(false);
     };
@@ -107,13 +101,12 @@ const Chat = () => {
       const msg = JSON.parse(event.data);
       switch (msg.type) {
         case "response.audio_transcript.delta":
-          console.log("📡 Audio transcript streaming...");
           break;
         case "output_audio_buffer.stopped":
           clearAudioUrl();
           break;
         default:
-          console.log("📥 Unhandled message:", msg.type);
+          console.log("Unhandled message:", msg.type);
       }
     };
 
@@ -121,7 +114,6 @@ const Chat = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getAudioTracks().forEach((track) => (track.enabled = false));
       setMicStream(stream);
-
       stream.getAudioTracks().forEach((track) =>
         pc.addTransceiver(track, { direction: "sendrecv" })
       );
@@ -129,20 +121,16 @@ const Chat = () => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const res = await fetch(
-        "https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/sdp" },
-          body: offer.sdp,
-        }
-      );
+      const res = await fetch("https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: offer.sdp,
+      });
 
-      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
     } catch (error) {
-      console.error("WebRTC connection failed:", error);
+      console.error("WebRTC error:", error);
       setConnectionStatus("error");
       setIsMicActive(false);
     }
@@ -156,9 +144,7 @@ const Chat = () => {
     if (connectionStatus === "connected" && micStream) {
       const newMicState = !isMicActive;
       setIsMicActive(newMicState);
-      micStream
-        .getAudioTracks()
-        .forEach((track) => (track.enabled = newMicState));
+      micStream.getAudioTracks().forEach((track) => (track.enabled = newMicState));
     }
   };
 
@@ -173,7 +159,7 @@ const Chat = () => {
   const handleNewMessage = async ({ text }) => {
     if (!text) return;
     setChats((prev) => [...prev, { msg: text, who: "me" }]);
-    setSuggestedQuestions((prev) => prev.filter((q) => q !== text)); // 🧼 remove from list
+    setSuggestedQuestions((prev) => prev.filter((q) => q !== text));
 
     const res = await fetch("https://ivf-backend-server.onrender.com/stream", {
       method: "POST",
@@ -246,7 +232,7 @@ const Chat = () => {
         </div>
         <div className="mic-controls">
           {connectionStatus === "connecting" && (
-            <div className="connection-status connecting">🔄 Connecting...</div>
+            <div className="connection-status connecting">Connecting...</div>
           )}
           <button
             className={`mic-icon-btn ${isMicActive ? "active" : ""}`}
@@ -275,32 +261,50 @@ const Chat = () => {
               </figure>
             )}
             <div className="message-text">{renderMessage(chat.msg)}</div>
+
+            {/* Render follow-up buttons after each bot message */}
+            {chat.who === "bot" && suggestedQuestions.length > 0 && (
+              <div className="mobile-only followup-below-bot">
+                {suggestedQuestions.map((q, idx) => (
+                  <button
+                    key={idx}
+                    className="suggestion-item-mobile"
+                    onClick={() => handleNewMessage({ text: q })}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
         <div ref={scrollAnchorRef} />
       </div>
 
       <div className="chat-footer">
-        <SuggestedQuestionsAccordion
-          questions={suggestedQuestions}
-          onQuestionClick={handleNewMessage}
-        />
-        <ChatInputWidget onSendMessage={handleNewMessage} />
-      </div>
-
-      <div className="suggestion-column">
-        <h4 className="suggestion-title">💡 Suggested Questions</h4>
-        <div className="suggestion-list">
-          {suggestedQuestions.map((q, idx) => (
-            <button
-              key={idx}
-              className="suggestion-item"
-              onClick={() => handleNewMessage({ text: q })}
-            >
-              {q}
-            </button>
-          ))}
+        <div className="mobile-only">
+          <SuggestedQuestionsAccordion
+            questions={suggestedQuestions}
+            onQuestionClick={handleNewMessage}
+          />
         </div>
+
+        <div className="desktop-only suggestion-column">
+          <h4 className="suggestion-title">Suggested Questions</h4>
+          <div className="suggestion-list">
+            {suggestedQuestions.map((q, idx) => (
+              <button
+                key={idx}
+                className="suggestion-item"
+                onClick={() => handleNewMessage({ text: q })}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
 
       <button className="voice-toggle-button" onClick={handleEnterVoiceMode}>
@@ -316,10 +320,7 @@ const CollapsibleDiagram = ({ chart }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="collapsible-diagram">
-      <div
-        className="collapsible-header"
-        onClick={() => setIsOpen((prev) => !prev)}
-      >
+      <div className="collapsible-header" onClick={() => setIsOpen((prev) => !prev)}>
         <span className="toggle-icon">{isOpen ? "–" : "+"}</span> View Diagram
       </div>
       <AnimatePresence initial={false}>
