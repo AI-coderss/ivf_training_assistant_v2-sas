@@ -4,10 +4,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Mermaid from "./Mermaid";
 import BaseOrb from "./BaseOrb";
-import AudioVisualizer from "./AudioVisualizer";
+import AudioWave from "./AudioWave";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import useAudioStore from "../store/audioStore";
+import useAudioForVisualizerStore from "../store/useAudioForVisualizerStore";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -25,8 +25,9 @@ const Chat = () => {
   const [dataChannel, setDataChannel] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState("idle");
 
-  const { audioUrl, setAudioUrl, stopAudio } = useAudioStore();
+  const { audioUrl, setAudioUrl, clearAudioUrl } = useAudioForVisualizerStore();
   const scrollAnchorRef = useRef(null);
+  const audioPlayerRef = useRef(null);
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
     localStorage.setItem("sessionId", id);
@@ -41,7 +42,7 @@ const Chat = () => {
     fetch("https://ivf-backend-server.onrender.com/suggestions")
       .then((res) => res.json())
       .then((data) => setSuggestedQuestions(data.suggested_questions || []))
-      .catch((err) => console.error("❌ Failed to fetch suggestions:", err));
+      .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
 
   useEffect(() => {
@@ -54,9 +55,8 @@ const Chat = () => {
       setDataChannel(null);
       setConnectionStatus("idle");
       setIsMicActive(false);
-      stopAudio();
     };
-  }, []);
+  }, [dataChannel, micStream, peerConnection]);
 
   const startWebRTC = async () => {
     if (peerConnection || connectionStatus === "connecting") return;
@@ -67,10 +67,13 @@ const Chat = () => {
     setPeerConnection(pc);
 
     pc.ontrack = (event) => {
-      const remoteStream = event.streams[0];
-      if (remoteStream) {
-        setAudioUrl(remoteStream);
-        console.log("🎧 Received remote audio stream");
+      const audioStream = event.streams[0];
+      if (audioPlayerRef.current && audioStream) {
+        audioPlayerRef.current.srcObject = audioStream;
+        audioPlayerRef.current.muted = false;
+        audioPlayerRef.current.play().then(() => {
+          setAudioUrl(audioStream);
+        });
       }
     };
 
@@ -88,8 +91,8 @@ const Chat = () => {
       setIsMicActive(false);
     };
 
-    channel.onerror = (err) => {
-      console.error("⚠️ DataChannel error:", err);
+    channel.onerror = (error) => {
+      console.error("DataChannel error:", error);
       setConnectionStatus("error");
       setIsMicActive(false);
     };
@@ -97,11 +100,13 @@ const Chat = () => {
     channel.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       switch (msg.type) {
+        case "response.audio_transcript.delta":
+          break;
         case "output_audio_buffer.stopped":
-          stopAudio();
+          clearAudioUrl();
           break;
         default:
-          console.log("📥 Unhandled message:", msg.type);
+          console.log("Unhandled message:", msg.type);
       }
     };
 
@@ -109,7 +114,6 @@ const Chat = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getAudioTracks().forEach((track) => (track.enabled = false));
       setMicStream(stream);
-
       stream.getAudioTracks().forEach((track) =>
         pc.addTransceiver(track, { direction: "sendrecv" })
       );
@@ -117,52 +121,45 @@ const Chat = () => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const res = await fetch(
-        "https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/sdp" },
-          body: offer.sdp,
-        }
-      );
+      const res = await fetch("https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: offer.sdp,
+      });
 
-      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
     } catch (error) {
-      console.error("WebRTC connection failed:", error);
+      console.error("WebRTC error:", error);
       setConnectionStatus("error");
+      setIsMicActive(false);
     }
   };
 
   const toggleMic = () => {
     if (connectionStatus === "idle" || connectionStatus === "error") {
-      console.log("🎤 Attempting to connect mic...");
       startWebRTC();
       return;
     }
-
     if (connectionStatus === "connected" && micStream) {
       const newMicState = !isMicActive;
       setIsMicActive(newMicState);
       micStream.getAudioTracks().forEach((track) => (track.enabled = newMicState));
-    } else {
-      console.warn("🎤 Mic toggle attempted but stream is not ready.");
     }
   };
 
   const handleEnterVoiceMode = () => {
     setIsVoiceMode(true);
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.muted = true;
+      audioPlayerRef.current.play().catch(() => {});
+    }
   };
 
   const handleNewMessage = async ({ text }) => {
     if (!text) return;
-
-    setSuggestedQuestions((prev) =>
-      prev.filter((q) => q.trim() !== text.trim())
-    );
-
     setChats((prev) => [...prev, { msg: text, who: "me" }]);
+    setSuggestedQuestions((prev) => prev.filter((q) => q !== text));
 
     const res = await fetch("https://ivf-backend-server.onrender.com/stream", {
       method: "POST",
@@ -171,10 +168,7 @@ const Chat = () => {
     });
 
     if (!res.ok || !res.body) {
-      setChats((prev) => [
-        ...prev,
-        { msg: "Something went wrong.", who: "bot" },
-      ]);
+      setChats((prev) => [...prev, { msg: "Something went wrong.", who: "bot" }]);
       return;
     }
 
@@ -202,7 +196,7 @@ const Chat = () => {
       });
     }
   };
-
+  
   const renderMessage = (message) => {
     const regex = /```mermaid([\s\S]*?)```/g;
     const parts = [];
@@ -234,12 +228,11 @@ const Chat = () => {
       <div className="voice-assistant-wrapper">
         <div className="top-center-orb">
           <BaseOrb />
-          {audioUrl && <AudioVisualizer />}
+          {audioUrl && <AudioWave audioUrl={audioUrl} onEnded={clearAudioUrl} />}
         </div>
-
         <div className="mic-controls">
           {connectionStatus === "connecting" && (
-            <div className="connection-status connecting">🔄 Connecting...</div>
+            <div className="connection-status connecting">Connecting...</div>
           )}
           <button
             className={`mic-icon-btn ${isMicActive ? "active" : ""}`}
@@ -258,6 +251,7 @@ const Chat = () => {
 
   return (
     <div className="chat-layout">
+      <audio ref={audioPlayerRef} playsInline style={{ display: "none" }} />
       <div className="chat-content">
         {chats.map((chat, index) => (
           <div key={index} className={`chat-message ${chat.who}`}>
@@ -267,19 +261,49 @@ const Chat = () => {
               </figure>
             )}
             <div className="message-text">{renderMessage(chat.msg)}</div>
+
+            {/* Render follow-up buttons after each bot message */}
+            {chat.who === "bot" && suggestedQuestions.length > 0 && (
+              <div className="mobile-only followup-below-bot">
+                {suggestedQuestions.map((q, idx) => (
+                  <button
+                    key={idx}
+                    className="suggestion-item-mobile"
+                    onClick={() => handleNewMessage({ text: q })}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
         <div ref={scrollAnchorRef} />
       </div>
 
       <div className="chat-footer">
-        <SuggestedQuestionsAccordion
-          questions={suggestedQuestions}
-          onQuestionClick={(q) => {
-            handleNewMessage({ text: q });
-            setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
-          }}
-        />
+        <div className="mobile-only">
+          <SuggestedQuestionsAccordion
+            questions={suggestedQuestions}
+            onQuestionClick={handleNewMessage}
+          />
+        </div>
+
+        <div className="desktop-only suggestion-column">
+          <h4 className="suggestion-title">Suggested Questions</h4>
+          <div className="suggestion-list">
+            {suggestedQuestions.map((q, idx) => (
+              <button
+                key={idx}
+                className="suggestion-item"
+                onClick={() => handleNewMessage({ text: q })}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
 
@@ -296,10 +320,7 @@ const CollapsibleDiagram = ({ chart }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="collapsible-diagram">
-      <div
-        className="collapsible-header"
-        onClick={() => setIsOpen((prev) => !prev)}
-      >
+      <div className="collapsible-header" onClick={() => setIsOpen((prev) => !prev)}>
         <span className="toggle-icon">{isOpen ? "–" : "+"}</span> View Diagram
       </div>
       <AnimatePresence initial={false}>
@@ -325,56 +346,38 @@ const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
   if (!questions.length) return null;
 
   return (
-    <>
-      <div className="mobile-suggestions">
-        <button className="accordion-toggle" onClick={() => setIsOpen(!isOpen)}>
-          <span className="accordion-toggle-icon">{isOpen ? "−" : "+"}</span>
-          Suggested Questions
-        </button>
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              className="accordion-content"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
-              <div className="mobile-suggestion-list">
-                {questions.map((q, idx) => (
-                  <button
-                    key={idx}
-                    className="mobile-suggestion-item"
-                    onClick={() => {
-                      onQuestionClick(q);
-                      setIsOpen(false);
-                    }}
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="suggestion-column-desktop">
-        <h4 className="suggestion-title">Suggested Questions</h4>
-        <div className="suggestion-list">
-          {questions.map((q, idx) => (
-            <button
-              key={idx}
-              className="suggestion-item"
-              onClick={() => onQuestionClick(q)}
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-      </div>
-    </>
+    <div className="suggested-questions-accordion">
+      <button className="accordion-toggle" onClick={() => setIsOpen(!isOpen)}>
+        <span className="accordion-toggle-icon">{isOpen ? "−" : "+"}</span>
+        Suggested Questions
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="accordion-content"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <div className="suggestion-list-mobile">
+              {questions.map((q, idx) => (
+                <button
+                  key={idx}
+                  className="suggestion-item-mobile"
+                  onClick={() => {
+                    onQuestionClick({ text: q });
+                    setIsOpen(false);
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
-
 
