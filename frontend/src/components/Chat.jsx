@@ -56,7 +56,6 @@ const Chat = () => {
       setIsMicActive(false);
       stopAudio();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startWebRTC = async () => {
@@ -146,9 +145,7 @@ const Chat = () => {
     if (connectionStatus === "connected" && micStream) {
       const newMicState = !isMicActive;
       setIsMicActive(newMicState);
-      micStream
-        .getAudioTracks()
-        .forEach((track) => (track.enabled = newMicState));
+      micStream.getAudioTracks().forEach((track) => (track.enabled = newMicState));
     } else {
       console.warn("🎤 Mic toggle attempted but stream is not ready.");
     }
@@ -161,7 +158,6 @@ const Chat = () => {
   const handleNewMessage = async ({ text }) => {
     if (!text) return;
 
-    // Remove selected question if present
     setSuggestedQuestions((prev) =>
       prev.filter((q) => q.trim() !== text.trim())
     );
@@ -279,7 +275,10 @@ const Chat = () => {
       <div className="chat-footer">
         <SuggestedQuestionsAccordion
           questions={suggestedQuestions}
-          onQuestionClick={handleNewMessage}
+          onQuestionClick={(q) => {
+            handleNewMessage({ text: q });
+            setSuggestedQuestions((prev) => prev.filter((item) => item !== q));
+          }}
         />
         <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
@@ -326,38 +325,56 @@ const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
   if (!questions.length) return null;
 
   return (
-    <div className="suggested-questions-accordion">
-      <button className="accordion-toggle" onClick={() => setIsOpen(!isOpen)}>
-        <span className="accordion-toggle-icon">{isOpen ? "−" : "+"}</span>
-        Suggested Questions
-      </button>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            className="accordion-content"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            <div className="suggestion-list-mobile">
-              {questions.map((q, idx) => (
-                <button
-                  key={idx}
-                  className="suggestion-item-mobile"
-                  onClick={() => {
-                    onQuestionClick({ text: q });
-                    setIsOpen(false);
-                  }}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <>
+      <div className="mobile-suggestions">
+        <button className="accordion-toggle" onClick={() => setIsOpen(!isOpen)}>
+          <span className="accordion-toggle-icon">{isOpen ? "−" : "+"}</span>
+          Suggested Questions
+        </button>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              className="accordion-content"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <div className="mobile-suggestion-list">
+                {questions.map((q, idx) => (
+                  <button
+                    key={idx}
+                    className="mobile-suggestion-item"
+                    onClick={() => {
+                      onQuestionClick(q);
+                      setIsOpen(false);
+                    }}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="suggestion-column-desktop">
+        <h4 className="suggestion-title">Suggested Questions</h4>
+        <div className="suggestion-list">
+          {questions.map((q, idx) => (
+            <button
+              key={idx}
+              className="suggestion-item"
+              onClick={() => onQuestionClick(q)}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
   );
 };
+
 
