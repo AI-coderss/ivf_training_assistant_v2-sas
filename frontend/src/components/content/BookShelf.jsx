@@ -61,7 +61,6 @@ const BookShelf = ({ onSelectBook, selectedBookUrl }) => {
           onClick={() => onSelectBook(book.url)}
         >
           <img src={book.image} alt={book.title} className="book-image" />
-          <div className="book-title">{book.title}</div>
         </div>
       ))}
     </div>

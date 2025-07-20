@@ -137,3 +137,81 @@
     bottom: 10px;
   }
 }
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Optional overrides for tablets */
+  .toggle-bookshelf-btn {
+    top: 90px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+    .bookshelf {
+        margin-top: 2px;
+        padding: 6px;
+    }
+}
+
+@media (min-width: 820px) and (max-width: 1400px) {
+  /* Same bookshelf style as mobile */
+  .content-layout {
+    flex-direction: column-reverse;
+  }
+
+  .viewer-column,
+  .viewer-column.with-assistant,
+  .voice-column {
+    width: 100%;
+    padding: 10px;
+    overflow-y: auto;
+    margin-right: 0;
+  }
+
+  .viewer-column,
+  .viewer-column.with-assistant {
+    padding-bottom: 80px;
+  }
+
+  .bookshelf-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    padding: 0 10px;
+    box-sizing: border-box;
+  }
+
+  .bookshelf-wrapper {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: max-content;
+  }
+
+  .bookshelf-wrapper::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .bookshelf-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+
+  .book-item {
+    flex: 0 0 auto;
+    min-width: 140px;
+    margin: 0 10px;
+  }
+
+  /* Show the toggle button */
+  .toggle-bookshelf-btn {
+    display: block;
+  }
+
+  /* Adjust toggle voice button for this range */
+  .toggle-voice-btn {
+    bottom: 10px;
+  }
+}

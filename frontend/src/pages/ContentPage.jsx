@@ -10,8 +10,8 @@ const ContentPage = () => {
   const [ocrContext, setOcrContext] = useState('');
   const [showBookshelf, setShowBookshelf] = useState(false);
 
-  const isMobile = window.innerWidth <= 1024;
-
+  const isMobile = window.innerWidth <= 768;
+  const isTabletOrMobile = window.innerWidth <= 1400;
   const toggleVoiceAssistant = () => {
     setVoiceAssistantVisible(prev => !prev);
   };
@@ -31,12 +31,12 @@ const ContentPage = () => {
       <div className="content-header">
         <h2>Training Content 📚</h2>
         <p>Explore IVF training materials and digital handbooks.</p>
-        {isMobile && !voiceAssistantVisible && (
+        {isTabletOrMobile && !voiceAssistantVisible && (
           <button className="toggle-bookshelf-btn" onClick={() => setShowBookshelf(prev => !prev)}>
             {showBookshelf ? 'Hide Books' : 'Show Books'}
           </button>
         )}
-        {(!isMobile || !showBookshelf) && (
+        {(!isTabletOrMobile || !showBookshelf) && (
           <button className="toggle-voice-btn" onClick={toggleVoiceAssistant}>
             {voiceAssistantVisible ? '❌ Hide AI Assistant' : 'AI Assistant✨'}
           </button>
@@ -45,7 +45,7 @@ const ContentPage = () => {
       </div>
 
       <div className="content-layout">
-        {(!isMobile || showBookshelf) && (
+        {(!isTabletOrMobile || showBookshelf) && (
           <div className="bookshelf-scroll-wrapper">
             <div className="bookshelf-wrapper">
               <BookShelf

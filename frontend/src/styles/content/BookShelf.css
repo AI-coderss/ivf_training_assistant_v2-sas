@@ -411,3 +411,75 @@
   }
   /* ... other styles for this range ... */
 }
+
+@media (min-width: 820px) and (max-width: 1400px) {
+  .bookshelf {
+    margin-top: -12px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+    padding: 10px;
+    max-height: none;
+  }
+
+  .bookshelf::-webkit-scrollbar {
+    display: flex;
+    height: 8px;
+  }
+  .bookshelf::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  .bookshelf::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+  .bookshelf::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+
+  .book-item {
+    width: 140px;
+    height: auto;
+    min-width: 140px;
+    margin: 0 10px;
+    margin-bottom: 15px;
+
+    perspective: none;
+    transform-style: flat;
+    animation: none;
+    transform: none !important;
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  }
+
+  .book-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 14px rgba(0, 0, 0, 0.15);
+  }
+
+  .book-item::before,
+  .book-item::after {
+    display: none !important;
+  }
+
+  .book-image {
+    position: relative;
+    border-radius: 6px;
+    box-shadow: 0 8px 14px rgba(0, 0, 0, 0.15);
+  }
+
+  .book-title {
+    transform: none;
+    width: auto;
+    margin-top: 8px;
+  }
+
+  .shelf-title {
+    display: none;
+  }
+}
