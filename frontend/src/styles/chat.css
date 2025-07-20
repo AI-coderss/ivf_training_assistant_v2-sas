@@ -1,4 +1,3 @@
-/* Chat Content (Scrollable Area) */
 .chat-content {
   position: absolute;
   bottom: 80px;
@@ -159,7 +158,7 @@
   background-color: white;
   padding: 0.5rem 1rem;
   border-radius: 30px;
-  
+
 }
 
 .toggle-switch {
@@ -234,7 +233,7 @@
   padding: 0 1rem;
   animation: fadeIn 0.5s ease-in-out;
   transition: all 0.3s ease-in-out;
-  
+
 }
 .message-text {
   position: relative;
@@ -294,7 +293,7 @@
   border-radius: 12px 12px 12px 0;
   margin-left: 8px;           /* NEW: adds spacing from avatar */
   padding-left: 2rem;   
-  
+
 }
 
 .chat-message.me .message-text {
@@ -551,7 +550,7 @@
   font-size: 1.8rem;
   cursor: pointer;
   transition: background 0.3s ease, transform 0.3s ease;
-  
+
 }
 
 .mic-icon-btn.active {
@@ -718,14 +717,14 @@
     overflow: hidden; /* Important for the animation */
     padding: 4px;
   }
-  
+
   .suggestion-list-mobile {
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-  
+
   .suggestion-item-mobile {
     width: 90%;
     padding: 10px;
@@ -777,27 +776,25 @@
   .mic-controls {
     gap: 1rem;
     margin-bottom: 2rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .mic-icon-btn {
     padding: 0.7rem;
     font-size: 1.3rem;
     animation: none !important;
+    margin-bottom: 25%;
   }
   .closed-btn {
     font-size: 1.1rem;
-    padding: 0.7rem;
-    height: 60px;
-    width: 60px;
-    position: fixed;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    left: 50%;
+
     bottom: 5px;
-    margin-right: 150px;
+    margin-right: 15vw;
     transform: translateX(150%);
-    margin-bottom: 93px;
+    margin-bottom: 11vh;
+    margin-bottom: 25%;
   }
   .voice-toggle-button {
     right: 20px;
@@ -1075,5 +1072,4 @@
     width: 100%;
     border-radius: 8px;
     font-size: 0.95rem;
-  }
-}
+  }}

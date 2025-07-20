@@ -4,10 +4,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Mermaid from "./Mermaid";
 import BaseOrb from "./BaseOrb";
-import AudioWave from "./AudioWave";
+import AudioVisualizer from "./AudioVisualizer";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import useAudioForVisualizerStore from "../store/useAudioForVisualizerStore";
+import useAudioStore from "../store/audioStore";
 import "../styles/chat.css";
 
 const Chat = () => {
@@ -25,9 +25,8 @@ const Chat = () => {
   const [dataChannel, setDataChannel] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState("idle");
 
-  const { audioUrl, setAudioUrl, clearAudioUrl } = useAudioForVisualizerStore();
+  const { audioUrl, setAudioUrl, stopAudio } = useAudioStore();
   const scrollAnchorRef = useRef(null);
-  const audioPlayerRef = useRef(null);
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("sessionId") || crypto.randomUUID();
     localStorage.setItem("sessionId", id);
@@ -42,27 +41,26 @@ const Chat = () => {
     fetch("https://ivf-backend-server.onrender.com/suggestions")
       .then((res) => res.json())
       .then((data) => setSuggestedQuestions(data.suggested_questions || []))
-      .catch((err) => console.error("Failed to fetch suggestions:", err));
+      .catch((err) => console.error("❌ Failed to fetch suggestions:", err));
   }, []);
 
   useEffect(() => {
     return () => {
-      if (!isVoiceMode) {
-        micStream?.getTracks().forEach((track) => track.stop());
-        peerConnection?.close();
-        dataChannel?.close();
-        setMicStream(null);
-        setPeerConnection(null);
-        setDataChannel(null);
-        setConnectionStatus("idle");
-        setIsMicActive(false);
-      }
+      micStream?.getTracks().forEach((track) => track.stop());
+      peerConnection?.close();
+      dataChannel?.close();
+      setMicStream(null);
+      setPeerConnection(null);
+      setDataChannel(null);
+      setConnectionStatus("idle");
+      setIsMicActive(false);
+      stopAudio();
     };
-  }, [isVoiceMode, micStream, peerConnection, dataChannel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startWebRTC = async () => {
     if (peerConnection || connectionStatus === "connecting") return;
-
     setConnectionStatus("connecting");
     setIsMicActive(false);
 
@@ -70,20 +68,10 @@ const Chat = () => {
     setPeerConnection(pc);
 
     pc.ontrack = (event) => {
-      console.log("🔊 Received remote audio track", event.track);
-      const audioStream = event.streams[0];
-
-      if (audioPlayerRef.current && audioStream) {
-        audioPlayerRef.current.srcObject = audioStream;
-        audioPlayerRef.current.muted = false;
-        audioPlayerRef.current
-          .play()
-          .then(() => {
-            const blobUrl = URL.createObjectURL(audioStream);
-            setAudioUrl(blobUrl);
-            console.log("🎧 Visualizer activated.");
-          })
-          .catch((error) => console.error("Audio playback failed:", error));
+      const remoteStream = event.streams[0];
+      if (remoteStream) {
+        setAudioUrl(remoteStream);
+        console.log("🎧 Received remote audio stream");
       }
     };
 
@@ -91,50 +79,28 @@ const Chat = () => {
     setDataChannel(channel);
 
     channel.onopen = () => {
-      console.log("✅ DataChannel opened");
       setConnectionStatus("connected");
       setIsMicActive(true);
       micStream?.getAudioTracks().forEach((track) => (track.enabled = true));
     };
 
     channel.onclose = () => {
-      console.log("⚠️ DataChannel closed");
       setConnectionStatus("idle");
       setIsMicActive(false);
     };
 
-    channel.onerror = (error) => {
-      console.error("❌ DataChannel error:", error);
+    channel.onerror = (err) => {
+      console.error("⚠️ DataChannel error:", err);
       setConnectionStatus("error");
       setIsMicActive(false);
     };
 
     channel.onmessage = (event) => {
       const msg = JSON.parse(event.data);
-
       switch (msg.type) {
-        case "response.text.delta":
-          // Suppressed text display for clean voice mode
-          // setChats((prev) => {
-          //   const updated = [...prev];
-          //   if (updated[updated.length - 1]?.who === "bot") {
-          //     updated[updated.length - 1].msg += msg.delta;
-          //   } else {
-          //     updated.push({ msg: msg.delta, who: "bot" });
-          //   }
-          //   return updated;
-          // });
-          break;
-
-        case "response.audio_transcript.delta":
-          console.log("📡 Audio transcript streaming...");
-          break;
-
         case "output_audio_buffer.stopped":
-          console.log("🛑 Audio finished");
-          clearAudioUrl();
+          stopAudio();
           break;
-
         default:
           console.log("📥 Unhandled message:", msg.type);
       }
@@ -167,12 +133,12 @@ const Chat = () => {
     } catch (error) {
       console.error("WebRTC connection failed:", error);
       setConnectionStatus("error");
-      setIsMicActive(false);
     }
   };
 
   const toggleMic = () => {
     if (connectionStatus === "idle" || connectionStatus === "error") {
+      console.log("🎤 Attempting to connect mic...");
       startWebRTC();
       return;
     }
@@ -183,19 +149,23 @@ const Chat = () => {
       micStream
         .getAudioTracks()
         .forEach((track) => (track.enabled = newMicState));
+    } else {
+      console.warn("🎤 Mic toggle attempted but stream is not ready.");
     }
   };
 
   const handleEnterVoiceMode = () => {
     setIsVoiceMode(true);
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.muted = true;
-      audioPlayerRef.current.play().catch(() => {});
-    }
   };
 
   const handleNewMessage = async ({ text }) => {
     if (!text) return;
+
+    // Remove selected question if present
+    setSuggestedQuestions((prev) =>
+      prev.filter((q) => q.trim() !== text.trim())
+    );
+
     setChats((prev) => [...prev, { msg: text, who: "me" }]);
 
     const res = await fetch("https://ivf-backend-server.onrender.com/stream", {
@@ -268,9 +238,7 @@ const Chat = () => {
       <div className="voice-assistant-wrapper">
         <div className="top-center-orb">
           <BaseOrb />
-          {audioUrl && (
-            <AudioWave audioUrl={audioUrl} onEnded={clearAudioUrl} />
-          )}
+          {audioUrl && <AudioVisualizer />}
         </div>
 
         <div className="mic-controls">
@@ -294,7 +262,6 @@ const Chat = () => {
 
   return (
     <div className="chat-layout">
-      <audio ref={audioPlayerRef} playsInline style={{ display: "none" }} />
       <div className="chat-content">
         {chats.map((chat, index) => (
           <div key={index} className={`chat-message ${chat.who}`}>
@@ -315,21 +282,6 @@ const Chat = () => {
           onQuestionClick={handleNewMessage}
         />
         <ChatInputWidget onSendMessage={handleNewMessage} />
-      </div>
-
-      <div className="suggestion-column">
-        <h4 className="suggestion-title">💡 Suggested Questions</h4>
-        <div className="suggestion-list">
-          {suggestedQuestions.map((q, idx) => (
-            <button
-              key={idx}
-              className="suggestion-item"
-              onClick={() => handleNewMessage({ text: q })}
-            >
-              {q}
-            </button>
-          ))}
-        </div>
       </div>
 
       <button className="voice-toggle-button" onClick={handleEnterVoiceMode}>
