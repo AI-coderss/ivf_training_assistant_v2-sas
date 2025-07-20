@@ -37,8 +37,8 @@
 }
 
 .assistant-content {
-  flex: 1;
-  overflow-y: auto; /* Enable scrolling for content if it overflows */
+  margin-top: 200px;
+  flex: 1; /* Enable scrolling for content if it overflows */
   padding-right: 10px; /* Add some padding for scrollbar */
   color: #333; /* Ensure content is visible */
   /* margin-top: 10px; */ /* May not be needed depending on orb and padding-top of parent */
@@ -61,6 +61,7 @@
 }
 
 .mic-icon-btn {
+  margin-bottom: 80px;
   background-color: #007BFF;
   color: white;
   width: 60px; /* Slightly larger for prominence */
@@ -132,7 +133,7 @@
   transition: background 0.3s ease, transform 0.2s ease;
   font-size: 1rem;
   position: absolute; /* MODIFIED */
-  top: 15px;          /* MODIFIED - Adjust as needed (respecting parent padding) */
+  bottom: 105px;          /* MODIFIED - Adjust as needed (respecting parent padding) */
   right: 15px;         /* MODIFIED - Adjust as needed (respecting parent padding) */
   z-index: 1005;       /* MODIFIED - Ensure it's above content and orb */
 }
@@ -145,7 +146,7 @@
 /* 📱 Responsive */
 @media (max-width: 1024px) {
   .voice-assistant {
-    position: static;
+    position: fixed;
     width: 100%;
     max-width: none;
     height: auto;
@@ -177,16 +178,13 @@
   }
 
   .mic-icon-btn {
-    /* For mobile, if .voice-assistant is static, absolute positioning will be
-       relative to the viewport or nearest positioned ancestor.
-       You might want to revert to a flow layout or center it differently. */
-    /* Example: Make it part of the flow again */
-    position: static; /* Revert from absolute */
-    transform: none;  /* Clear transform */
-    margin: 20px auto 10px auto; /* Center block element */
-    /* Or, if you keep it absolute and make .voice-assistant relative: */
-    /* bottom: 10px; left: 50%; transform: translateX(-50%); */
-  }
+  display: block;
+  margin: 0 auto 20px auto;
+  position: relative;
+  left: auto;
+  bottom: auto;
+  transform: none;
+}
 
 
   .close-btn {
@@ -201,5 +199,80 @@
     top: 10px;          /* Adjust for mobile */
     right: 10px;         /* Adjust for mobile */
 
+  }
+}
+
+.waveform-container {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 25px;
+}
+
+.waveform-container canvas {
+  width: 100% !important;
+  height: 120px !important;
+  display: block;
+  border-radius: 10px;
+}
+
+.assistant-loader-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.2);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.assistant-loader {
+  text-align: center;
+  color: #000;
+  font-weight: 500;
+  backdrop-filter: none;
+}
+
+.assistant-loader .spinner {
+  margin-top: 10px;
+  width: 30px;
+  height: 30px;
+  border: 4px solid #ccc;
+  border-top-color: #0a66c2;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.mic-icon-btn.mic-active {
+  background-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3);
+}
+
+@media (min-width: 1025px) {
+  .mic-icon-btn.mic-active {
+    transform: translateX(-50%) scale(1.05);
+  }
+}
+
+.mic-icon-btn.mic-active::after {
+  border-color: #10b981; 
+  animation: mic-radiate-green 1.2s infinite;
+}
+
+@keyframes mic-radiate-green {
+  0% {
+    opacity: 0.4;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 0.15;
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
   }
 }

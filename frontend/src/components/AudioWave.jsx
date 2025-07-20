@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import '../styles/AudioWave.css'; 
-const AudioWave = ({ audioUrl, onEnded }) => {
+import '../styles/AudioWave.css';
+
+const AudioWave = ({ stream, audioUrl, onEnded }) => {
   const canvasRef = useRef(null);
-  const audioRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const animationFrameIdRef = useRef(null);
@@ -10,7 +10,8 @@ const AudioWave = ({ audioUrl, onEnded }) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
+    canvas.width = canvas.parentElement?.clientWidth || 600;
+
     canvas.height = 350;
 
     const turbulenceFactor = 0.25;
@@ -19,13 +20,13 @@ const AudioWave = ({ audioUrl, onEnded }) => {
     const numberOfWaves = 10;
     let globalTime = 0;
 
-    function createGradient() {
+    const createGradient = () => {
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
       gradient.addColorStop(0, 'rgba(255, 25, 255, 0.2)');
       gradient.addColorStop(0.5, 'rgba(25, 255, 255, 0.75)');
       gradient.addColorStop(1, 'rgba(255, 255, 25, 0.2)');
       return gradient;
-    }
+    };
 
     const gradient = createGradient();
 
@@ -39,7 +40,7 @@ const AudioWave = ({ audioUrl, onEnded }) => {
         ctx.strokeStyle = gradient;
 
         let x = 0;
-        const sliceWidth = (canvas.width * 1.0) / dataArray.length;
+        const sliceWidth = canvas.width / dataArray.length;
         let lastX = 0;
         let lastY = baseLine;
 
@@ -53,11 +54,10 @@ const AudioWave = ({ audioUrl, onEnded }) => {
           const frequency = isWaveInverted * (0.05 + turbulenceFactor);
           const y = baseLine + Math.sin(i * frequency + globalTime + j) * amplitude * v;
 
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            let xc = (x + lastX) / 2;
-            let yc = (y + lastY) / 2;
+          if (i === 0) ctx.moveTo(x, y);
+          else {
+            const xc = (x + lastX) / 2;
+            const yc = (y + lastY) / 2;
             ctx.quadraticCurveTo(lastX, lastY, xc, yc);
           }
 
@@ -77,13 +77,24 @@ const AudioWave = ({ audioUrl, onEnded }) => {
 
       analyser.getByteFrequencyData(dataArray);
       drawWave(dataArray);
-
       animationFrameIdRef.current = requestAnimationFrame(animate);
     };
 
-    const setupAudioPlayback = () => {
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
+    const setupFromStream = (stream) => {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = audioContext;
+
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyserRef.current = analyser;
+
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      animate();
+    };
+
+    const setupFromAudio = (url) => {
+      const audio = new Audio(url);
       audio.crossOrigin = 'anonymous';
       audio.play();
 
@@ -101,26 +112,22 @@ const AudioWave = ({ audioUrl, onEnded }) => {
       animate();
 
       audio.addEventListener('ended', () => {
-        onEnded();
+        onEnded?.();
         cancelAnimationFrame(animationFrameIdRef.current);
-        // Check if the audioContext is still in a valid state before closing it
-        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-          audioContextRef.current.close();
-        }
+        if (audioContext.state !== 'closed') audioContext.close();
       });
     };
 
-    if (audioUrl) {
-      setupAudioPlayback();
-    }
+    if (stream) setupFromStream(stream);
+    else if (audioUrl) setupFromAudio(audioUrl);
 
     return () => {
       cancelAnimationFrame(animationFrameIdRef.current);
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close(); // Ensure it's not closed already
+        audioContextRef.current.close();
       }
     };
-  }, [audioUrl, onEnded]);
+  }, [stream, audioUrl, onEnded]);
 
   return (
     <div className="container">

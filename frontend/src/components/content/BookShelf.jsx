@@ -8,45 +8,45 @@ const books = [
     id: 1,
     title: "Practical Manual Of In Vitro Fertilization",
     image: "/images/manual.png", // make sure this exists in public/images
-    url: "https://heyzine.com/flip-book/a1a2f21a60.html",
+    url: "/pdf/manual.pdf",
   },
   {
     id: 2,
     title: "Fertility Cryopreservation",
     image: "/images/cryopreservation.png", // make sure this exists in public/images
-    url: "https://heyzine.com/flip-book/9eaacb692e.html",
+    url: "/pdf/cryopreservation.pdf",
   },
    {
     id: 3,
     title: "The Ethics Of IVF",
     image: "/images/ethics.png", // make sure this exists in public/images
-    url: "https://heyzine.com/flip-book/b296d506ea.html",
+    url: "/pdf/ethics.pdf",
   },
    {
     id: 4,
     title: "Boston Handbook Of Infertility",
     image: "/images/bostonIvf.png", // make sure this exists in public/images
-    url: "https://heyzine.com/flip-book/d90118581a.html",
+    url: "/pdf/boston.pdf",
   },
   {
     id: 5,
     title: "How to prepare endometrium ",
     image: "/images/endo.png", // make sure this exists in public/images
-    url: "https://heyzine.com/flip-book/30f4394f2a.html",
+    url: "/pdf/endo.pdf",
   }
   ,
   {
     id: 6,
     title: "How to Prepare Eggs for IVF",
     image: "/images/egg.png", // make sure this exists in public/images
-    url: "https://heyzine.com/flip-book/1f97ea61c2.html",
+    url: "/pdf/eggs_preparation.pdf",
   }
   ,
   {
     id: 7,
     title: "Handbook For Infertility",
     image: "/images/ivf.png", // make sure this exists in public/images
-    url: "https://heyzine.com/flip-book/b6b460f174.html",
+    url: "/pdf/ivf_handbook.pdf",
   }
 ];
 
@@ -57,7 +57,7 @@ const BookShelf = ({ onSelectBook, selectedBookUrl }) => {
       {books.map((book) => (
         <div
           key={book.id}
-          className={`book-item ${selectedBookUrl === book.url ? "selected" : ""}`}
+          className={`book-item ${selectedBookUrl === book.url ? 'selected' : ''}`}
           onClick={() => onSelectBook(book.url)}
         >
           <img src={book.image} alt={book.title} className="book-image" />

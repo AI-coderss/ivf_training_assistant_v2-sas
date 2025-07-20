@@ -1,15 +1,25 @@
-# requirements.txt
+# LangChain and LLMs
 langchain
 langchain-community
 langchain-core
 langchain-qdrant
 langchain-openai
-langchain
+openai>=1.14.0
+tiktoken
+
+# Vector DB
+faiss-cpu
+
+# PDF + Utils
 pypdf
-openai
 python-dotenv
+
+# Web Server
 flask
 flask-cors
 gunicorn
-tiktoken
-faiss-cpu
+
+# OCR Dependencies
+easyocr
+pillow
+numpy
