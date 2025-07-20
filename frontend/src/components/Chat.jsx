@@ -18,6 +18,7 @@ const Chat = () => {
     },
   ]);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
+ const [followUpMap, setFollowUpMap] = useState({});
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [micStream, setMicStream] = useState(null);
   const [isMicActive, setIsMicActive] = useState(false);
@@ -195,8 +196,23 @@ const Chat = () => {
         return updated;
       });
     }
+       // Fetch follow-up questions
+    try {
+      const followUpRes = await fetch("https://ivf-backend-server.onrender.com/generate-followups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, session_id: sessionId }),
+      });
+      const data = await followUpRes.json();
+      const latestBotIndex = chats.length;
+      if (data?.follow_ups?.length) {
+        setFollowUpMap((prev) => ({ ...prev, [latestBotIndex]: data.follow_ups }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch follow-up questions:", error);
+    }
   };
-
+  
   const renderMessage = (message) => {
     const regex = /```mermaid([\s\S]*?)```/g;
     const parts = [];
@@ -273,7 +289,12 @@ const Chat = () => {
                   >
                     {q}
                   </button>
+                  
                 ))}
+                <FollowUpAccordion
+                  followUps={followUpMap[chat.index] || []}
+                  onClick={handleNewMessage}
+                />
               </div>
             )}
           </div>
@@ -377,6 +398,39 @@ const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+};
+// 🔽 Accordion for Follow-Up Questions
+const FollowUpAccordion = ({ followUps, onClick }) => {
+  const [openIndex, setOpenIndex] = useState(null);
+
+  return (
+    <div className="faq-section">
+      {followUps.map((q, idx) => (
+        <div
+          className={`faq-item ${openIndex === idx ? "active" : ""}`}
+          key={idx}
+          onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
+        >
+          <div className="faq-question">{q}</div>
+          <AnimatePresence>
+            {openIndex === idx && (
+              <motion.div
+                className="faq-answer"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <button className="faq-answer-btn" onClick={() => onClick({ text: q })}>
+                  {q}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      ))}
     </div>
   );
 };
