@@ -1061,42 +1061,7 @@
     font-size: 0.8rem;
   }
 }
-/* === INLINE FOLLOWUPS BELOW EACH BOT MESSAGE === */
-.followup-below-bot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
-}
-.followup-below-bot button {
-  font-weight: normal;
-  font-size: 0.9rem;
-  padding: 6px 10px;
-  background: #eef2f7;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.followup-below-bot button:hover {
-  background: #dce7f6;
-}
 
-/* === RESPONSIVE UTILITIES === */
-.mobile-only {
-  display: none;
-}
-.desktop-only {
-  display: block;
-}
-
-@media (max-width: 768px) {
-  .mobile-only {
-    display: block;
-  }
-  .desktop-only {
-    display: none;
-  }
-}
 /* On mobile, bot message takes full width and hides avatar */
 /* Hide avatar on mobile and expand message width */
 @media (max-width: 768px) {
