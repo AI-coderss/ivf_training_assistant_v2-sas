@@ -1,14 +1,37 @@
 .page-container {
   width: 100%;
-  height: 100vh; /* Use min-height to ensure content dictates height */
-  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.content-layout {
+  display: flex;
+  width: 100%;
+  flex: 1;
+  flex-wrap: nowrap;
+}
+
+.viewer-column {
+  flex-grow: 1;
+  width: 100%;
+  padding: 20px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.viewer-column.with-assistant {
+  width: calc(100% - 350px);
+  margin-right: 20px;
+}
+
+.voice-column {
+  width: 0;
+  min-width: 0;
   padding: 0;
   box-sizing: border-box;
-  background: #FFFFFF;
-  overflow-x: hidden;
-  display: flex; /* Make page-container a flex container */
-  flex-direction: column; /* Stack children vertically */
-  overflow: hidden;
 }
 
 .toggle-voice-btn {
@@ -16,84 +39,179 @@
   bottom: 32px;
   right: 32px;
   z-index: 1000;
-  padding: 8px 16px; /* Reduced padding for smaller size */
-  background: #007BFF;
+  padding: 8px 16px;
+  background: #007bff;
   border: none;
   border-radius: 8px;
   color: white;
   font-weight: 600;
-  font-size: 14px; /* Slightly smaller font */
+  font-size: 14px;
   cursor: pointer;
   transition: transform 0.2s ease, background 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  display: inline-block;
-  margin: 0;
 }
 
 .toggle-voice-btn:hover {
-  background:#007BFF;
-  transform: translateY(-2px); /* Slightly increased lift */
+  transform: translateY(-2px);
 }
 
 .toggle-voice-btn:active {
-  transform: scale(0.96); /* Slightly more pronounced active state */
+  transform: scale(0.96);
 }
 
-.content-layout {
-  display: flex;
-  width: 100%;
-  flex: 1; /* Allow content-layout to take available vertical space */
-  justify-content: flex-start; /* Align items to the start */
-  align-items: flex-start; /* Align items to the start vertically */
-  padding: 0;
-  margin: 0;
-  flex-wrap: nowrap;
-}
-
-.viewer-column {
-  flex-grow: 2; /* Allow viewer-column to grow and take available space */
-  width: 100%; /* Default width */
-  transition: width 0.3s ease, margin-right 0.3s ease; /* Add transition for smooth margin change */
-  padding: 20px;
-  box-sizing: border-box;
-  overflow: hidden; /* Hide overflow if content is too wide */
-}
-
-.viewer-column.with-assistant {
-  width: calc(100% - 350px); /* Adjust width to account for max-width of voice assistant */
-  margin-right: 20px; /* Added margin-right to separate from Voice Assistant */
-  /* This value should match the max-width set in VoiceAssistant.css for consistent layout */
-}
-
-.voice-column {
-  /* This column is mainly for the VoiceAssistant component to render into if it's not absolutely positioned */
-  width: 0; /* Set to 0 by default, it will be controlled by the VoiceAssistant's position */
-  min-width: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-.carousel-section {
-  padding: 20px;
-  box-sizing: border-box;
-  width: 100%; /* Ensure carousel takes full width */
-}
-
-/* Responsive Adjustments */
 @media (max-width: 1024px) {
   .content-layout {
-    flex-direction: column-reverse; /* Stack elements vertically on smaller screens */
+    flex-direction: column-reverse;
   }
 
   .viewer-column,
   .viewer-column.with-assistant,
   .voice-column {
-    width: 100%; /* Full width on smaller screens */
+    width: 100%;
     padding: 10px;
-    margin-right: 0; /* Remove margin-right on smaller screens */
+    overflow-y: auto;
+    margin-right: 0;
   }
 
-  .carousel-section {
+  .viewer-column,
+  .viewer-column.with-assistant {
+    padding-bottom: 80px;
+  }
+
+  .bookshelf-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    padding: 0 10px;
+    box-sizing: border-box;
+  }
+
+  .bookshelf-wrapper {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: max-content;
+  }
+
+  .bookshelf-wrapper::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .bookshelf-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+
+  .book-item {
+    flex: 0 0 auto;
+    min-width: 140px;
+    margin: 0 10px;
+  }
+}
+
+.toggle-bookshelf-btn {
+  position: fixed;
+  top: 87px;
+  left: 16px;
+  z-index: 1001;
+  background-color: #edf2fa;
+  color: black;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 10px 10px 12px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 1025px) {
+  .toggle-bookshelf-btn {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .toggle-voice-btn {
+    bottom: 10px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Optional overrides for tablets */
+  .toggle-bookshelf-btn {
+    top: 90px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+    .bookshelf {
+        margin-top: 2px;
+        padding: 6px;
+    }
+}
+
+@media (min-width: 820px) and (max-width: 1400px) {
+  /* Same bookshelf style as mobile */
+  .content-layout {
+    flex-direction: column-reverse;
+  }
+
+  .viewer-column,
+  .viewer-column.with-assistant,
+  .voice-column {
+    width: 100%;
     padding: 10px;
+    overflow-y: auto;
+    margin-right: 0;
+  }
+
+  .viewer-column,
+  .viewer-column.with-assistant {
+    padding-bottom: 80px;
+  }
+
+  .bookshelf-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    padding: 0 10px;
+    box-sizing: border-box;
+  }
+
+  .bookshelf-wrapper {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: max-content;
+  }
+
+  .bookshelf-wrapper::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .bookshelf-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+
+  .book-item {
+    flex: 0 0 auto;
+    min-width: 140px;
+    margin: 0 10px;
+  }
+
+  /* Show the toggle button */
+  .toggle-bookshelf-btn {
+    display: block;
+  }
+
+  /* Adjust toggle voice button for this range */
+  .toggle-voice-btn {
+    bottom: 10px;
   }
 }
