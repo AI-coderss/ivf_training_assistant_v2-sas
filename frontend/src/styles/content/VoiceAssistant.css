@@ -175,14 +175,6 @@
 
   }
 }
-<<<<<<< HEAD
-@media (max-width: 768px) {
-  *,
-  *::before,
-  *::after {
-    animation: none !important;
-    transition: none !important;
-=======
 
 .waveform-container {
   width: 100%;
@@ -256,6 +248,5 @@
   100% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(1.7);
->>>>>>> origin/zaviyaar-version
   }
 }

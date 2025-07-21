@@ -172,6 +172,7 @@ export const useRealtimeVoiceWithStop = ({
     return () => {
       endSession();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase, model, voice, system, context, endSession]);
 
   return {
