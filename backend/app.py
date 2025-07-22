@@ -35,7 +35,8 @@ CORS(app, resources={
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
-}) 
+}, supports_credentials=True)
+
 app.register_blueprint(bp_realtime, url_prefix="/api")
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
