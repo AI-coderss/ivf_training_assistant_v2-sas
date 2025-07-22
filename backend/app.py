@@ -26,11 +26,14 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:3000"],
-        "allow_headers": ["Content-Type", "X-Client-Secret"]
+        "origins": "https://ivf-virtual-training-assistant-dsah.onrender.com",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
     },
     r"/ocr": {
-        "origins": ["http://localhost:3000"]
+        "origins": "https://ivf-virtual-training-assistant-dsah.onrender.com",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
     }
 }) 
 app.register_blueprint(bp_realtime, url_prefix="/api")
