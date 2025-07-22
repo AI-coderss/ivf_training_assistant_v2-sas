@@ -83,9 +83,35 @@
   overflow: visible;
 }
 
+.mic-icon-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 80px; /* Adjusted for new button size */
+  height: 80px; /* Adjusted for new button size */
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid #007BFF;
+  opacity: 0.5;
+  pointer-events: none;
+  animation: mic-radiate 1.2s infinite;
+}
 
-
-
+@keyframes mic-radiate {
+  0% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 0.2;
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+}
 
 .mic-icon-btn:hover {
   background-color: #0069d9;
