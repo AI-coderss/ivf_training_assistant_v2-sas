@@ -210,7 +210,6 @@
 
 .waveform-container canvas {
   width: 100% !important;
-  height: 120px !important;
   display: block;
   border-radius: 10px;
 }
