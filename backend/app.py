@@ -24,14 +24,10 @@ from routes.ocr_routes import ocr_bp
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={
-    r"/api/*": {
-        "origins": "https://ivf-virtual-training-assistant-dsah.onrender.com",
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    }
- 
-}, supports_credentials=True)
+# Configure CORS to allow all origins (for development only)
+CORS(app, origins=["http://localhost:3000", "https://ivf-virtual-training-assistant-dsah.onrender.com"],
+     methods=["GET", "POST", "OPTIONS"], supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"])
 
 app.register_blueprint(bp_realtime, url_prefix="/api")
 chat_sessions = {}
