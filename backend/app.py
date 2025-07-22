@@ -25,9 +25,18 @@ load_dotenv()
 
 app = Flask(__name__)
 # Configure CORS to allow all origins (for development only)
-CORS(app, origins=["http://localhost:3000", "https://ivf-virtual-training-assistant-dsah.onrender.com"],
-     methods=["GET", "POST", "OPTIONS"], supports_credentials=True,
-     allow_headers=["Content-Type", "Authorization"])
+CORS(app, resources={
+    r"/api/*": {
+        "origins": "https://ivf-virtual-training-assistant-dsah.onrender.com",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    },
+    r"/ocr": {
+        "origins": "https://ivf-virtual-training-assistant-dsah.onrender.com",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 app.register_blueprint(bp_realtime, url_prefix="/api")
 chat_sessions = {}
