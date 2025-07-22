@@ -29,12 +29,8 @@ CORS(app, resources={
         "origins": "https://ivf-virtual-training-assistant-dsah.onrender.com",
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
-    },
-    r"/ocr": {
-        "origins": "https://ivf-virtual-training-assistant-dsah.onrender.com",
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
     }
+ 
 }, supports_credentials=True)
 
 app.register_blueprint(bp_realtime, url_prefix="/api")
