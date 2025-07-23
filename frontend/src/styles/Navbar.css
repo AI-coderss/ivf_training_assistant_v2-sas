@@ -182,7 +182,7 @@ transform: translateX(115%);
   display: flex;
   flex-direction: column;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  z-index: 1003;
+  z-index: 1006;
 }
 
 .mobileNavItem {
@@ -192,6 +192,7 @@ transform: translateX(115%);
   text-align: left;
   text-decoration: none;
   width: 100%;
+  z-index: 1007;
 }
 
 .mobileNavItem:hover {
