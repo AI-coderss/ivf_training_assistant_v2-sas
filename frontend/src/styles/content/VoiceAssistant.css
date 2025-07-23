@@ -60,6 +60,7 @@
   position: relative; /* If you have other items in footer to position relatively */
 }
 
+
 .mic-icon-btn {
   margin-bottom: 80px;
   background-color: #007BFF;
@@ -177,14 +178,7 @@
     margin-top: 1rem;
   }
 
-  .mic-icon-btn {
-  display: block;
-  margin: 0 auto 20px auto;
-  position: relative;
-  left: auto;
-  bottom: auto;
-  transform: none;
-}
+
 
 
   .close-btn {
@@ -273,5 +267,18 @@
   100% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(1.7);
+  }
+}
+/* Responsive layout for mobile */
+@media (max-width: 768px) {
+  .mic-icon-btn {
+    position: fixed;
+    bottom: 80px;            /* Float above other UI (e.g., menu or chat input) */
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    max-width: 90%;
+    padding: 12px 20px;
+    font-size: 18px;
   }
 }

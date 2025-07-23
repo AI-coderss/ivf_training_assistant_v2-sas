@@ -115,7 +115,7 @@
   position: fixed;
   top: 87px;
   left: 16px;
-  z-index: 1001;
+  z-index: 1;
   background-color: #edf2fa;
   color: black;
   padding: 8px 14px;
@@ -129,12 +129,13 @@
 @media (min-width: 1025px) {
   .toggle-bookshelf-btn {
     display: none;
+    
   }
 }
 
 @media (max-width: 1024px) {
   .toggle-voice-btn {
-    bottom: 10px;
+    margin-bottom: 25px;
   }
 }
 

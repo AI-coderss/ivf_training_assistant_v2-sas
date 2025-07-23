@@ -119,6 +119,7 @@
   display: flex;
   justify-content: flex-end;
   padding: 0.5rem 1rem;
+ 
 }
 
 .ocr-toggle-button {
@@ -133,13 +134,14 @@
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.2s ease;
   box-shadow: 10px 10px 12px rgba(0, 0, 0, 0.1);
+  
 }
 
 .select-text-btn {
   position: fixed;
   top: 87px;
   right: 16px;
-  z-index: 1001;
+  z-index: 1;
   background-color: #edf2fa;
   color: black;
   padding: 8px 14px;
@@ -148,6 +150,7 @@
   font-weight: 600;
   font-size: 13px;
   box-shadow: 10px 10px 12px rgba(0, 0, 0, 0.1);
+
 }
 
 .select-text-btn:hover {
