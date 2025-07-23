@@ -180,6 +180,7 @@ OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 * ✅ Typing indicator for AI response
 * ✅ Text-to-speech responses for hands-free mode
 * ✅ PDF summary download per session
+* ✅ PDF Immersive Reader with summary & quizes
 * ✅ Medical quiz scoring and progress tracker
 
 ---
