@@ -24,16 +24,18 @@ from routes.ocr_routes import ocr_bp
 load_dotenv()
 
 app = Flask(__name__)
-# CORS(app, resources={
-#     r"/api/*": {
-#         "origins": ["http://localhost:3000"],
-#         "allow_headers": ["Content-Type", "X-Client-Secret"]
-#     },
-#     r"/ocr": {
-#         "origins": ["http://localhost:3000"]
-#     }
-# })
-CORS(app, origins=["https://ivf-virtual-training-assistant-dsah.onrender.com","http://localhost:3000"])
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://ivf-virtual-training-assistant-dsah.onrender.com",
+            "http://localhost:3000"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
+
 app.register_blueprint(bp_realtime, url_prefix="/api")
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
