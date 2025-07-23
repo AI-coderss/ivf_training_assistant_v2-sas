@@ -136,6 +136,7 @@
 @media (max-width: 1024px) {
   .toggle-voice-btn {
     margin-bottom: 25px;
+    z-index: 10001;
   }
 }
 

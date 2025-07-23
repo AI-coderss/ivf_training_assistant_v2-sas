@@ -147,22 +147,20 @@
 /* 📱 Responsive */
 @media (max-width: 1024px) {
   .voice-assistant {
-    position: fixed;
+    position: absolute;
     width: 100%;
     max-width: none;
     height: auto;
     padding: 16px;
-    /* padding-top for static needs to consider where close button will be */
-    /* If close button remains absolute, its context changes. */
-    /* For static, you might need a different strategy or make parent relative. */
+    margin-top: 30px; /* Adjusted for mobile header */
     padding-top: 60px; /* Re-evaluate this based on mobile layout */
     padding-bottom: 70px; /* Re-evaluate for mic button */
     border-left: none;
     border-top: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-    margin-top: 20px;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+
     /* If .voice-assistant is static, you may want to make it relative
        if you intend to keep child buttons absolutely positioned *to it*. */
     /* position: relative; /* Consider this for mobile if buttons are still absolute */
@@ -181,19 +179,13 @@
 
 
 
-  .close-btn {
-    /* For mobile, top-right of a static full-width block.
-       If .voice-assistant becomes 'relative' in media query, this works: */
-    /* top: 10px; */
-    /* right: 10px; */
-    /* Or use a flex approach if it's part of a header bar */
-    /* For simplicity, let's assume for now it might also become static flow
-       or you make .voice-assistant relative in the media query */
-    position: absolute; /* Keep it absolute for this example, assuming parent becomes relative or you want it viewport-relative */
-    top: 10px;          /* Adjust for mobile */
-    right: 10px;         /* Adjust for mobile */
-
+.close-btn {
+    position: fixed;
+    bottom: 175px;  /* Above mic button */
+    right: 15px;
+    z-index: 1005;
   }
+
 }
 
 .waveform-container {
