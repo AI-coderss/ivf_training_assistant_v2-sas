@@ -33,7 +33,7 @@ export default function PdfFlipBookDesktop({ pdfUrl, width = 800, onOCRText, isA
 
     const playFlipSound = () => {
         const sound = new Audio("/page-flip.mp3");
-        sound.volume = 0.1; // Set volume to 50%
+        sound.volume = 0.01; // Set volume to 1%
         sound.play().catch((err) => console.warn("Flip sound error:", err));
     };
 

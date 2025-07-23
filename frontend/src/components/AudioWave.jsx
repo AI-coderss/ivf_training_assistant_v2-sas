@@ -12,7 +12,7 @@ const AudioWave = ({ stream, audioUrl, onEnded }) => {
     const ctx = canvas.getContext('2d');
     canvas.width = canvas.parentElement?.clientWidth || 600;
 
-    canvas.height = 350;
+    canvas.height = 300;
 
     const turbulenceFactor = 0.25;
     const maxAmplitude = canvas.height / 3.5;

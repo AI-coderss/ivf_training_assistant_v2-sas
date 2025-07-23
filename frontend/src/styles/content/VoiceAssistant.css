@@ -152,7 +152,7 @@
     max-width: none;
     height: auto;
     padding: 16px;
-    margin-top: 30px; /* Adjusted for mobile header */
+    margin-top: 160px; /* Adjusted for mobile header */
     padding-top: 60px; /* Re-evaluate this based on mobile layout */
     padding-bottom: 70px; /* Re-evaluate for mic button */
     border-left: none;
@@ -191,7 +191,7 @@
 .waveform-container {
   width: 100%;
   max-width: 100%;
-  margin-top: 25px;
+  margin-top: 15px;
 }
 
 .waveform-container canvas {

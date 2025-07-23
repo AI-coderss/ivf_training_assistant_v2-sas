@@ -19,7 +19,7 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
 
   const playClickSound = () => {
     const sound = new Audio("/page-flip.mp3");
-    sound.volume = 0.1; // Set volume to 50%
+    sound.volume = 0.01; // Set volume to 1%
     sound.play().catch((e) => {
       console.warn("Audio play failed:", e);
     });
