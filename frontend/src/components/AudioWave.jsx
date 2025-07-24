@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import '../styles/AudioWave.css'; 
+import React, { useEffect, useRef } from "react";
+import "../styles/AudioWave.css";
 const AudioWave = ({ audioUrl, onEnded }) => {
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
@@ -9,7 +9,7 @@ const AudioWave = ({ audioUrl, onEnded }) => {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = 350;
 
@@ -21,9 +21,9 @@ const AudioWave = ({ audioUrl, onEnded }) => {
 
     function createGradient() {
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-      gradient.addColorStop(0, 'rgba(255, 25, 255, 0.2)');
-      gradient.addColorStop(0.5, 'rgba(25, 255, 255, 0.75)');
-      gradient.addColorStop(1, 'rgba(255, 255, 25, 0.2)');
+      gradient.addColorStop(0, "rgba(255, 25, 255, 0.2)");
+      gradient.addColorStop(0.5, "rgba(25, 255, 255, 0.75)");
+      gradient.addColorStop(1, "rgba(255, 255, 25, 0.2)");
       return gradient;
     }
 
@@ -51,7 +51,8 @@ const AudioWave = ({ audioUrl, onEnded }) => {
           const amplitude = maxAmplitude * dampFactor * (1 - distanceFromMid);
           const isWaveInverted = j % 2 ? 1 : -1;
           const frequency = isWaveInverted * (0.05 + turbulenceFactor);
-          const y = baseLine + Math.sin(i * frequency + globalTime + j) * amplitude * v;
+          const y =
+            baseLine + Math.sin(i * frequency + globalTime + j) * amplitude * v;
 
           if (i === 0) {
             ctx.moveTo(x, y);
@@ -84,10 +85,11 @@ const AudioWave = ({ audioUrl, onEnded }) => {
     const setupAudioPlayback = () => {
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
-      audio.crossOrigin = 'anonymous';
+      audio.crossOrigin = "anonymous";
       audio.play();
 
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
       audioContextRef.current = audioContext;
 
       const analyser = audioContext.createAnalyser();
@@ -100,11 +102,14 @@ const AudioWave = ({ audioUrl, onEnded }) => {
 
       animate();
 
-      audio.addEventListener('ended', () => {
+      audio.addEventListener("ended", () => {
         onEnded();
         cancelAnimationFrame(animationFrameIdRef.current);
         // Check if the audioContext is still in a valid state before closing it
-        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        if (
+          audioContextRef.current &&
+          audioContextRef.current.state !== "closed"
+        ) {
           audioContextRef.current.close();
         }
       });
@@ -116,7 +121,10 @@ const AudioWave = ({ audioUrl, onEnded }) => {
 
     return () => {
       cancelAnimationFrame(animationFrameIdRef.current);
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      if (
+        audioContextRef.current &&
+        audioContextRef.current.state !== "closed"
+      ) {
         audioContextRef.current.close(); // Ensure it's not closed already
       }
     };

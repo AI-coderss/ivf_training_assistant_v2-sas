@@ -23,6 +23,7 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app, origins=["https://ivf-virtual-training-assistant-dsah.onrender.com"])
+# CORS(app, origins=["https://ivf-virtual-training-assistant-dsah.onrender.com","*"])
 
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
