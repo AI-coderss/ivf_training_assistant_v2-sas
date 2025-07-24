@@ -1,12 +1,4 @@
-.base-orb {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  margin-top: 45px;
-  position: fixed;
-  inset: 0;
-  margin-block: auto;
-}
+
 .top-center-orb {
   display: flex;
   justify-content: center;
@@ -19,11 +11,41 @@
   margin-bottom: 15vw; /* responsive bottom margin */
   box-sizing: border-box;
 }
-
+.mic-icon-btn {
+  position: fixed;
+  bottom: 80px; /* Float above other UI (e.g., menu or chat input) */
+  left: 50%;
+  z-index: 1000;
+  width: 60px; /* Adjusted size for better visibility */
+  height: 60px; /* Adjusted size for better visibility */
+  border-radius: 50%;
+  background-color: #0975e7 !important; /* Primary color */
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+}
+.closed-btn {
+  position: fixed;
+  margin-bottom:3vw; /* Adjusted for better visibility */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: 60px; /* Adjusted size for better visibility */
+  height: 60px; /* Adjusted size for better visibility */
+  border-radius: 50%;
+  background-color: #f3ebeb !important; 
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+}
 @media (max-width: 600px) {
   .top-center-orb {
     padding-top: 6vw;
-    margin-bottom: 88vw; /* increased bottom margin */
+    margin-bottom: 90vw; /* increased bottom margin */
     width: 60vw; /* reduce width on mobile */
     height: 60vw; /* set a smaller height on mobile */
     max-width: 95vw;

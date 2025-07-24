@@ -81,7 +81,7 @@ export default function VoiceAssistant({ isVisible, onClose, context }) {
 
       <div className="assistant-footer">
         <button
-          className={`mic-icon-btn ${micActive ? "mic-active" : ""}`}
+          className={`mic-btn ${micActive ? "mic-active" : ""}`}
           onMouseDown={handleMicPress}
           onMouseUp={handleMicRelease}
           onTouchStart={handleMicPress}
