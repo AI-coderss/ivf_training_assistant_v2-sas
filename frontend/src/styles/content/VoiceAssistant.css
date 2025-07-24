@@ -191,7 +191,7 @@
 .waveform-container {
   width: 100%;
   max-width: 100%;
-  margin-top: 15px;
+  margin-top: 2px;
 }
 
 .waveform-container canvas {

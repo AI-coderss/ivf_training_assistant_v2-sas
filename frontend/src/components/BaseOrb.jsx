@@ -201,7 +201,7 @@ const BaseOrb = () => {
        style={{
         backgroundColor: "#ffffff",
         borderRadius: "50%",
-        width: 700,
+        width: 600,
         height: "auto",
       }}
     />
