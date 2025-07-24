@@ -1,30 +1,39 @@
-/* canvas {
+.base-orb {
   display: block;
   margin-left: auto;
   margin-right: auto;
   margin-top: 45px;
   position: fixed;
-  top: 0;
-} */
+  inset: 0;
+  margin-block: auto;
+}
 .top-center-orb {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 4vw;           /* responsive top spacing */
+  padding-top: 4vw; /* responsive top spacing */
   width: 100%;
   max-width: 100vw;
   position: relative;
   background-color: white;
-  margin-bottom: 15vw;        /* responsive bottom margin */
+  margin-bottom: 15vw; /* responsive bottom margin */
   box-sizing: border-box;
 }
 
 @media (max-width: 600px) {
   .top-center-orb {
     padding-top: 6vw;
-    margin-bottom: 88vw;      /* increased bottom margin */
-    width: 60vw;              /* reduce width on mobile */
-    height: 60vw;             /* set a smaller height on mobile */
+    margin-bottom: 88vw; /* increased bottom margin */
+    width: 60vw; /* reduce width on mobile */
+    height: 60vw; /* set a smaller height on mobile */
     max-width: 95vw;
+  }
+  .base-orb {
+    inset: unset;
+  }
+  .mic-icon-btn {
+    position: relative !important;
+    left: 0px !important;
+    top: 0px;
   }
 }

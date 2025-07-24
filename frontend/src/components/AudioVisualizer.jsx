@@ -12,7 +12,8 @@ const AudioVisualizer = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioContext = new (window.AudioContext ||
+      window.webkitAudioContext)();
     const analyser = audioContext.createAnalyser();
     const source = audioContext.createMediaStreamSource(audioUrl);
 
@@ -22,8 +23,8 @@ const AudioVisualizer = () => {
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
-    const WIDTH = canvas.width = 800;
-    const HEIGHT = canvas.height = 350;
+    const WIDTH = (canvas.width = 800);
+    const HEIGHT = (canvas.height = 350);
 
     const barWidth = (WIDTH / bufferLength) * 2.5;
     let animationId;
@@ -37,7 +38,12 @@ const AudioVisualizer = () => {
       let x = 0;
       for (let i = 0; i < bufferLength; i++) {
         const barHeight = dataArray[i];
-        const gradient = ctx.createLinearGradient(x, HEIGHT - barHeight, x, HEIGHT);
+        const gradient = ctx.createLinearGradient(
+          x,
+          HEIGHT - barHeight,
+          x,
+          HEIGHT
+        );
         gradient.addColorStop(0, "#0f0");
         gradient.addColorStop(0.5, "#ff0");
         gradient.addColorStop(1, "#f00");

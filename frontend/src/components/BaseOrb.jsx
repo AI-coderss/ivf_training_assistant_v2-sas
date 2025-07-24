@@ -1,9 +1,15 @@
 import React, { useEffect, useRef } from "react";
 import "../styles/BaseOrb.css";
+import useAudioForVisualizerStore from "../store/useAudioForVisualizerStore";
+import { enhanceAudioScale } from "./audioLevelAnalyzer";
 
-const BaseOrb = ({ audioScale = 1 }) => {
+const BaseOrb = () => {
   const canvasRef = useRef(null);
+  const audioScale = useAudioForVisualizerStore((state) =>
+    enhanceAudioScale(state.audioScale)
+  );
 
+  console.log(audioScale);
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !canvas.getContext) return;
@@ -11,7 +17,7 @@ const BaseOrb = ({ audioScale = 1 }) => {
 
     // Settings
     let sphereRad = 280;
-    let radius_sp = audioScale;
+    let radius_sp = audioScale / 2;
 
     const fLen = 320;
     const projCenterX = canvas.width / 2;
@@ -67,7 +73,7 @@ const BaseOrb = ({ audioScale = 1 }) => {
         stuckTime: 90 + Math.random() * 20,
         accelX: 0,
         accelY: gravity,
-        accelZ: 0
+        accelZ: 0,
       });
 
       return p;
@@ -92,7 +98,8 @@ const BaseOrb = ({ audioScale = 1 }) => {
 
     const onFrame = () => {
       requestAnimationFrame(onFrame);
-      radius_sp = audioScale;
+      const raw = useAudioForVisualizerStore.getState().audioScale;
+      radius_sp = Math.max(0.7, enhanceAudioScale(raw));
 
       if (++count >= 1) {
         count = 0;
@@ -102,7 +109,14 @@ const BaseOrb = ({ audioScale = 1 }) => {
           const x0 = sphereRad * Math.sin(phi) * Math.cos(theta);
           const y0 = sphereRad * Math.sin(phi) * Math.sin(theta);
           const z0 = sphereRad * Math.cos(phi);
-          addParticle(x0, y0, -3 - sphereRad + z0, 0.002 * x0, 0.002 * y0, 0.002 * z0);
+          addParticle(
+            x0,
+            y0,
+            -3 - sphereRad + z0,
+            0.002 * x0,
+            0.002 * y0,
+            0.002 * z0
+          );
         }
       }
 
@@ -127,32 +141,42 @@ const BaseOrb = ({ audioScale = 1 }) => {
         }
 
         const rotX = cosAngle * p.x + sinAngle * (p.z + sphereRad + 3);
-        const rotZ = -sinAngle * p.x + cosAngle * (p.z + sphereRad + 3) - sphereRad - 3;
-        const m = radius_sp * fLen / (fLen - rotZ);
+        const rotZ =
+          -sinAngle * p.x + cosAngle * (p.z + sphereRad + 3) - sphereRad - 3;
+        const m = (radius_sp * fLen) / (fLen - rotZ);
         p.projX = rotX * m + projCenterX;
         p.projY = p.y * m + projCenterY;
 
         if (p.age < p.attack + p.hold + p.decay) {
           if (p.age < p.attack) {
-            p.alpha = (p.holdValue - p.initValue) / p.attack * p.age + p.initValue;
+            p.alpha =
+              ((p.holdValue - p.initValue) / p.attack) * p.age + p.initValue;
           } else if (p.age < p.attack + p.hold) {
             p.alpha = p.holdValue;
           } else {
-            p.alpha = (p.lastValue - p.holdValue) / p.decay * (p.age - p.attack - p.hold) + p.holdValue;
+            p.alpha =
+              ((p.lastValue - p.holdValue) / p.decay) *
+                (p.age - p.attack - p.hold) +
+              p.holdValue;
           }
         } else {
           p.dead = true;
         }
 
-        const outOfView = (
-          p.projX > canvas.width || p.projX < 0 ||
-          p.projY > canvas.height || p.projY < 0 || rotZ > zMax
-        );
+        const outOfView =
+          p.projX > canvas.width ||
+          p.projX < 0 ||
+          p.projY > canvas.height ||
+          p.projY < 0 ||
+          rotZ > zMax;
 
         if (outOfView || p.dead) {
           recycle(p);
         } else {
-          const depthAlphaFactor = Math.min(1, Math.max(0, 1 - rotZ / zeroAlphaDepth));
+          const depthAlphaFactor = Math.min(
+            1,
+            Math.max(0, 1 - rotZ / zeroAlphaDepth)
+          );
           context.fillStyle = rgbString + depthAlphaFactor * p.alpha + ")";
           context.beginPath();
           context.arc(p.projX, p.projY, m * particleRad, 0, 2 * Math.PI);
@@ -164,16 +188,21 @@ const BaseOrb = ({ audioScale = 1 }) => {
     };
 
     requestAnimationFrame(onFrame);
-  }, [audioScale]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <canvas
+      className="base-orb"
+      id="base-orb"
       ref={canvasRef}
       width={500}
       height={500}
-      style={{
+       style={{
         backgroundColor: "#ffffff",
         borderRadius: "50%",
+        width: 700,
+        height: "auto",
       }}
     />
   );
