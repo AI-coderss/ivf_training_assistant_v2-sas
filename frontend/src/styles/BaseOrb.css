@@ -1,12 +1,4 @@
-.base-orb {
-  position: fixed;
-  transform: translate(-50%, -50%);
-  left: 50%;
-  top: 35%;
-  margin-bottom: 60vw;
-   /* Adjusted for better visibility */
-  
-}
+
 .top-center-orb {
   display: flex;
   justify-content: center;
@@ -58,11 +50,7 @@
     height: 60vw; /* set a smaller height on mobile */
     max-width: 95vw;
   }
-  .base-orb {
-    left: 50%;
-    top: 40%;
-    margin-bottom: 70vw; /* Adjusted for better visibility */
-  }
+
   .mic-icon-btn {
     position: relative !important;
     left: 0px !important;
