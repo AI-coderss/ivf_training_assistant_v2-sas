@@ -554,8 +554,8 @@
 }
 
 .mic-icon-btn.active {
-  background-color: #ff5252;
-  color: white;
+  background-color: #07f562 !important;
+  color: rgb(2, 2, 2) !important;
 }
 
 .mic-icon-btn:hover {
