@@ -215,7 +215,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
 
   // Fetch TTS timings for highlighting
   const fetchTimings = async (chunkText) => {
-    const res = await fetch("http://127.0.0.1:5001/tts-timings", {
+    const res = await fetch("https://immersive-reader-realtime-tts-server.onrender.com/tts-timings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: chunkText }),
@@ -227,7 +227,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
   // Fetch audio for a given chunk index
   const fetchChunkAudio = async (chunkIndex) => {
     if (!chunks[chunkIndex]) return null;
-    const res = await fetch("http://127.0.0.1:5001/tts-chunk", {
+    const res = await fetch("https://immersive-reader-realtime-tts-server.onrender.com/tts-chunk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: chunks[chunkIndex].text }),
