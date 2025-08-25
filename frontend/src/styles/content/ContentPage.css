@@ -129,13 +129,12 @@
 @media (min-width: 1025px) {
   .toggle-bookshelf-btn {
     display: none;
-    
   }
 }
 
 @media (max-width: 1024px) {
   .toggle-voice-btn {
-    margin-bottom: 25px;
+    margin-bottom: 70px;
     z-index: 10001;
   }
 }
@@ -147,12 +146,16 @@
     font-size: 14px;
   }
 }
-
 @media (max-width: 480px) {
-    .bookshelf {
-        margin-top: 2px;
-        padding: 6px;
-    }
+  .page-container {
+    height: 114vh !important;
+  }
+}
+@media (max-width: 480px) {
+  .bookshelf {
+    margin-top: 2px;
+    padding: 6px;
+  }
 }
 
 @media (min-width: 820px) and (max-width: 1400px) {

@@ -9,7 +9,7 @@ tiktoken
 
 # Vector DB
 faiss-cpu
-
+PyMuPDF
 # PDF + Utils
 pypdf
 python-dotenv

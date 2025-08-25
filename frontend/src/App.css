@@ -6,8 +6,8 @@
 }
 
 body {
-  font-family: 'Segoe UI', Arial, sans-serif;
-background-color: #ffffff;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background-color: #ffffff;
 }
 
 a {
@@ -17,4 +17,83 @@ a {
 
 a:hover {
   text-decoration: underline;
+}
+
+.highlighted {
+  background: yellow;
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.glass-card {
+  position: relative;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  color: white;
+  font-family: Arial, sans-serif;
+  background-color: #80808047;
+  width: 60%;
+  margin: 0 auto;
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.1) 30%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+@media screen and (max-width: 767px) {
+  .glass-card {
+    width: 100% !important;
+  }
+  .glass-card label {
+    font-size: 11px !important;
+  }
+  .glass-card button {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  .glass-card {
+    width: 97% !important;
+    flex-wrap: nowrap !important;
+    position: fixed;
+    bottom: 0;
+    left: 6px;
+    padding: 9px 8px !important;
+  }
+}
+@media screen and (max-width: 1024px) {
+  .glass-card {
+    width: 97% !important;
+    flex-wrap: nowrap !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  .pdf-nav-buttons {
+    position: fixed;
+    bottom: 90px;
+  }
 }
