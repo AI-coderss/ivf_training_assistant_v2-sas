@@ -4,6 +4,7 @@ import { useRealtimeVoiceWithStop } from "../../hooks/useRealtimeVoice";
 import AudioWave from "../AudioWave";
 import { toast } from "react-toastify";
 import "../../styles/content/VoiceAssistant.css";
+import BaseOrb from "../BaseOrb"; // ← added
 
 export default function VoiceAssistant({ isVisible, onClose, context }) {
   const audioRef = useRef(null);
@@ -67,7 +68,11 @@ export default function VoiceAssistant({ isVisible, onClose, context }) {
         </div>
       )}
 
-      <img src="/av.gif" alt="AI Orb" className="assistant-orb" />
+      {/* Replaced the GIF with BaseOrb, keeping the same container class for identical layout */}
+      <div className="assistant-orb">
+        <BaseOrb />
+      </div>
+
       <div className="assistant-content">
         {error && <p className="error">{error}</p>}
         <p>{transcript}</p>
