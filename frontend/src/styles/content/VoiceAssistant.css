@@ -15,29 +15,87 @@
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  /* justify-content: space-between; *//* We might not need this if footer is just for mic */
+  /* justify-content: space-between; */ /* We might not need this if footer is just for mic */
   box-sizing: border-box;
   margin-top: 0;
   /* padding-top is adjusted to ensure content clears the new close button and potential orb */
   padding-top: 70px; /* Increased to make space for close button + orb considerations */
   /* Add padding-bottom to ensure content doesn't go under the mic button */
   padding-bottom: 80px; /* Adjust based on mic button size and desired spacing */
+
+  /* ✅ Orb sizing variables so the outer ring has room */
+  --orb-size: 240px;              /* canvas diameter */
+  --orb-ring-size: calc(var(--orb-size) + 36px); /* outer ring diameter */
 }
 
+/* Orb container (now holds <BaseOrb /> canvas) */
 .assistant-orb {
   position: absolute;
   top: 30%; /* Center vertically */
   left: 50%;
   transform: translate(-50%, -50%); /* Center horizontally and pull half its height up */
-  width: 180px; /* Adjust size as needed for your GIF */
-  height: 180px; /* Adjust size as needed for your GIF */
-  border-radius: 50%; /* Make it circular */
-  object-fit: cover; /* Ensures the GIF covers the circle */
+  width: var(--orb-size);
+  height: var(--orb-size);
+  border-radius: 50%;
+  object-fit: cover; /* harmless with canvas; kept to preserve original intent */
   z-index: 1001; /* Ensure it's above other elements in the assistant */
+  overflow: visible; /* ✅ allow the outer ring to extend beyond the orb */
+  pointer-events: none; /* orb & ring visuals shouldn't block clicks below */
 }
 
+/* Ensure BaseOrb canvas fills the container perfectly */
+.assistant-orb .base-orb {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ✅ Outer ring around the orb — lightened blue */
+.assistant-orb::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--orb-ring-size);
+  height: var(--orb-ring-size);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 2px solid rgba(0, 123, 255, 0.28); /* lighter, less concentrated */
+  filter: drop-shadow(0 0 12px rgba(0, 123, 255, 0.20)); /* lighter glow */
+  pointer-events: none;
+}
+
+/* Subtle animated halo glow — lightened */
+.assistant-orb::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--orb-ring-size);
+  height: var(--orb-ring-size);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(0, 123, 255, 0.06) 0%,
+    rgba(0, 123, 255, 0.04) 40%,
+    rgba(0, 123, 255, 0.01) 70%,
+    transparent 80%
+  );
+  animation: orb-halo 2.8s ease-in-out infinite;
+}
+
+@keyframes orb-halo {
+  0%   { transform: translate(-50%, -50%) scale(0.98); opacity: 0.7; }
+  50%  { transform: translate(-50%, -50%) scale(1.02); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.7; }
+}
+
+/* Give content enough top margin to clear the larger orb + ring */
 .assistant-content {
-  margin-top: 200px;
+  margin-top: calc(var(--orb-ring-size) + 24px);
   flex: 1; /* Enable scrolling for content if it overflows */
   padding-right: 10px; /* Add some padding for scrollbar */
   color: #333; /* Ensure content is visible */
@@ -59,7 +117,6 @@
   width: 100%; /* Ensure it takes width if still used for other non-positioned items */
   position: relative; /* If you have other items in footer to position relatively */
 }
-
 
 .mic-btn {
   margin-bottom: 80px;
@@ -176,16 +233,12 @@
     margin-top: 1rem;
   }
 
-
-
-
-.close-btn {
+  .close-btn {
     position: fixed;
     bottom: 175px;  /* Above mic button */
     right: 15px;
     z-index: 1005;
   }
-
 }
 
 .waveform-container {
@@ -231,6 +284,7 @@
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
 .mic-btn.mic-active {
   background-color: #10b981;
   box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3);
@@ -261,6 +315,7 @@
     transform: translate(-50%, -50%) scale(1.7);
   }
 }
+
 /* Responsive layout for mobile */
 @media (max-width: 768px) {
   .mic-btn {
