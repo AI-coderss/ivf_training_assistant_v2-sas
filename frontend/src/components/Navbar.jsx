@@ -21,7 +21,7 @@ const Navbar = () => {
   );
 
   useEffect(() => {
-    navSoundRef.current = new Howl({ src: ["/nav.wav"], volume: 0.05 });
+    navSoundRef.current = new Howl({ src: ["/nav.wav"], volume: 0.01 });
     return () => {
       try { navSoundRef.current?.unload(); } catch (_) {}
     };
