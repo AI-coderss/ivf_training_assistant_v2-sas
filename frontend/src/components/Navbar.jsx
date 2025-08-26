@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Howl } from "howler";
 import "../styles/Navbar.css";
@@ -6,115 +6,128 @@ import "../styles/Navbar.css";
 const Navbar = () => {
   const location = useLocation();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const navSoundRef = useRef(null);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const menuItems = [
-    { label: "Home 🏠", path: "/" },
-    { label: "Quizzes 🧠", path: "/quizzes" },
-    //{ label: "Summaries 📚", path: "/summaries" },
-    { label: "Digital Content 🎥", path: "/content" },
-    { label: "Talk to Avatar 🤖", path: "/avatar" },
-  ];
+  const menuItems = useMemo(
+    () => [
+      { label: "Home 🏠", path: "/" },
+      { label: "Quizzes 🧠", path: "/quizzes" },
+      // { label: "Summaries 📚", path: "/summaries" },
+      { label: "Digital Content 🎥", path: "/content" },
+      { label: "Talk to Avatar 🤖", path: "/avatar" },
+    ],
+    []
+  );
 
-  // Sound effect on navigation
-  const navSound = new Howl({
-    src: ["/nav.wav"],
-    volume: 0.05,
-  });
-
-  // Set the active index based on current route
   useEffect(() => {
-    const index = menuItems.findIndex((item) => item.path === location.pathname);
-    setActiveIndex(index >= 0 ? index : 0);
+    navSoundRef.current = new Howl({ src: ["/nav.wav"], volume: 0.05 });
+    return () => {
+      try { navSoundRef.current?.unload(); } catch (_) {}
+    };
+  }, []);
+
+  useEffect(() => {
+    const i = menuItems.findIndex((it) => it.path === location.pathname);
+    setActiveIndex(i >= 0 ? i : 0);
+    setMenuOpen(false);
   }, [location.pathname, menuItems]);
 
-  // Handle window resize
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    handleResize(); // Initial check
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    document.body.classList.toggle("nav-lock", menuOpen);
+    const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
+    if (menuOpen) document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   const handleNavigation = (index) => {
     setActiveIndex(index);
     setMenuOpen(false);
-    navSound.play();
-  };
-
-  const toggleMenu = () => {
-    setMenuOpen((prev) => !prev);
+    navSoundRef.current?.play();
   };
 
   return (
-    <div className="nav">
-      <div className="navLogo">
-        <img src="./logo.png" alt="logo" height="80px" width="auto" />
+    <nav className="nav" role="navigation" aria-label="Main">
+      {/* Left: Brand */}
+      <div className="nav__brand">
+        <Link to="/" className="nav__logo" aria-label="Home">
+          <img src="./logo.png" alt="logo" />
+        </Link>
       </div>
 
-      {isMobile ? (
-        // Mobile: Hamburger Menu
-        <div className="burgerMenu">
-          <div className="burgerIcon" onClick={toggleMenu}>
-            <div className="bar" />
-            <div className="bar" />
-            <div className="bar" />
-          </div>
-          {menuOpen && (
-            <div className="dropdownMenu">
-              {menuItems.map((item, index) => (
-                <Link
-                  to={item.path}
-                  key={index}
-                  className={`mobileNavItem ${activeIndex === index ? "active" : ""}`}
-                  onClick={() => handleNavigation(index)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        // Desktop: Full Menu with Active Tab Animation
-        <div className="navItemContainer">
-          {menuItems.map((item, index) => (
+      {/* Center: Desktop links */}
+      <ul className="nav__links" role="menubar">
+        {menuItems.map((item, idx) => (
+          <li key={item.path} role="none">
             <Link
               to={item.path}
-              key={index}
-              className={`navItem ${activeIndex === index ? "active" : ""}`}
-              onClick={() => handleNavigation(index)}
+              role="menuitem"
+              className={`nav__link ${activeIndex === idx ? "active" : ""}`}
+              onClick={() => handleNavigation(idx)}
+            >
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      {/* Right: Hamburger (mobile) */}
+      <button
+        className={`nav__hamburger ${menuOpen ? "is-open" : ""}`}
+        aria-label="Open menu"
+        aria-controls="mobile-drawer"
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen((v) => !v)}
+      >
+        <span />
+        <span />
+        <span />
+      </button>
+
+      {/* Mobile overlay + drawer */}
+      <div
+        className={`nav__overlay ${menuOpen ? "show" : ""}`}
+        onClick={() => setMenuOpen(false)}
+      />
+      <aside
+        id="mobile-drawer"
+        className={`nav__drawer ${menuOpen ? "open" : ""}`}
+        aria-hidden={!menuOpen}
+      >
+        <div className="nav__drawerHeader">
+          <img src="./logo.png" alt="logo" />
+          <button
+            className="nav__close"
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+          >
+            ×
+          </button>
+        </div>
+
+        <nav className="nav__drawerMenu" role="menu">
+          {menuItems.map((item, idx) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              role="menuitem"
+              className={`nav__drawerLink ${
+                activeIndex === idx ? "active" : ""
+              }`}
+              onClick={() => handleNavigation(idx)}
             >
               {item.label}
             </Link>
           ))}
-
-          <div
-            className="navItemActiveContainer"
-            style={{ transform: `translateX(${activeIndex * 200}px)` }} // 200px = .navItem width
-          >
-            <div className="navItemActive">
-              <div className="navItemActiveLeft"></div>
-              <div className="navItemActiveCenter"></div>
-              <div className="navItemActiveRight"></div>
-            </div>
-            <div className="navItemActive">
-              <div className="navItemActiveCopyLeft"></div>
-              <div className="navItemActiveCopyCenter"></div>
-              <div className="navItemActiveCopyRight"></div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+        </nav>
+      </aside>
+    </nav>
   );
 };
 
 export default Navbar;
+
+
+
 
 

@@ -162,7 +162,7 @@ def tts_timings():
 def tts_chunk():
     data = request.json
     text = data.get("text", "")
-    voice = data.get("voice", "fable")
+    voice = data.get("voice", "ballad")
     model = "gpt-4o-mini-tts"
 
     if not text:
