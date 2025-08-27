@@ -41,25 +41,43 @@
   font-weight: 800;
   letter-spacing: 0.1px;
   color: #0f172a;
-  background: #fff;
+  /* Left-to-right hover overlay using layered background */
+  background:
+    linear-gradient(90deg, #007BFF, #007BFF) left / 0% 100% no-repeat,
+    #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px 12px 0 0;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.18s ease,
-    border-color 0.18s ease, background 0.18s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background-size 0.35s ease,
+    color 0.18s ease;
+  /* ensure initial sizes for both background layers */
+  background-size: 0% 100%, 100% 100%;
 }
+
 .tab-pill:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
   border-color: #d1d5db;
+  /* animate the blue overlay from left → right */
+  background-size: 100% 100%, 100% 100%;
+  color: #ffffff;
 }
+
+/* active/selected tab (kept intact; no overlay fill) */
 .tab-pill.is-active,
 .tab-pill[aria-selected="true"] {
   background: #fff;
   border-color: #c7d2fe;
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
   position: relative;
+  color: #0f172a;
 }
+
+/* keep active underline */
 .tab-pill.is-active::after,
 .tab-pill[aria-selected="true"]::after {
   content: "";
@@ -200,6 +218,7 @@
     font-size: 13px;
   }
 }
+
 @media (max-width: 480px) {
   .segmented {
     padding: 5px;
@@ -211,5 +230,9 @@
   .tile {
     height: 56px;
     font-size: 20px;
+  }
+  /* Slightly tighter gaps for small screens */
+  .tabs-bar {
+    gap: 10px;
   }
 }

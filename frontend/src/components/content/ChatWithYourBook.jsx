@@ -10,7 +10,7 @@ import "../../styles/content/ChatWithYourBook.css";
  * Opens only from the "Chat" tab. No floating icon.
  */
 const ChatWithYourBook = ({
-  endpoint = "/api/chat-with-book/stream",
+  endpoint = "chatwithbooks",
   open = false,
   onOpenChange,
 }) => {
