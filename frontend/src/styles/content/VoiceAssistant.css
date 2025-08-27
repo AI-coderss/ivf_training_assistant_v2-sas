@@ -1,32 +1,34 @@
 /* ============================
-   Voice Assistant — Ultra Glassmorphic
-   (Close button at top-right, mic SVG always white, no --ink var)
+   Voice Assistant — Clean White Card
+   (No glassmorphism; same layout; close btn pinned top-right;
+   mic icon always white; BRIGHT green when active)
    ============================ */
 
 :root{
-  /* Panel glass */
-  --glass-blur: 20px;                         /* strong frost */
-  --glass-bg-1: rgba(255,255,255,0.12);      /* very transparent */
-  --glass-bg-2: rgba(255,255,255,0.04);      /* very transparent */
-  --glass-border: rgba(255,255,255,0.26);
-  --panel-shadow: 0 22px 60px rgba(0,0,0,0.28);
-
-  /* FAB sizing & spacing */
-  --fab-size: 64px;                          /* mic diameter */
-  --fab-bottom: 20px;                        /* mic distance from bottom */
-  --ring-size: 102px;                        /* mic ring size */
+  /* Component sizing */
+  --fab-size: 64px;              /* mic diameter */
+  --fab-bottom: 20px;            /* mic distance from bottom */
+  --ring-size: 102px;            /* mic ring size */
 
   /* Accents */
-  --accent-blue-1: #2a6cf4;                  /* main blue (idle) */
-  --accent-blue-2: #1746c5;                  /* darker base (idle) */
-  --accent-green-1: #2ebf91;                 /* main green (active) */
-  --accent-green-2: #11998e;                 /* darker base (active) */
-  --accent-green-ring: rgba(16,185,129,0.65);
+  --accent-blue-1: #2a6cf4;      /* idle blue */
+  --accent-blue-2: #1746c5;
+
+  /* 🔆 BRIGHT neon green for ACTIVE */
+  --accent-green-1: #32ff7e;
+  --accent-green-2: #00d27f;
+  --accent-green-ring: rgba(50,255,126,0.85);
+
+  /* Card tokens */
+  --card-bg: #ffffff;
+  --card-ink: #0f172a;
+  --card-border: rgba(15,23,42,0.08);
+  --card-shadow: 0 22px 60px rgba(0,0,0,0.08);
 }
 
-/* ===== Panel shell ===== */
+/* ===== Panel shell (white card) ===== */
 .voice-assistant{
-  position: fixed;
+  position: fixed;                 /* docked to right; containing block for abs children */
   right: 0;
   top: 80px;
   width: 28%;
@@ -35,20 +37,13 @@
   padding: 20px;
   box-sizing: border-box;
 
-  /* Ultra glass */
-  background:
-    radial-gradient(120% 120% at 12% -30%, rgba(255,255,255,0.18), transparent 55%),
-    linear-gradient(135deg, var(--glass-bg-1), var(--glass-bg-2));
-  background-clip: padding-box;
-  backdrop-filter: saturate(140%) blur(var(--glass-blur));
-  -webkit-backdrop-filter: saturate(140%) blur(var(--glass-blur));
-  border-left: 1px solid var(--glass-border);
-  border-top: 1px solid rgba(255,255,255,0.18);
-  border-bottom: 1px solid rgba(255,255,255,0.18);
-  border-right: none;
-
-  box-shadow: var(--panel-shadow);
-  color: #0f172a; /* readable text color */
+  background: var(--card-bg);      /* solid white */
+  color: var(--card-ink);
+  border: 1px solid var(--card-border);
+  border-right: none;              /* flush with window edge (matches previous layout) */
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+  box-shadow: var(--card-shadow);
 
   display: flex;
   flex-direction: column;
@@ -59,65 +54,43 @@
   padding-bottom: calc(var(--fab-bottom) + var(--fab-size) + 16px);
 }
 
-/* Inner hairline + soft corner glow for depth */
-.voice-assistant::before,
-.voice-assistant::after{
-  content:"";
-  position:absolute;
-  pointer-events:none;
-}
-.voice-assistant::before{
-  inset:0;
-  border-radius:14px;
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.22),
-    inset 0 30px 60px rgba(255,255,255,0.08);
-}
-.voice-assistant::after{
-  top:-28px; left:-26px; width:200px; height:200px;
-  background: radial-gradient(circle at 28% 30%,
-    rgba(255,255,255,0.42), rgba(255,255,255,0.08) 60%, transparent 72%);
-  filter: blur(14px);
-  border-radius:50%;
-  opacity:.85;
-}
-
-/* ===== Close button — TOP RIGHT ===== */
+/* ===== Close button — pinned inside top-right of the panel ===== */
 .close-btn{
-  position:absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 1005;
+  position: absolute; /* relative to .voice-assistant */
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 10010;
 
   width: 42px; height: 42px;
-  border-radius:50%;
-  cursor:pointer;
-  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 50%;
+  cursor: pointer;
 
-  /* Glassy neutral with soft red tint */
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0.08)),
-    radial-gradient(70% 70% at 50% 25%, rgba(239,68,68,0.15), transparent 60%);
-  backdrop-filter: blur(10px) saturate(130%);
-  -webkit-backdrop-filter: blur(10px) saturate(130%);
+  background: #ffffff;
+  color: #ffffff;                   /* white × icon (SVG or font) */
+  border: 1px solid var(--card-border);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
 
-  color:#ffffff; /* white X icon/text */
-  display:flex; align-items:center; justify-content:center;
+  display: flex; align-items: center; justify-content: center;
   font-size: 1rem;
-
-  box-shadow:
-    0 10px 24px rgba(0,0,0,0.18),
-    inset 0 0 0 1px rgba(255,255,255,0.18);
-  transition: transform .15s ease, box-shadow .22s ease;
+  transition: transform .15s ease, box-shadow .22s ease, border-color .22s ease;
 }
 .close-btn:hover{
   transform: translateY(-2px);
-  box-shadow:
-    0 14px 30px rgba(0,0,0,0.22),
-    inset 0 0 0 1px rgba(255,255,255,0.22);
+  box-shadow: 0 12px 26px rgba(0,0,0,0.10);
+  border-color: rgba(239,68,68,0.35);
+}
+/* force the close icon to white regardless of library */
+.close-btn svg,
+.close-btn svg *,
+.close-btn i,
+.close-btn .icon,
+.close-btn [class*="icon"]{
+  fill:#ffffff !important;
+  stroke:#ffffff !important;
+  color:#ffffff !important;
 }
 
-/* ===== Orb ===== */
+/* ===== Orb (kept as before) ===== */
 .assistant-orb{
   position:absolute;
   top:30%;
@@ -136,8 +109,8 @@
   content:"";
   position:absolute; inset:0; margin:-18px;
   border-radius:50%;
-  border:2px solid rgba(42,108,244,0.28);
-  filter: drop-shadow(0 0 10px rgba(42,108,244,0.18));
+  border:2px solid rgba(42,108,244,0.18);
+  filter: drop-shadow(0 0 8px rgba(42,108,244,0.12));
   pointer-events:none;
 }
 .assistant-orb::after{
@@ -146,8 +119,8 @@
   border-radius:50%;
   pointer-events:none;
   background: radial-gradient(circle,
-    rgba(42,108,244,0.08) 0%,
-    rgba(42,108,244,0.04) 40%,
+    rgba(42,108,244,0.06) 0%,
+    rgba(42,108,244,0.03) 40%,
     rgba(42,108,244,0.01) 70%,
     transparent 80%);
   animation: orb-halo 2.8s ease-in-out infinite;
@@ -163,7 +136,7 @@
   margin-top: 264px;         /* orb diameter + ring padding */
   flex:1;
   padding-right:10px;
-  color: #0f172a;
+  color: var(--card-ink);
 }
 
 /* Optional footer container */
@@ -172,7 +145,7 @@
   position:relative;
 }
 
-/* ===== 3D Blue Mic FAB (centered) ===== */
+/* ===== Mic FAB (centered) ===== */
 .mic-btn{
   position:absolute;
   left:50%;
@@ -185,20 +158,19 @@
   border-radius:50%;
   border:none;
   cursor:pointer;
-  position: absolute;
-  isolation: isolate;              /* create stacking context so overlays can't tint icon */
+  isolation: isolate;
 
-  /* 3D blue: multi-layer gradient + hard base + rim */
+  /* 3D blue idle */
   background:
     radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.45), transparent 40%),
     linear-gradient(180deg, var(--accent-blue-1), var(--accent-blue-2));
   box-shadow:
-    0 14px 26px rgba(23,70,197,0.40),   /* deep drop shadow */
-    0 6px 10px rgba(23,70,197,0.35),
-    inset 0 -6px 10px rgba(0,0,0,0.25), /* inner depth */
-    inset 0 2px 3px rgba(255,255,255,0.45); /* top bevel */
+    0 14px 26px rgba(23,70,197,0.28),
+    0 6px 10px rgba(23,70,197,0.22),
+    inset 0 -6px 10px rgba(0,0,0,0.20),
+    inset 0 2px 3px rgba(255,255,255,0.45);
 
-  /* Base icon/text color — WHITE */
+  /* Icon/text always WHITE */
   color:#ffffff !important;
   font-size:1.65rem;
   line-height: 1;
@@ -207,11 +179,9 @@
   transition: transform .15s ease, box-shadow .22s ease;
 }
 
-/* 🔒 Mic icon override — FORCE PURE WHITE across libs (React-Icons, Lucide, icon fonts, images) */
+/* Force mic icon to white across libs */
 .mic-btn,
-.mic-btn *{
-  color:#ffffff !important;
-}
+.mic-btn *{ color:#ffffff !important; }
 .mic-btn svg,
 .mic-btn svg *,
 .mic-btn i,
@@ -226,7 +196,7 @@
 }
 .mic-btn img,
 .mic-btn .icon-img{
-  filter: brightness(0) invert(1) !important; /* make raster icons white */
+  filter: brightness(0) invert(1) !important;
 }
 
 /* top glossy streak */
@@ -239,26 +209,23 @@
   border-radius: 80% 80% 50% 50%;
   pointer-events: none;
   mix-blend-mode: screen;
-  z-index: 0;                                /* keep below the icon */
+  z-index: 0;
 }
 
-/* Radiating ring (animated border) - BLUE while idle */
+/* Radiating ring — BLUE while idle */
 .mic-btn::after{
   content:"";
   position:absolute; left:50%; top:50%;
   width: var(--ring-size); height: var(--ring-size);
   transform: translate(-50%,-50%);
   border-radius:50%;
-  border: 2px solid rgba(42,108,244,0.5);
-  box-shadow: 0 0 12px rgba(42,108,244,0.25);
+  border: 2px solid rgba(42,108,244,0.45);
+  box-shadow: 0 0 10px rgba(42,108,244,0.22);
   pointer-events:none;
   animation: mic-ring 1.25s ease-out infinite;
-  z-index: 0;                                /* keep below the icon */
+  z-index: 0;
 }
-.mic-btn > *{
-  position: relative;
-  z-index: 1;                                /* icon above overlays */
-}
+.mic-btn > *{ position: relative; z-index: 1; }
 
 @keyframes mic-ring{
   0%   { opacity:.55; transform: translate(-50%,-50%) scale(1); }
@@ -269,52 +236,53 @@
 .mic-btn:hover{
   transform: translateX(-50%) translateY(-2px);
   box-shadow:
-    0 18px 36px rgba(23,70,197,0.46),
-    0 8px 14px rgba(23,70,197,0.38),
-    inset 0 -7px 12px rgba(0,0,0,0.26),
+    0 18px 36px rgba(23,70,197,0.34),
+    0 8px 14px rgba(23,70,197,0.26),
+    inset 0 -7px 12px rgba(0,0,0,0.22),
     inset 0 3px 4px rgba(255,255,255,0.5);
 }
 
-/* ===== Active (recording) — GREEN button + GREEN ring; icon stays WHITE ===== */
+/* ===== Active (recording) — BRIGHT GREEN; icon stays WHITE ===== */
 .mic-btn.mic-active{
   background:
-    radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.50), transparent 42%),
+    radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.55), transparent 42%),
     linear-gradient(180deg, var(--accent-green-1), var(--accent-green-2));
   box-shadow:
-    0 18px 36px rgba(17,153,142,0.42),
-    0 8px 14px rgba(17,153,142,0.34),
-    inset 0 -7px 12px rgba(0,0,0,0.22),
-    inset 0 3px 4px rgba(255,255,255,0.55);
+    0 0 22px rgba(50,255,126,0.55),
+    0 18px 36px rgba(0,210,127,0.38),
+    0 8px 14px rgba(0,210,127,0.30),
+    inset 0 -7px 12px rgba(0,0,0,0.18),
+    inset 0 3px 5px rgba(255,255,255,0.60);
   color: #ffffff !important;
 }
 .mic-btn.mic-active::after{
   border-color: var(--accent-green-ring);
-  box-shadow: 0 0 12px rgba(16,185,129,0.28);
-  animation: mic-ring-green 1.15s ease-out infinite;
+  box-shadow:
+    0 0 16px rgba(50,255,126,0.55),
+    0 0 30px rgba(50,255,126,0.35);
+  animation: mic-ring-green 1.05s ease-out infinite;
 }
 @keyframes mic-ring-green{
-  0%   { opacity:.45; transform: translate(-50%,-50%) scale(1); }
-  70%  { opacity:.16; transform: translate(-50%,-50%) scale(1.35); }
-  100% { opacity:0;    transform: translate(-50%,-50%) scale(1.65); }
+  0%   { opacity:.55; transform: translate(-50%,-50%) scale(0.98); }
+  70%  { opacity:.18; transform: translate(-50%,-50%) scale(1.40); }
+  100% { opacity:0;    transform: translate(-50%,-50%) scale(1.70); }
 }
 
-/* ===== Waveform & loader ===== */
+/* ===== Waveform & loader (no blur) ===== */
 .waveform-container{ width:100%; max-width:100%; margin-top:2px; }
 .waveform-container canvas{ width:100% !important; display:block; border-radius:10px; }
 
 .assistant-loader-overlay{
   position:absolute; inset:0;
-  backdrop-filter: blur(12px) saturate(120%);
-  -webkit-backdrop-filter: blur(12px) saturate(120%);
-  background: rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.72);   /* simple white veil, no backdrop-filter */
   z-index:10000;
   display:flex; align-items:center; justify-content:center;
   pointer-events:none;
 }
-.assistant-loader{ text-align:center; color: #0f172a; font-weight:600; }
+.assistant-loader{ text-align:center; color: var(--card-ink); font-weight:600; }
 .assistant-loader .spinner{
   margin-top:10px; width:30px; height:30px;
-  border:4px solid rgba(0,0,0,0.15);
+  border:4px solid rgba(0,0,0,0.10);
   border-top-color: var(--accent-blue-1);
   border-radius:50%;
   animation: spin .8s linear infinite;
@@ -332,17 +300,16 @@
     padding-top:60px;
     padding-bottom: calc(var(--fab-bottom) + var(--fab-size) + 18px);
 
-    backdrop-filter: saturate(130%) blur(14px);
-    -webkit-backdrop-filter: saturate(130%) blur(14px);
-    border-left:none;
-    border-top:1px solid rgba(255,255,255,0.28);
-    box-shadow: 0 -10px 28px rgba(0,0,0,0.2);
+    border-right: 1px solid var(--card-border); /* full border when centered */
+    border-radius: 14px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.10);
   }
   .assistant-orb{ display:none; }
 
-  /* keep close button top-right on mobile */
+  /* keep close button top-right on mobile, inside panel */
   .close-btn{
-    position:absolute; top: 12px; right: 12px;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
   }
 }
 
@@ -354,13 +321,8 @@
   .mic-btn{ font-size:1.45rem; }
 }
 
-/* Accessibility: users who prefer low transparency */
+/* ===== Accessibility ===== */
 @media (prefers-reduced-transparency: reduce){
-  .voice-assistant,
-  .assistant-loader-overlay{
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: rgba(255,255,255,0.92) !important;
-  }
+  .assistant-loader-overlay{ background: rgba(255,255,255,0.92); }
   .mic-btn::after{ display:none; }
 }
