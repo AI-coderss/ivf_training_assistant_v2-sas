@@ -1,7 +1,8 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-loop-func */
-import { useState, forwardRef, useEffect } from "react";
+import React, { useState, useRef, forwardRef, useEffect, useCallback } from "react";
+import HTMLFlipBook from "react-pageflip";
 import { Document, Page as PdfPage, pdfjs } from "react-pdf";
 import html2canvas from "html2canvas";
 import SelectionBox from "./SelectionBox";
@@ -37,10 +38,10 @@ export default function PdfFlipBookDesktop({
     const [isOCRMode, setIsOCRMode] = useState(false);
     const [loadingOCR, setLoadingOCR] = useState(false);
     const [selectedBox, setSelectedBox] = useState(null);
+    const pageRefs = useRef([]);
     const [pageRanges, setPageRanges] = useState([]);
-    const { chunks, setSelectedTextInfo, isAutoScrolling, selectedChunkIndex, setBookText, setIsPlaying } = useBookStore()
+    const { chunks, setSelectedTextInfo, isAutoScrolling, selectedChunkIndex, setBookText, isReaderMode, setIsReaderMode } = useBookStore()
     const selectedTextInfo = useBookStore((state) => state.selectedTextInfo);
-
     useEffect(() => {
         if (!numPages) return;
 
@@ -68,12 +69,22 @@ export default function PdfFlipBookDesktop({
         buildPageRanges();
     }, [numPages, pdfUrl]);
 
+    const playFlipSound = () => {
+        const sound = new Audio("/page-flip.mp3");
+        sound.volume = 0.01; // Set volume to 1%
+        sound.play().catch((err) => console.warn("Flip sound error:", err));
+    };
+
+
+
+
     useEffect(() => {
         if (!numPages || !pageRanges.length || selectedChunkIndex == null) return;
 
         const chunk = chunks[selectedChunkIndex];
         if (!chunk) return;
 
+        console.log("Selected Chunk :", chunk);
 
         const pagesRange = pageRanges.filter(
             r => r.endIndex >= chunk.startIndex && r.startIndex <= chunk.endIndex
@@ -139,7 +150,7 @@ export default function PdfFlipBookDesktop({
     useEffect(() => {
         if (isAssistantOpen) {
             setIsOCRMode(false);
-            setIsPlaying(false);
+            setIsReaderMode(false);
             setSelectedBox(null);
         }
     }, [isAssistantOpen]);
@@ -284,6 +295,8 @@ export default function PdfFlipBookDesktop({
         // console.log("Page Number:", pageNumber);
     };
 
+
+
     // Add event listener for text selection
     useEffect(() => {
         if (!numPages) return;
@@ -297,15 +310,10 @@ export default function PdfFlipBookDesktop({
 
     return (
         <div className="flipbook-wrapper">
-            <div className="toolbar" style={{
-                marginBottom: 1,
-                position: 'absolute',
-                top: "1rem",
-                right: "1.5rem",
-            }}>
+            <div className="toolbar" style={{ marginBottom: 10 }}>
                 {!isAssistantOpen && (
                     <>
-                        {/* <button
+                        <button
                             className="ocr-toggle-button"
                             onClick={() => {
                                 setIsOCRMode(false);
@@ -313,13 +321,12 @@ export default function PdfFlipBookDesktop({
                             }}
                             style={{ backgroundColor: isReaderMode ? "#0056b3" : "white", color: isReaderMode ? "white" : "black" }}
                         >
-                            {"Immersive Reader"}
-                        </button> */}
+                            {isReaderMode ? "Exit Reader" : "Immersive Reader"}
+                        </button>
                         <button
                             className={"ocr-toggle-button"}
                             onClick={() => {
                                 setIsOCRMode(!isOCRMode);
-                                // setIsReaderMode(false)
                             }}
 
                             style={{ backgroundColor: isOCRMode ? "#0056b3" : "white", color: isOCRMode ? "white" : "black" }}
@@ -336,30 +343,55 @@ export default function PdfFlipBookDesktop({
                 loading={<p>Loading…</p>}
             >
                 <div ref={containerRef} style={{ position: "relative" }}>
-                    {/* 📄 Selectable scroll mode */}
-                    <div
-                        style={{
-                            maxHeight: "91vh",
-                            overflowY: "auto",
-                            overflowX: 'hidden',
-                            background: "#f8f8f8",
-                        }}
-                        ref={containerRef}
-                    >
-                        {numPages &&
-                            Array.from({ length: numPages }, (_, i) => (
-                                <div key={i} style={{ marginBottom: "20px" }} >
-                                    <PdfPage
-                                        key={i}
-                                        pageNumber={i + 1}
-                                        width={width}
-                                        renderTextLayer
-                                        renderAnnotationLayer={true}
-                                    />
-                                </div>
-                            ))}
-                    </div>
-
+                    {isReaderMode ? (
+                        // 📄 Selectable scroll mode
+                        <div
+                            style={{
+                                maxHeight: "70vh",
+                                overflowY: "auto",
+                                padding: "10px",
+                                background: "#f8f8f8",
+                            }}
+                            ref={containerRef}
+                        >
+                            {numPages &&
+                                Array.from({ length: numPages }, (_, i) => (
+                                    <div key={i} style={{ marginBottom: "20px" }} >
+                                        <PdfPage
+                                            key={i}
+                                            pageNumber={i + 1}
+                                            width={width}
+                                            renderTextLayer
+                                            renderAnnotationLayer={true}
+                                        />
+                                    </div>
+                                ))}
+                        </div>
+                    ) : (
+                        // 📚 Flipbook mode
+                        <HTMLFlipBook
+                            width={width}
+                            height={width * 1.414}
+                            size="stretch"
+                            showCover
+                            className="flip-book"
+                            onFlip={playFlipSound}
+                        >
+                            {numPages &&
+                                Array.from({ length: numPages }, (_, i) => {
+                                    if (!pageRefs.current[i])
+                                        pageRefs.current[i] = React.createRef();
+                                    return (
+                                        <FlipPage
+                                            key={i}
+                                            ref={pageRefs.current[i]}
+                                            pageNumber={i + 1}
+                                            width={width}
+                                        />
+                                    );
+                                })}
+                        </HTMLFlipBook>
+                    )}
 
                     {isOCRMode && (
                         <SelectionBox
@@ -391,6 +423,10 @@ export default function PdfFlipBookDesktop({
                 </div>
             </Document>
 
+            {/* {selectedTextInfo.text && (
+                <div className="selected-text-info" >
+                    {JSON.stringify(selectedTextInfo)}
+                </div>)} */}
         </div>
     );
 }
