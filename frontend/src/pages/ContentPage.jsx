@@ -1,26 +1,24 @@
-import React, { useState } from 'react';
-import '../styles/content/ContentPage.css';
-import BookViewer from '../components/content/BookViewer';
-import VoiceAssistant from '../components/content/VoiceAssistant';
-import BookShelf from '../components/content/BookShelf';
+import React, { useState } from "react";
+import "../styles/content/ContentPage.css";
+import BookViewer from "../components/content/BookViewer";
+import VoiceAssistant from "../components/content/VoiceAssistant";
+import BookShelf from "../components/content/BookShelf";
+import Tabs from "../components/content/Tabs"; // ← NEW
 
 const ContentPage = () => {
   const [voiceAssistantVisible, setVoiceAssistantVisible] = useState(false);
-  const [selectedBookUrl, setSelectedBookUrl] = useState('/pdf/manual.pdf');
-  const [ocrContext, setOcrContext] = useState('');
+  const [selectedBookUrl, setSelectedBookUrl] = useState("/pdf/manual.pdf");
+  const [ocrContext, setOcrContext] = useState("");
   const [showBookshelf, setShowBookshelf] = useState(false);
 
   const isMobile = window.innerWidth <= 768;
   const isTabletOrMobile = window.innerWidth <= 1400;
-  const toggleVoiceAssistant = () => {
-    setVoiceAssistantVisible(prev => !prev);
-  };
 
+  const toggleVoiceAssistant = () => setVoiceAssistantVisible((prev) => !prev);
   const handleOCRText = (text) => {
     setOcrContext(text);
     setVoiceAssistantVisible(true);
   };
-
   const handleSelectBook = (bookUrl) => {
     setSelectedBookUrl(bookUrl);
     if (isMobile) setShowBookshelf(false);
@@ -31,17 +29,20 @@ const ContentPage = () => {
       <div className="content-header">
         <h2>Training Content 📚</h2>
         <p>Explore IVF training materials and digital handbooks.</p>
+
         {isTabletOrMobile && !voiceAssistantVisible && (
-          <button className="toggle-bookshelf-btn" onClick={() => setShowBookshelf(prev => !prev)}>
-            {showBookshelf ? 'Hide Books' : 'Show Books'}
+          <button
+            className="toggle-bookshelf-btn"
+            onClick={() => setShowBookshelf((prev) => !prev)}
+          >
+            {showBookshelf ? "Hide Books" : "Show Books"}
           </button>
         )}
         {(!isTabletOrMobile || !showBookshelf) && (
           <button className="toggle-voice-btn" onClick={toggleVoiceAssistant}>
-            {voiceAssistantVisible ? '❌ Hide AI Assistant' : 'AI Assistant✨'}
+            {voiceAssistantVisible ? "❌ Hide AI Assistant" : "AI Assistant✨"}
           </button>
         )}
-
       </div>
 
       <div className="content-layout">
@@ -56,7 +57,14 @@ const ContentPage = () => {
           </div>
         )}
 
-        <div className={`viewer-column ${voiceAssistantVisible ? 'with-assistant' : ''}`}>
+        {/* ← NEW: Slim tools rail between bookshelf and viewer */}
+        <Tabs />
+
+        <div
+          className={`viewer-column ${
+            voiceAssistantVisible ? "with-assistant" : ""
+          }`}
+        >
           <BookViewer
             selectedBookUrl={selectedBookUrl}
             onOCRText={handleOCRText}
@@ -64,8 +72,8 @@ const ContentPage = () => {
           />
         </div>
 
-        {voiceAssistantVisible && (
-          isMobile ? (
+        {voiceAssistantVisible &&
+          (isMobile ? (
             <VoiceAssistant
               isVisible={true}
               onClose={toggleVoiceAssistant}
@@ -79,8 +87,7 @@ const ContentPage = () => {
                 context={ocrContext}
               />
             </div>
-          )
-        )}
+          ))}
       </div>
     </div>
   );
