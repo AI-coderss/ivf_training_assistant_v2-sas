@@ -1,9 +1,12 @@
 .flipbook-wrapper {
   width: 100%;
+  max-width: 798px;
+  aspect-ratio: 1 / 1.414; /* A4 ratio */
   margin: 0 auto;
-  padding: 16px;
+  margin-top: 10px;
   background: #f9f9f9;
   border-radius: 16px;
+  position: relative;
 }
 
 .flip-book {

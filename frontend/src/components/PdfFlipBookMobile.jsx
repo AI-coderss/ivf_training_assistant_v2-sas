@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-loop-func */
-import React, { useState, useRef, useEffect } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useState, useEffect } from "react";
 import { Document, Page as PdfPage, pdfjs } from "react-pdf";
 import html2canvas from "html2canvas";
 import SelectionBox from "./SelectionBox";

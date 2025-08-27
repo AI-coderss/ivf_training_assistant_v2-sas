@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-unused-vars */
-import React, { useState, useRef, useEffect } from "react";
+/* eslint-disable no-unused-vars */import React, { useState, useRef, useEffect } from "react";
 import useBookStore from "../../store/bookStore";
 
 const MAX_CHARS = 200;
@@ -293,6 +292,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
           border: "1px solid rgba(255, 255, 255, 0.3)", // Subtle border
           flexWrap: "wrap",
           gap: "16px",
+          zIndex: '90'
         }}
       >
         {/* Left side controls */}

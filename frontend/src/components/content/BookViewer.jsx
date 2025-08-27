@@ -5,9 +5,7 @@ import useBookStore from "../../store/bookStore";
 
 const BookViewer = ({ selectedBookUrl, onOCRText, isAssistantOpen }) => {
 
-  const { chunks, bookText, isReaderMode } = useBookStore();
-
-  const isMobile = window.innerWidth <= 1024;
+  const { chunks, bookText } = useBookStore();
 
   const containerRef = useRef(null);
   // console.log("selectedChunkIndex", selectedChunkIndex);
@@ -52,7 +50,7 @@ const BookViewer = ({ selectedBookUrl, onOCRText, isAssistantOpen }) => {
           containerRef={containerRef}
         />
       </div>
-      {bookText && (isReaderMode || isMobile) && (
+      {bookText && (
         <BookTTSReader
           chunks={chunks}
           text={bookText}
