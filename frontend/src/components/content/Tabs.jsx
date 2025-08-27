@@ -25,17 +25,20 @@ const Tabs = () => {
   const openSummary = () => {
     setActive("summary");
     setChatOpen(false);
+    // Do NOT reset selections so user can come back as-is.
     setSummaryNote("");
     setQuizNote("");
   };
+
   const openQuizzes = () => {
     setActive("quizzes");
     setChatOpen(false);
+    // Do NOT reset selections so user can come back as-is.
     setSummaryNote("");
     setQuizNote("");
   };
+
   const toggleChat = () => {
-    // Toggle chat window; set active when open; clear when closed
     if (chatOpen) {
       setChatOpen(false);
       setActive(null);
@@ -47,19 +50,29 @@ const Tabs = () => {
     setQuizNote("");
   };
 
+  const closeSummary = () => {
+    // Hide, keep selections intact
+    setActive(null);
+  };
+
+  const closeQuizzes = () => {
+    // Hide, keep selections intact
+    setActive(null);
+  };
+
   // Dummy actions (wire to Flask later)
   const handleGenerateSummary = () => {
     setSummaryNote(
       `Summary request: { length: ${summaryLength}, mode: ${summaryMode} }`
     );
-    // TODO: call your Flask endpoint here and handle response
+    // TODO: call your Flask endpoint
   };
 
   const handleGenerateQuiz = () => {
     setQuizNote(
       `Quiz request: { choice: ${quizChoice}, count: ${quizCount} }`
     );
-    // TODO: call your Flask endpoint here and handle response
+    // TODO: call your Flask endpoint
   };
 
   return (
@@ -102,6 +115,15 @@ const Tabs = () => {
       {/* ───────── Panels under the tabs (glassmorphic cards) ───────── */}
       {active === "summary" && (
         <div className="glass-card" role="region" aria-label="Summarize controls">
+          <button
+            className="card-close"
+            aria-label="Close summarize"
+            title="Close"
+            onClick={closeSummary}
+          >
+            ✕
+          </button>
+
           <div className="card-row">
             <span className="card-label">Length</span>
             <div className="segmented">
@@ -144,6 +166,15 @@ const Tabs = () => {
 
       {active === "quizzes" && (
         <div className="glass-card" role="region" aria-label="Quiz controls">
+          <button
+            className="card-close"
+            aria-label="Close quizzes"
+            title="Close"
+            onClick={closeQuizzes}
+          >
+            ✕
+          </button>
+
           <div className="choice-tiles" role="group" aria-label="Answer layout">
             {["A", "B", "C", "D"].map((ch) => (
               <button
@@ -195,4 +226,5 @@ const Tabs = () => {
 };
 
 export default Tabs;
+
 

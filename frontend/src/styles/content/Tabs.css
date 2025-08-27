@@ -92,8 +92,15 @@
 
 /* === compact glass cards below the tabs === */
 .glass-card {
-  margin-top: 16px;
-  padding: 12px;
+  /* ↓ Reserve a top strip for the close button and anchor it */
+  --close-size: 34px;
+  --close-pad: 12px;
+
+  margin-top: 24px;                /* a little more breathing room under tabs */
+  padding: 16px 12px 12px;         /* base padding */
+  padding-top: calc(var(--close-size) + (var(--close-pad) * 2) + 6px); /* space for the close dock */
+  position: relative;              /* ensure .card-close positions to this card */
+  
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.5);
@@ -144,9 +151,9 @@
   transform: translateY(-1px);
 }
 .seg-btn.is-active {
-  background: #2563eb;
+  background: #007BFF;
   color: #fff;
-  border-color: #1e40af;
+  border-color: #007BFF;
 }
 
 /* quiz tiles */
@@ -172,8 +179,40 @@
   transform: translateY(-1px);
 }
 .tile.is-active {
-  border-color: #2563eb;
+  border-color: #007BFF;
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.18);
+}
+
+/* Close button (top-right on each card) */
+.card-close{
+  position: absolute;
+  top: var(--close-pad);          /* uses the reserved strip */
+  right: var(--close-pad);
+  width: var(--close-size);
+  height: var(--close-size);
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.45);
+  background:#007BFF;
+  color: #fff;
+  font-size: 14px;
+  display:flex; align-items:center; justify-content:center;
+  cursor: pointer;
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.12),
+    inset 0 0 0 1px rgba(255,255,255,0.18);
+  transition: transform .15s ease, box-shadow .22s ease, filter .15s ease;
+  z-index: 2;                     /* sits above card content but below tabs */
+}
+.card-close:hover{
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 28px rgba(0,0,0,0.16),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+  filter: brightness(1.05);
+}
+.card-close:focus-visible{
+  outline: 2px solid #93c5fd;
+  outline-offset: 3px;
 }
 
 /* CTA */
@@ -183,7 +222,7 @@
   height: 48px;
   border: none;
   border-radius: 14px;
-  background: #2563eb;
+  background: #007BFF;
   color: #fff;
   font-weight: 900;
   font-size: 16px;
@@ -220,6 +259,11 @@
 }
 
 @media (max-width: 480px) {
+  /* slightly tighter close dock on small screens */
+  .glass-card {
+    --close-pad: 10px;
+    padding-top: calc(var(--close-size) + (var(--close-pad) * 2) + 4px);
+  }
   .segmented {
     padding: 5px;
   }
