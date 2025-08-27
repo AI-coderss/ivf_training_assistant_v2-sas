@@ -348,7 +348,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
                   width: "18px",
                   height: "18px",
                   border: "2px solid #e5e7eb",
-                  borderTop: "2px solid #4f46e5",
+                  borderTop: "2px solid #007BFF",
                   borderRadius: "50%",
                   animation: "spin 1s linear infinite",
                 }}
@@ -360,7 +360,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
               style={{
                 borderRadius: "100%",
                 border: "none",
-                background: "rgb(79, 70, 229)",
+                background: "#007BFF",
                 color: "white",
                 cursor: "pointer",
                 fontWeight: "600",
