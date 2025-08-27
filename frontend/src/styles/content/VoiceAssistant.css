@@ -5,8 +5,8 @@
   --ring-size: 102px;            /* mic ring size */
 
   /* Accents */
-  --accent-blue-1: #2a6cf4;      /* idle blue */
-  --accent-blue-2: #1746c5;
+  --accent-blue-1: #007BFF;      /* idle blue */
+  --accent-blue-2: #007BFF;
 
   /* 🔆 BRIGHT neon green for ACTIVE */
   --accent-green-1: #32ff7e;
