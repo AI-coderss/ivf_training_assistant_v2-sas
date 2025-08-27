@@ -38,7 +38,7 @@
   height: 46px;
   padding: 0 16px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.1px;
   color: #0f172a;
   /* Left-to-right hover overlay using layered background */
@@ -117,7 +117,7 @@
   margin: 10px 0;
 }
 .card-label {
-  font-weight: 800;
+  font-weight: 600;
   color: #334155;
   font-size: 14px;
 }
@@ -141,7 +141,7 @@
   padding: 8px 12px;
   border-radius: 10px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 400;
   color: #111827;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
@@ -224,7 +224,7 @@
   border-radius: 14px;
   background: #007BFF;
   color: #fff;
-  font-weight: 900;
+  font-weight: 600;
   font-size: 16px;
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(37, 99, 235, 0.3);
