@@ -1,307 +1,219 @@
-.quiz-container {
-  max-width: 900px;
-  margin: 100px auto 40px auto;
-  padding: 40px;
-  border-radius: 12px;
-  background-color: #ffffff;
-  text-align: center;
-  font-family: Arial, sans-serif;
-  
+:root{
+  --bg:#f7fafc;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --line:#e5e7eb;
+  --accent:#007BFF;
+  --accent-ghost:#e6f0ff;
+  --ok:#16a34a;
+  --bad:#dc2626;
+  --toast:#111827;
 }
 
-
-.start-button,
-.next-button,
-.restart-button {
-  padding: 10px 20px;
-  margin-top: 20px;
-  font-size: 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  background-color: #007bff;
-  color: white;
-  transition: background 0.3s ease;
+/* ===== Page shell ===== */
+.qp-wrap{
+  padding: 24px 12px 20px;
+  background: var(--bg);
+  /* push away from sticky top nav */
+  margin-top: 24px;
+  color: #0f172a; /* local only; no custom var */
 }
 
-.start-button:hover,
-.next-button:hover,
-.restart-button:hover {
-  background-color: #0056b3;
+.qp-header{
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+}
+.qp-title{ margin:0; font-weight:700; letter-spacing:.2px; }
+.header-right{ display:flex; gap:10px; align-items:center; }
+.user-name{ opacity:.75; }
+
+/* ===== Tabs (narrower & spaced) ===== */
+.tabs{
+  margin-top: 18px;               /* extra space below the top bar */
+  display:flex; flex-wrap:wrap;
+  justify-content:center;
+  gap: 8px;                       /* reduced gap */
+}
+.tab{
+  position:relative;
+  border:1px solid var(--line);
+  border-radius:12px;
+  width: clamp(120px, 16vw, 170px);   /* reduced width */
+  padding:10px 12px;
+  background: var(--card);
+  color:#0f172a;
+  font-weight:600;
+  cursor:pointer;
+  overflow:hidden;
+  transition: transform .12s ease, color .12s ease, border-color .12s ease;
+}
+.tab .tab-label{ position:relative; z-index:1; white-space:nowrap; }
+.tab::before{
+  content:""; position:absolute; inset:0;
+  background: var(--accent);
+  transform: translateX(-100%); transition: transform .25s ease;
+}
+.tab:hover::before{ transform: translateX(0); }
+.tab:hover{ color:#fff; transform: translateY(-1px); }
+.tab.active{ background: var(--accent); color:#fff; border-color:transparent; }
+.tab.active::before{ display:none; }
+
+/* ===== Buttons & pills ===== */
+.btn{
+  padding:8px 12px; border-radius:10px;
+  border:1px solid var(--line);
+  background:#0f172a; color:#fff; cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.btn:hover{ transform: translateY(-1px); }
+.btn.ghost{ background:#fff; color:#0f172a; }
+
+.badge-pill{
+  padding:6px 10px; border-radius:999px;
+  background:#f1f5f9; border:1px solid #e2e8f0; font-size:12px;
 }
 
-.question-box {
-  margin-top: 20px;
+.qp-body{ margin-top: 16px; }  /* pushes everything down more */
+
+/* ===== Quiz ===== */
+.quiz-topbar{ display:flex; gap:12px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+.pill{
+  background:#f1f5f9; border:1px solid #e2e8f0; border-radius:999px; padding:4px 8px; font-size:12px;
+}
+.q-card{
+  border:1px solid var(--line); border-radius:14px; padding:14px; background:var(--card);
+  box-shadow:0 6px 18px rgba(0,0,0,.04);
+}
+.q-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.q-title{ margin:0 0 6px; }
+
+.options{ display:grid; gap:8px; margin-top:8px; }
+.opt{
+  border:1px solid var(--line); border-radius:10px; padding:8px;
+  display:flex; gap:8px; align-items:center; cursor:pointer;
+  transition:border-color .12s ease, background .12s ease;
+}
+.opt.sel{ outline:2px solid var(--accent); background: var(--accent-ghost); }
+
+.free-text{
+  width:100%; border:1px solid var(--line); border-radius:10px; padding:10px; resize:vertical;
+}
+.actions{ display:flex; gap:10px; margin-top:10px; flex-wrap: wrap; }
+.hint{ margin-top:10px; background:#fffbeb; border:1px solid #fde68a; padding:10px; border-radius:10px; }
+.cites{ margin-top:10px; font-size:13px; }
+.cites a{ margin-right:8px; text-decoration:underline; }
+
+/* ===== Feedback layout ===== */
+.feedback-layout{
+  display:grid; grid-template-columns: .9fr 1.1fr; gap:16px; align-items:start;
+}
+.feedback-left .mt8{ margin-top:8px; }
+.chart-card{
+  border:1px solid var(--line); border-radius:12px; background:var(--card);
+  padding:10px; box-shadow:0 6px 18px rgba(0,0,0,.04);
 }
 
-.question-text {
-  font-weight: bold;
-  font-size: 18px;
-  margin-bottom: 16px;
+.coach-panel{
+  border:1px solid var(--line); border-radius:12px; background:var(--card);
+  display:flex; flex-direction:column; min-height:520px; overflow:hidden;
+}
+.coach-header{ display:flex; flex-direction:column; padding:10px 12px 0; }
+.coach-sub{ color:var(--muted); font-size:12px; }
+
+.attempts{ list-style:none; padding-left:0; margin:0; }
+.attempts li{ padding:6px 8px; border-bottom:1px solid #f0f0f0; }
+.attempts li.ok{ background:#ecfdf5; }
+.attempts li.bad{ background:#fef2f2; }
+.attempt-time{ opacity:.7; margin-right:6px; font-size:12px; }
+.attempt-topic{ margin-right:6px; }
+.attempts-head{ padding:10px 12px; font-weight:600; border-top:1px solid var(--line); }
+
+/* ===== Reusable chat panel (Feedback & Live Chat) ===== */
+.chat-panel{
+  border:1px solid var(--line); border-radius:12px; background:var(--card);
+  display:flex; flex-direction:column; min-height:520px; overflow:hidden;
+}
+.chat-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; border-bottom:1px solid var(--line);
+}
+.chat-log{
+  flex:1; padding:12px; overflow:auto; background:#fbfbfd;
+}
+.bubbles .bubble-row{
+  display:flex; margin-bottom:10px;
+}
+.bubbles .bubble-row.left{ justify-content:flex-start; }
+.bubbles .bubble-row.right{ justify-content:flex-end; }
+.bubbles .bubble-row.center{ justify-content:center; }
+.bubble{
+  max-width: min(70%, 640px);
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:#ffffff;
+  box-shadow:0 4px 12px rgba(0,0,0,.03);
+}
+.bubble.me{ background:#e9f5ff; border-color:#cfe6ff; }
+.bubble.ai{ background:#f8fafc; }
+.bubble.system{ background:#fff7ed; border-color:#fed7aa; }
+.bubble-meta{ font-size:11px; color:#6b7280; margin-bottom:4px; }
+.bubble-text{ white-space:pre-wrap; line-height:1.35; }
+.bubble-time{ font-size:10px; color:#9ca3af; margin-top:6px; text-align:right; }
+
+.chat-dock{
+  position: sticky; bottom: 0;
+  background: #fff; border-top:1px solid var(--line);
+  padding:8px 10px;
 }
 
-.options-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 20px 0;
+/* ===== Leaderboard ===== */
+.leaderboard{}
+.lb-filters{ display:flex; gap:8px; margin-bottom:10px; flex-wrap: wrap; }
+.table{
+  width:100%; border-collapse:collapse; background:var(--card);
+  border:1px solid var(--line); border-radius:12px; overflow:hidden;
+}
+.table th, .table td{ border-bottom:1px solid #eee; padding:10px; text-align:left; font-size:14px; }
+.table tr.me{ background:#ecfeff; }
+.me-card{ margin-top:10px; border:1px solid var(--line); border-radius:12px; padding:10px; background:var(--card); }
+
+/* ===== Dashboard (more diversity) ===== */
+.dashboard-grid{
+  display:grid; gap:16px; align-items:start;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 6px;
+}
+.kpis{
+  display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;
+  grid-column: 1 / -1;
+}
+.kpi{
+  border:1px solid var(--line); border-radius:12px; padding:10px; background:var(--card);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.chart-card.wide{ grid-column: 1 / -1; }
+.tiny-note{ grid-column:1 / -1; opacity:.7; margin:0; }
+
+/* ===== Toast ===== */
+.toast{
+  position:fixed; right:16px; bottom:16px;
+  background:var(--toast); color:#fff;
+  padding:12px 14px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.2);
+  animation: toast-in .18s ease;
+}
+@keyframes toast-in{
+  from{ transform: translateY(10px); opacity:0; }
+  to{ transform: translateY(0); opacity:1; }
 }
 
-.option-label {
-  display: block;
-  padding: 12px 16px;
-  margin: 8px 0;
-  border: 1px solid #dce3ea;
-  border-radius: 6px;
-  background-color: #ffffff;
-  cursor: pointer;
-  transition: background-color 0.25s ease, border-color 0.25s ease;
+/* ===== Responsive ===== */
+@media (max-width: 1100px){
+  .feedback-layout{ grid-template-columns: 1fr; }
 }
-
-.option-label:hover {
-  background-color: #eef5ff;
-  border-color: #a7c8f1;
+@media (max-width: 1024px){
+  .dashboard-grid{ grid-template-columns: 1fr; }
 }
-
-
-.option-label input {
-  margin-right: 10px;
-}
-
-.result-box {
-  margin-top: 30px;
-}
-.loading-box {
-  margin-top: 30px;
-  text-align: center;
-}
-
-.spinner {
-  margin: 0 auto 16px auto;
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(0, 123, 255, 0.2);
-  border-top: 4px solid #007bff;
-  border-radius: 50%;
-  animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-/* Wrap all questions nicely */
-.all-questions-form {
-  margin-top: 30px;
-  text-align: left;
-}
-
-.question-block {
-  margin-bottom: 30px;
-  padding: 24px;
-  border-radius: 10px;
-  background-color: #f7faff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); /* Clean, subtle */
-  text-align: left;
-}
-
-.question-block h4 {
-  font-size: 17px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-/* Options already styled well, minor enhancement */
-.option-label {
-  display: block;
-  padding: 10px 14px;
-  margin: 6px 0;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background-color: #fff;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.option-label:hover {
-  background-color: #eef4ff;
-}
-/* Add to QuizzesPage.css or StreamingQuestion.css */
-.streaming-question {
-  background: #f0f0f0;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  font-family: monospace;
-  white-space: pre-wrap;
-}
-
-/* Submit button */
-.submit-button {
-  display: block;
-  margin: 40px auto 20px auto;
-  padding: 12px 24px;
-  font-size: 16px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.submit-button:disabled {
-  background-color: #94d3a2;
-  cursor: not-allowed;
-}
-
-.submit-button:hover:not(:disabled) {
-  background-color: #218838;
-}
-.correct {
-  background-color: #e6f9e6;
-  border-color: #4caf50;
-}
-
-.incorrect {
-  background-color: #ffe6e6;
-  border-color: #f44336;
-}
-
-.feedback-text {
-  margin-top: 10px;
-  font-style: italic;
-  color: #444;
-}
-
-.feedback-icon {
-  margin-left: 8px;
-  font-weight: bold;
-}
-
-.quiz-with-timer {
-  position: relative;
-}
-
-
-
-.correct {
-  background-color: #e6f9e6;
-  border-color: #4caf50;
-}
-
-.incorrect {
-  background-color: #ffe6e6;
-  border-color: #f44336;
-}
-
-.feedback-icon {
-  margin-left: 8px;
-  font-weight: bold;
-}
-
-.feedback-text {
-  margin-top: 10px;
-  font-style: italic;
-  color: #333;
-}
-
-.feedback-icon {
-  margin-left: 8px;
-  font-weight: bold;
-}
-
-/* Wrapper for the timer, this will be fixed to the top */
-.sticky-timer-wrapper { /* Renamed from .sticky-timer-wrapper for clarity */
-  position: fixed;      /* Key change: Makes the element fixed to the viewport */
-  top: 0;               /* Positions it at the very top */
-  left: 0;              /* Aligns to the left edge */
-  width: 100%;          /* Makes the wrapper span the full viewport width */
-  z-index: 1050;        /* High z-index to keep it above other content */
-  display: flex;          /* To center the timer-display child */
-  justify-content: center;/* Centers the .timer-display horizontally */
-  padding: 8px 0; 
-  margin-top: 40px;      /* Adds some vertical padding within the wrapper (adjust as needed) */
-  /* The background and backdrop-filter are on .timer-display,
-     but you could add a background to the wrapper if you want the entire bar to have one.
-     e.g., background-color: rgba(240, 240, 240, 0.8); */
-}
-
-/* The actual timer display element, styled as per your preferred styles */
-.timer-display {
-  padding: 10px 20px;
-  font-size: 18px;
-  font-weight: bold;
-  color: #007bff; /* Ensure this has good contrast with your page/wrapper background */
-  background: rgba(255, 255, 255, 0.25); /* Slightly more opaque for readability */
-  backdrop-filter: blur(1px);        /* Adjusted blur for performance/preference */
-  -webkit-backdrop-filter: blur(1px);
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12); /* Slightly adjusted shadow */
-  border: 1px solid rgba(255, 255, 255, 0.3); 
-  margin-top: 40px; /* Slightly more opaque border */
-  /* No 'position' property needed here; its layout is handled by the flex parent */
-}
-
-/*
-   IMPORTANT: You need to add a margin-top to your main quiz content
-   to prevent it from being hidden underneath the fixed timer.
-   Create a class for your main quiz area or apply this to an existing one.
-*/
-.quiz-content-area { /* Apply this class to the main container of your quiz questions */
-  margin-top: 70px;   /* Adjust this value based on the actual height of .fixed-timer-wrapper.
-                         Calculate: .fixed-timer-wrapper padding + .timer-display height.
-                         E.g., if .timer-display is ~40px high and wrapper padding is 8px top/bottom,
-                         total is ~56px. 70px gives a bit of space. */
-}
-
-/*
-   Your existing .quiz-with-timer can remain as is if it's used
-   for other purposes within your quiz structure.
-   It's no longer directly responsible for the timer's fixed positioning.
-*/
-.quiz-with-timer {
-  position: relative;
-}
-
-/* Pass/Fail text styles (unrelated to timer positioning, kept for completeness) */
-.pass-text {
-  color: #28a745;
-  font-weight: bold;
-  margin-top: 10px;
-}
-
-.fail-text {
-  color: #dc3545;
-  font-weight: bold;
-  margin-top: 10px;
-}
-
-/*
-  The older CSS for .timer-display with `position: absolute; top: -60px;`
-  and the `.sticky-timer-wrapper` with `position: sticky;`
-  should be removed or commented out to avoid conflicts with this new fixed positioning.
-*/
-/* Responsive on mobile */
-@media (max-width: 768px) {
-  .timer-display {
-    font-size: 16px;
-    padding: 10px;
-  }
-}
-
-@media (max-width: 768px) {
-  .question-block {
-    padding: 16px;
-    font-size: 14px;
-  }
-
-  .option-label {
-    font-size: 14px;
-    padding: 10px 12px;
-  }
-
-  .submit-button {
-    width: 100%;
-    font-size: 16px;
-  }
+@media (max-width: 720px){
+  .tabs{ justify-content:flex-start; }
+  .kpis{ grid-template-columns: 1fr; }
 }
