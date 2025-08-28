@@ -1,34 +1,68 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import React, {
   useEffect,
   useMemo,
   useState,
   createContext,
   useContext,
+  useRef,
 } from "react";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import io from "socket.io-client";
-import ChatInputWidget from "../components/ChatInputWidget";
-import "../styles/Quizzes/QuizzesPage.css";
 
-// ===== Context =====
+import ChatBot from "../components/Quizzes/Chatbot";
+
+import "../styles/Quizzes/QuizzesPage.css";
+import "../styles/Quizzes/Chatbot.css";
+
 const QuizCtx = createContext(null);
 const useQuiz = () => useContext(QuizCtx);
 
-// ===== Helpers =====
-const fmtPct = (num) => (Number.isFinite(num) ? Math.round(num * 100) : 0);
+const fmtPct = (n) => (Number.isFinite(n) ? Math.round(n * 100) : 0);
 const nowIso = () => new Date().toISOString();
-const skillToBand = (s = 0) => (s < 1200 ? "Starter" : s < 1500 ? "Medium" : "Difficult");
-const skillToLevel = (s = 0) => (s < 1200 ? 1 : s < 1350 ? 2 : s < 1500 ? 3 : s < 1650 ? 4 : 5);
+const skillToBand = (s = 0) =>
+  s < 1200 ? "Starter" : s < 1500 ? "Medium" : "Difficult";
+const skillToLevel = (s = 0) =>
+  s < 1200 ? 1 : s < 1350 ? 2 : s < 1500 ? 3 : s < 1650 ? 4 : 5;
 
 export default function QuizzesPage() {
-  const [active, setActive] = useState("quizzes"); // quizzes | feedback | leaderboard | dashboard | live
+  const [active, setActive] = useState("feedback");
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
   const [selectedTopic, setSelectedTopic] = useState(null);
-  const [lastAttempts, setLastAttempts] = useState([]); // [{q_id, topic, type, correct, ts}]
+  const [lastAttempts, setLastAttempts] = useState([]);
   const [totals, setTotals] = useState({ correct: 0, incorrect: 0 });
   const [toast, setToast] = useState(null);
+
+  // desktop vs mobile – used to ensure a SINGLE ChatBot render
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 860px)").matches
+      : false
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mm = window.matchMedia("(max-width: 860px)");
+    const onChange = () => setIsMobile(mm.matches);
+    try {
+      mm.addEventListener("change", onChange);
+    } catch {
+      mm.addListener(onChange); // Safari fallback
+    }
+    return () => {
+      try {
+        mm.removeEventListener("change", onChange);
+      } catch {
+        mm.removeListener(onChange);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const u = localStorage.getItem("qp_user");
@@ -52,20 +86,35 @@ export default function QuizzesPage() {
       totals,
       setTotals,
       setToast,
+      isMobile,
     }),
-    [active, session, user, selectedTopic, lastAttempts, totals]
+    [active, session, user, selectedTopic, lastAttempts, totals, isMobile]
   );
+
+  const lockTabs = ["feedback", "dashboard", "leaderboard", "live"];
+  const wrapClass =
+    "qp-wrap" + (lockTabs.includes(active) ? " no-outer-scroll" : "");
 
   return (
     <QuizCtx.Provider value={ctx}>
-      <div className="qp-wrap">
+      <div className={wrapClass}>
+        {/* Title intentionally removed */}
         <Header />
         <TabBar active={active} setActive={setActive} />
         <div className="qp-body">
           {active === "quizzes" && <QuizzesTab />}
-          {active === "feedback" && <FeedbackTab />}
+          {active === "feedback" && (
+            <FeedbackTab
+              selectedTopic={selectedTopic}
+              setSelectedTopic={setSelectedTopic}
+              totals={totals}
+              lastAttempts={lastAttempts}
+            />
+          )}
           {active === "leaderboard" && <LeaderboardTab />}
-          {active === "dashboard" && <DashboardTab />}
+          {active === "dashboard" && (
+            <DashboardTab totals={totals} lastAttempts={lastAttempts} />
+          )}
           {active === "live" && <LiveChatTab />}
         </div>
         {toast && <Toast message={toast} onClose={() => setToast(null)} />}
@@ -74,16 +123,15 @@ export default function QuizzesPage() {
   );
 }
 
-// ===== UI: Header / Tabs / Toast =====
 function Header() {
   const { session, user } = useQuiz();
   return (
     <div className="qp-header">
-      <h2 className="qp-title">Adaptive Quizzes Platform</h2>
+      <div style={{ flex: 1 }} />
       <div className="header-right">
         <BadgePill label={`XP ${session?.xp ?? 0}`} />
         <BadgePill label={`Streak ${session?.streak ?? 0}`} />
-        <BadgePill label={`Level ${skillToLevel(session?.skill)}`} />
+        <BadgePill label={`Level ${skillToLevel(session?.skill || 0)}`} />
         <span className="user-name">{user?.name ?? "Guest"}</span>
       </div>
     </div>
@@ -100,12 +148,13 @@ function TabBar({ active, setActive }) {
   ];
   return (
     <div className="tabs">
-      {tabs.map((t) => (
+      {tabs.map((t, i) => (
         <button
           key={t.id}
           onClick={() => setActive(t.id)}
-          className={`tab ${active === t.id ? "active" : ""}`}
-          title={t.label}
+          className={`tab ${active === t.id ? "active" : ""} ${
+            i === 0 ? "first" : ""
+          } ${i === tabs.length - 1 ? "last" : ""}`}
         >
           <span className="tab-label">{t.label}</span>
         </button>
@@ -113,22 +162,18 @@ function TabBar({ active, setActive }) {
     </div>
   );
 }
-
 function BadgePill({ label }) {
   return <div className="badge-pill">{label}</div>;
 }
-
 function Toast({ message, onClose }) {
   useEffect(() => {
-    const t = setTimeout(onClose, 3500);
+    const t = setTimeout(onClose, 3000);
     return () => clearTimeout(t);
   }, [onClose]);
   return <div className="toast">{message}</div>;
 }
 
-// ===================================================
-// QUIZZES TAB
-// ===================================================
+/* ---------------------- QUIZZES ---------------------- */
 function QuizzesTab() {
   const {
     session,
@@ -148,11 +193,11 @@ function QuizzesTab() {
   const [hint, setHint] = useState(null);
   const [cooldown, setCooldown] = useState(false);
 
-  // Ensure user
   useEffect(() => {
     if (!user) {
       const name =
-        localStorage.getItem("qp_name") || `User_${Math.floor(Math.random() * 9999)}`;
+        localStorage.getItem("qp_name") ||
+        `User_${Math.floor(Math.random() * 9999)}`;
       const cohort = "default";
       const u = { name, cohort };
       setUser(u);
@@ -203,7 +248,6 @@ function QuizzesTab() {
     }
   };
 
-  // Timer
   useEffect(() => {
     if (!question) return;
     const t = setInterval(() => {
@@ -217,7 +261,6 @@ function QuizzesTab() {
       });
     }, 1000);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question?.id]);
 
   const requestHint = async () => {
@@ -246,7 +289,7 @@ function QuizzesTab() {
     if (!session || !question) return;
     if (cooldown) return;
     setCooldown(true);
-    setTimeout(() => setCooldown(false), 1400);
+    setTimeout(() => setCooldown(false), 1200);
 
     try {
       const r = await fetch("/api/session/submit_attempt", {
@@ -264,16 +307,14 @@ function QuizzesTab() {
       localStorage.setItem("qp_session", JSON.stringify(data.session));
       setLastAttempts(data.last_attempts);
       setTotals(data.totals);
-      if (data.events?.includes("level_up")) setToast("Level up! Moving to Medium.");
+      if (data.events?.includes("level_up"))
+        setToast("Level up! Moving to Medium.");
       if (data.events?.includes("level_up2"))
         setToast("Great work! Moving to Difficult.");
       if (data.events?.includes("streak"))
         setToast(`🔥 Streak x${data.session.streak}!`);
-      if (data.next_available) {
-        await nextQuestion();
-      } else {
-        setToast("You’re done for now — see Feedback tab.");
-      }
+      if (data.next_available) await nextQuestion();
+      else setToast("You’re done for now — see Feedback tab.");
     } catch (e) {
       console.error(e);
     }
@@ -286,98 +327,116 @@ function QuizzesTab() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: session.session_id }),
     });
-    setToast("Session finalized. Check AI Feedback & Dashboard.");
     setActive("feedback");
   };
 
-  return (
-    <div className="quizzes-tab">
-      {!session ? (
-        <button disabled={loading} onClick={startSession} className="btn">
+  if (!session) {
+    return (
+      <div className="start-center">
+        <button
+          className="btn btn-primary big"
+          disabled={loading}
+          onClick={startSession}
+        >
           {loading ? "Starting…" : "Start Session"}
         </button>
-      ) : (
-        <>
-          <div className="quiz-topbar">
-            <BadgePill label={`Difficulty: ${question?.difficulty ?? skillToBand(session?.skill)}`} />
-            <BadgePill label={`Timer: ${Math.max(0, timeLeft)}s`} />
-            <BadgePill label={`Topic: ${question?.topic ?? "-"}`} />
-            <button className="btn ghost" onClick={finalize}>Finish</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="quizzes-tab scrollable-hidden">
+      <div className="quiz-topbar">
+        <BadgePill
+          label={`Difficulty: ${
+            question?.difficulty ?? skillToBand(session?.skill)
+          }`}
+        />
+        <BadgePill label={`Timer: ${Math.max(0, timeLeft)}s`} />
+        <BadgePill label={`Topic: ${question?.topic ?? "-"}`} />
+        <button className="btn ghost" onClick={finalize}>
+          Finish
+        </button>
+      </div>
+
+      {question ? (
+        <div className="q-card">
+          <div className="q-head">
+            <h3 className="q-title">Q: {question.text}</h3>
+            <span className="pill">{question.type}</span>
           </div>
 
-          {question ? (
-            <div className="q-card">
-              <div className="q-head">
-                <h3 className="q-title">Q: {question.text}</h3>
-                <span className="pill">{question.type}</span>
-              </div>
-
-              {question.type === "MCQ" ? (
-                <div className="options">
-                  {question.options.map((opt, idx) => (
-                    <label key={idx} className={`opt ${selected === idx ? "sel" : ""}`}>
-                      <input
-                        type="radio"
-                        name="opt"
-                        onChange={() => setSelected(idx)}
-                        checked={selected === idx}
-                      />
-                      <span>{opt}</span>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <textarea
-                  className="free-text"
-                  placeholder="Type your answer (True/False or short rationale)"
-                  value={selected?.text ?? ""}
-                  onChange={(e) => setSelected({ text: e.target.value })}
-                  rows={5}
-                />
-              )}
-
-              <div className="actions">
-                <button className="btn" onClick={() => handleSubmit(false)} disabled={selected === null}>
-                  Submit
-                </button>
-                <button className="btn ghost" onClick={requestHint}>Hint (-XP)</button>
-                <button className="btn ghost" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-                  Back to Top
-                </button>
-              </div>
-
-              {hint && (
-                <div className="hint">
-                  <strong>Hint:</strong> {hint}
-                </div>
-              )}
-
-              <div className="cites">
-                <strong>References:</strong>{" "}
-                {(question.citations || []).map((c, i) => (
-                  <a key={i} href={c.url} target="_blank" rel="noreferrer">
-                    {c.id}
-                  </a>
-                ))}
-              </div>
+          {question.type === "MCQ" ? (
+            <div className="options">
+              {question.options.map((opt, idx) => (
+                <label
+                  key={idx}
+                  className={`opt ${selected === idx ? "sel" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="opt"
+                    onChange={() => setSelected(idx)}
+                    checked={selected === idx}
+                  />
+                  <span>{opt}</span>
+                </label>
+              ))}
             </div>
           ) : (
-            <div className="q-card">Fetching your next question…</div>
+            <textarea
+              className="free-text"
+              placeholder="Type your answer (True/False or short rationale)"
+              value={selected?.text ?? ""}
+              onChange={(e) => setSelected({ text: e.target.value })}
+              rows={5}
+            />
           )}
-        </>
+
+          <div className="actions">
+            <button
+              className="btn btn-primary"
+              onClick={() => handleSubmit(false)}
+              disabled={selected === null}
+            >
+              Submit
+            </button>
+            <button className="btn ghost" onClick={requestHint}>
+              Hint (-XP)
+            </button>
+            <button
+              className="btn ghost"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              Back to Top
+            </button>
+          </div>
+
+          {hint && (
+            <div className="hint">
+              <strong>Hint:</strong> {hint}
+            </div>
+          )}
+
+          <div className="cites">
+            <strong>References:</strong>{" "}
+            {(question.citations || []).map((c, i) => (
+              <a key={i} href={c.url} target="_blank" rel="noreferrer">
+                {c.id}
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="q-card">Fetching your next question…</div>
       )}
     </div>
   );
 }
 
-// ===================================================
-// FEEDBACK TAB  (Charts + Coach chat with docked input)
-// ===================================================
-function FeedbackTab() {
-  const { session, selectedTopic, setSelectedTopic, lastAttempts, totals, setToast } = useQuiz();
-  const [messages, setMessages] = useState([
-    { role: "ai", text: "Hi! I’m your AI Coach. Ask me for tips on any topic." , ts: nowIso()},
-  ]);
+/* --------------------- AI FEEDBACK --------------------- */
+function FeedbackTab({ selectedTopic, setSelectedTopic, totals, lastAttempts }) {
+  const { isMobile } = useQuiz();
 
   const correct = totals.correct || 0;
   const incorrect = totals.incorrect || 0;
@@ -392,277 +451,510 @@ function FeedbackTab() {
     return map;
   }, [lastAttempts]);
 
-  const topicPieConfig = useMemo(() => {
+  const topicMastery = useMemo(() => {
     const data = Object.entries(byTopic).map(([topic, v]) => ({
       name: topic,
       y: v.total ? v.correct / v.total : 0,
       events: { click: () => setSelectedTopic(topic) },
     }));
     return {
-      chart: { type: "pie" },
+      chart: { type: "pie", spacing: [8, 8, 8, 8] },
       title: { text: "Topic Mastery" },
       tooltip: { pointFormat: "<b>{point.percentage:.1f}%</b> mastery" },
       series: [{ name: "Mastery", data }],
+      credits: { enabled: false },
     };
   }, [byTopic, setSelectedTopic]);
 
-  const ratioPieConfig = {
-    chart: { type: "pie" },
+  const ratioPie = {
+    chart: { type: "pie", spacing: [8, 8, 8, 8] },
     title: { text: "Correct vs Incorrect" },
     series: [
-      { name: "Attempts", data: [{ name: "Correct", y: correct }, { name: "Incorrect", y: incorrect }] },
+      {
+        name: "Attempts",
+        data: [
+          { name: "Correct", y: correct },
+          { name: "Incorrect", y: incorrect },
+        ],
+      },
     ],
+    credits: { enabled: false },
   };
 
-  // ChatInputWidget handler
-  const onCoachSend = async (payload) => {
-    if (payload?.text?.trim()) {
-      const text = selectedTopic ? `${payload.text}\n\n(Focus: ${selectedTopic})` : payload.text;
-      setMessages((m) => [...m, { role: "user", text, ts: nowIso() }]);
-      const r = await fetch("/api/feedback/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: session?.session_id,
-          message: payload.text,
-          topic_filter: selectedTopic,
-        }),
-      });
-      const data = await r.json();
-      setMessages((m) => [...m, { role: "ai", text: data.reply, ts: nowIso() }]);
-      setToast("Coach replied.");
-    } else if (payload?.audioFile) {
-      setMessages((m) => [...m, { role: "user", text: "🎤 Voice message sent.", ts: nowIso() }]);
-    }
-  };
+  // --- Mobile floating chat (single render only on mobile) ---
+  const floatRef = useRef(null);
+  const handleRef = useRef(null);
+  const [floatingOpen, setFloatingOpen] = useState(true);
 
-  const filtered = selectedTopic ? lastAttempts.filter((a) => a.topic === selectedTopic) : lastAttempts;
-
-  return (
-    <div className="feedback-layout">
-      <div className="feedback-left">
-        <div className="chart-card"><HighchartsReact highcharts={Highcharts} options={ratioPieConfig} /></div>
-        <div className="chart-card"><HighchartsReact highcharts={Highcharts} options={topicPieConfig} /></div>
-        {selectedTopic && (
-          <button className="btn ghost mt8" onClick={() => setSelectedTopic(null)}>
-            Clear topic filter
-          </button>
-        )}
-      </div>
-
-      <div className="coach-panel">
-        <div className="coach-header">
-          <h3>AI Coach</h3>
-          <span className="coach-sub">{selectedTopic ? `Focused on: ${selectedTopic}` : "Ask anything about your performance"}</span>
-        </div>
-
-        <div className="chat-log bubbles">
-          {messages.map((m, i) => (
-            <div key={i} className={`bubble-row ${m.role === "user" ? "right" : "left"}`}>
-              <div className={`bubble ${m.role === "user" ? "me" : "ai"}`}>
-                <div className="bubble-text">{m.text}</div>
-                <div className="bubble-time">{new Date(m.ts).toLocaleTimeString()}</div>
-              </div>
-            </div>
-          ))}
-
-          <div className="attempts-head">Recent Attempts {selectedTopic ? `• ${selectedTopic}` : ""}</div>
-          <ul className="attempts">
-            {filtered.slice(-14).reverse().map((a, idx) => (
-              <li key={idx} className={a.correct ? "ok" : "bad"}>
-                <span className="attempt-time">{new Date(a.ts).toLocaleTimeString()}</span>
-                <strong className="attempt-topic">[{a.topic}]</strong> {a.type} — {a.correct ? "✅ Correct" : "❌ Incorrect"}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Docked chat input */}
-        <div className="chat-dock">
-          <ChatInputWidget onSendMessage={onCoachSend} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ===================================================
-// LEADERBOARD TAB
-// ===================================================
-function LeaderboardTab() {
-  const [period, setPeriod] = useState("daily");
-  const [rows, setRows] = useState([]);
-  const [me, setMe] = useState(null);
-
-  const fetchLB = async (p = period) => {
-    const r = await fetch(`/api/leaderboard?period=${p}`);
-    const data = await r.json();
-    setRows(data.rows);
-    setMe(data.me || null);
-  };
   useEffect(() => {
-    fetchLB();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period]);
+    if (!isMobile) return; // only attach handlers on mobile
+    const root = floatRef.current;
+    const handle = handleRef.current;
+    if (!root || !handle) return;
+
+    let startY = 0;
+    let startH = 0;
+    let dragging = false;
+
+    const onStart = (e) => {
+      dragging = true;
+      startY = (e.touches ? e.touches[0].clientY : e.clientY);
+      startH = root.getBoundingClientRect().height;
+      root.classList.add("dragging");
+      e.preventDefault();
+    };
+
+    const onMove = (e) => {
+      if (!dragging) return;
+      const y = (e.touches ? e.touches[0].clientY : e.clientY);
+      const dy = startY - y; // up = increase height
+      let newH = Math.max(200, Math.min(window.innerHeight * 0.92, startH + dy));
+      root.style.height = `${newH}px`;
+    };
+
+    const onEnd = () => {
+      dragging = false;
+      root.classList.remove("dragging");
+    };
+
+    handle.addEventListener("mousedown", onStart);
+    handle.addEventListener("touchstart", onStart, { passive: false });
+    window.addEventListener("mousemove", onMove, { passive: false });
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("mouseup", onEnd);
+    window.addEventListener("touchend", onEnd);
+
+    return () => {
+      handle.removeEventListener("mousedown", onStart);
+      handle.removeEventListener("touchstart", onStart);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("mouseup", onEnd);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [isMobile, floatingOpen]);
 
   return (
-    <div className="leaderboard">
-      <div className="lb-filters">
-        {["daily", "weekly", "all_time"].map((p) => (
-          <button key={p} className={`btn ${period === p ? "" : "ghost"}`} onClick={() => setPeriod(p)}>
-            {p}
-          </button>
-        ))}
+    <div className="feedback-grid">
+      {/* Charts column */}
+      <div className="feedback-left">
+        <div className="chart-card chart-fill hc-flex">
+          <HighchartsReact
+            highcharts={Highcharts}
+            options={ratioPie}
+            containerProps={{ style: { height: "100%", width: "100%" } }}
+          />
+        </div>
+        <div className="chart-card chart-fill hc-flex">
+          <HighchartsReact
+            highcharts={Highcharts}
+            options={topicMastery}
+            containerProps={{ style: { height: "100%", width: "100%" } }}
+          />
+        </div>
       </div>
 
-      <table className="table">
-        <thead>
-          <tr><th>#</th><th>User</th><th>XP</th><th>Streak</th><th>Level</th></tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={r.user_id} className={me?.user_id === r.user_id ? "me" : ""}>
-              <td>{i + 1}</td>
-              <td>{r.name}</td>
-              <td>{r.xp}</td>
-              <td>{r.streak}</td>
-              <td>{skillToLevel(r.skill)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {me && (
-        <div className="me-card">
-          <strong>Your Rank:</strong> #{me.rank} • XP {me.xp} • Streak {me.streak} • Level {skillToLevel(me.skill)}
+      {/* SINGLE ChatBot render:
+          - Desktop: embedded panel
+          - Mobile: floating draggable */}
+      {!isMobile ? (
+        <div className="feedback-right">
+          <div className="chat-card desktop-chat">
+            <ChatBot
+              title="AI-Powered Quiz Feedback"
+              suggested={[
+                "What are my weakest topics?",
+                "Create a 3-day micro-study plan.",
+                "Explain why I missed recent questions.",
+                "How can I raise accuracy next week?",
+              ]}
+              initialMessage={
+                selectedTopic
+                  ? `Give me feedback focused on: ${selectedTopic}`
+                  : "Give me feedback on my latest quiz performance."
+              }
+            />
+          </div>
         </div>
+      ) : (
+        <>
+          <button
+            className="float-toggle"
+            onClick={() => setFloatingOpen((v) => !v)}
+          >
+            {floatingOpen ? "Hide AI" : "Show AI"}
+          </button>
+
+          <div
+            ref={floatRef}
+            className={`float-chat ${floatingOpen ? "open" : ""}`}
+            aria-hidden={!floatingOpen}
+          >
+            <div ref={handleRef} className="float-handle" />
+            <ChatBot
+              title="AI-Powered Quiz Feedback"
+              suggested={[
+                "What are my weakest topics?",
+                "Create a 3-day micro-study plan.",
+                "Explain why I missed recent questions.",
+                "How can I raise accuracy next week?",
+              ]}
+              initialMessage={
+                selectedTopic
+                  ? `Give me feedback focused on: ${selectedTopic}`
+                  : "Give me feedback on my latest quiz performance."
+              }
+            />
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-// ===================================================
-// DASHBOARD TAB (more diverse cards/charts)
-// ===================================================
-function DashboardTab() {
-  const { totals, lastAttempts, setSelectedTopic, session } = useQuiz();
-  const [series, setSeries] = useState([]);
-  const [typeData, setTypeData] = useState([]);
-  const [topicBars, setTopicBars] = useState([]);
+/* --------------------- LEADERBOARD (static) --------------------- */
+function LeaderboardTab() {
+  const [period, setPeriod] = useState("all_time");
+  const [rows, setRows] = useState([]);
+  const [me, setMe] = useState(null);
 
-  // Progress line
-  useEffect(() => {
-    const byDay = {};
-    lastAttempts.forEach((a) => {
-      const d = new Date(a.ts).toISOString().slice(0, 10);
-      if (!byDay[d]) byDay[d] = { correct: 0, total: 0 };
-      byDay[d].total += 1;
-      if (a.correct) byDay[d].correct += 1;
-    });
-    const days = Object.keys(byDay).sort();
-    setSeries([
-      {
-        name: "Accuracy",
-        data: days.map((d) => [
-          Date.parse(d),
-          byDay[d].total ? byDay[d].correct / byDay[d].total : 0,
-        ]),
+  const demoRows = [
+    { user_id: "u1", name: "Sarah Chen", xp: 2150, streak: 12, skill: 1650 },
+    { user_id: "u2", name: "Alex Rodriguez", xp: 1850, streak: 8, skill: 1550 },
+    { user_id: "u3", name: "Emma Wilson", xp: 1650, streak: 6, skill: 1500 },
+    { user_id: "u4", name: "David Kim", xp: 1420, streak: 4, skill: 1400 },
+    { user_id: "u5", name: "Maya Patel", xp: 1380, streak: 7, skill: 1380 },
+    { user_id: "u6", name: "BI DSAH", xp: 1250, streak: 5, skill: 1360 },
+    { user_id: "u7", name: "Noah Lee", xp: 1180, streak: 3, skill: 1330 },
+    { user_id: "u8", name: "Ava Brown", xp: 1100, streak: 2, skill: 1300 },
+  ];
+  const demoMe = { user_id: "u6", rank: 6, xp: 1250, streak: 5, total_players: 10 };
+
+  const fetchLB = async (p = period) => {
+    try {
+      const r = await fetch(`/api/leaderboard?period=${p}`);
+      const data = await r.json();
+      setRows(Array.isArray(data.rows) ? data.rows : demoRows);
+      setMe(data.me || demoMe);
+    } catch {
+      setRows(demoRows);
+      setMe(demoMe);
+    }
+  };
+  useEffect(() => { fetchLB(); }, [period]);
+
+  const top = (rows.length ? rows : demoRows).slice(0, 6);
+  const categories = top.map(r => r.name);
+  const data = top.map(r => r.xp);
+
+  const chartOptions = useMemo(
+    () => ({
+      chart: { type: "bar", spacing: [8, 8, 12, 8], animation: false },
+      title: { text: "Competition" },
+      xAxis: {
+        categories,
+        title: { text: null },
+        lineColor: "#dfe6f3",
+        tickColor: "#cfd9ee",
+        tickLength: 5,
+        labels: { enabled: true, style: { fontSize: "11px" } },
       },
-    ]);
-  }, [lastAttempts]);
-
-  // Types bar
-  useEffect(() => {
-    const m = {};
-    lastAttempts.forEach((a) => (m[a.type] = (m[a.type] || 0) + 1));
-    const data = Object.entries(m).map(([name, y]) => ({ name, y }));
-    setTypeData(data);
-  }, [lastAttempts]);
-
-  // Topic attempts (top 8)
-  useEffect(() => {
-    const m = {};
-    lastAttempts.forEach((a) => (m[a.topic] = (m[a.topic] || 0) + 1));
-    const top = Object.entries(m)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8);
-    setTopicBars(top.map(([name, y]) => ({ name, y })));
-  }, [lastAttempts]);
-
-  const lineCfg = {
-    chart: { type: "line", zoomType: "x" },
-    title: { text: "Progress Over Time" },
-    xAxis: { type: "datetime" },
-    yAxis: {
-      min: 0,
-      max: 1,
-      labels: { formatter() { return `${fmtPct(this.value)}%`; } },
-    },
-    tooltip: { pointFormat: "<b>{point.y:.2f}</b> accuracy" },
-    series,
-  };
-
-  const typesCfg = {
-    chart: { type: "column" },
-    title: { text: "Question Type Mix" },
-    xAxis: { type: "category" },
-    series: [{ name: "Items", data: typeData }],
-  };
-
-  const topicsCfg = {
-    chart: { type: "bar" },
-    title: { text: "Attempts by Topic (Top 8)" },
-    xAxis: {
-      type: "category",
-      labels: { style: { fontSize: "11px" } },
-    },
-    series: [
-      {
-        name: "Attempts",
-        data: topicBars.map((d) => ({
-          name: d.name,
-          y: d.y,
-          events: { click: () => setSelectedTopic(d.name) },
-        })),
+      yAxis: {
+        min: 0,
+        title: { text: "XP", align: "high" },
+        gridLineColor: "#eef2f7",
+        labels: { enabled: true, style: { fontSize: "11px" } },
       },
-    ],
-  };
+      legend: { enabled: false },
+      tooltip: { pointFormat: "<b>{point.y} XP</b>" },
+      plotOptions: {
+        series: {
+          animation: false,
+          borderRadius: 6,
+          pointPadding: 0.08,
+          groupPadding: 0.06,
+          color: "#2790ff",
+        },
+      },
+      series: [{ name: "XP", data }],
+      credits: { enabled: false },
+    }),
+    // eslint-disable-next-line
+    [period, rows]
+  );
+
+  const medal = (rank) =>
+    rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "";
 
   return (
-    <div className="dashboard-grid">
-      <div className="kpis">
-        <div className="kpi">
-          <span>Total Attempts</span>
-          <strong>{(totals.correct || 0) + (totals.incorrect || 0)}</strong>
+    <div className="leaderboard fullheight-section">
+      <div className="leaderboard-grid">
+        <div className="lb-left">
+          <div className="lb-filters">
+            {["daily", "weekly", "monthly", "all_time"].map((p) => (
+              <button
+                key={p}
+                className={`btn ${period === p ? "btn-primary" : "ghost"}`}
+                onClick={() => setPeriod(p)}
+              >
+                {p.replace("_", " ")}
+              </button>
+            ))}
+          </div>
+          <div className="chart-card chart-fill hc-flex">
+            <HighchartsReact
+              highcharts={Highcharts}
+              options={chartOptions}
+              containerProps={{ style: { height: "100%", width: "100%" } }}
+            />
+          </div>
         </div>
-        <div className="kpi">
-          <span>Accuracy</span>
-          <strong>
-            {fmtPct(
-              (totals.correct || 0) /
-                Math.max(1, (totals.correct || 0) + (totals.incorrect || 0))
-            )}
-            %
-          </strong>
-        </div>
-        <div className="kpi">
-          <span>Level</span>
-          <strong>{skillToLevel(session?.skill || 0)}</strong>
+
+        <div className="lb-right">
+          <div className="table-viewport no-scrollbar">
+            <table className="table lb-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>User</th>
+                  <th>XP</th>
+                  <th>Streak</th>
+                  <th>Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(rows.length ? rows : demoRows).map((r, i) => {
+                  const rank = i + 1;
+                  const isMe = me?.user_id === r.user_id;
+                  return (
+                    <tr key={r.user_id} className={`${isMe ? "me" : ""}`}>
+                      <td>
+                        <span className="rank-cell">
+                          <span className="medal-emoji">{medal(rank)}</span>
+                          <span className="rank-num">{rank}</span>
+                        </span>
+                      </td>
+                      <td>{r.name}{isMe ? " (You)" : ""}</td>
+                      <td>{r.xp}</td>
+                      <td>🔥 {r.streak}</td>
+                      <td>{skillToLevel(r.skill || 1300)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {me && (
+            <div className="me-card">
+              <strong>Your Rank:</strong> #{me.rank} • XP {me.xp} • Streak{" "}
+              {me.streak} • Players {me.total_players}
+            </div>
+          )}
         </div>
       </div>
-
-      <div className="chart-card"><HighchartsReact highcharts={Highcharts} options={lineCfg} /></div>
-      <div className="chart-card"><HighchartsReact highcharts={Highcharts} options={typesCfg} /></div>
-      <div className="chart-card wide"><HighchartsReact highcharts={Highcharts} options={topicsCfg} /></div>
-
-      <p className="tiny-note">Tip: Click a topic bar to filter the Feedback tab.</p>
     </div>
   );
 }
 
-// ===================================================
-// LIVE CHAT TAB (Socket.IO) with bottom dock input
-// ===================================================
+/* ---------------------- DASHBOARD ---------------------- */
+function DashboardTab({ totals, lastAttempts }) {
+  const [daysWindow, setDaysWindow] = useState(7);
+  const [diffFilter, setDiffFilter] = useState({
+    Starter: true,
+    Medium: true,
+    Difficult: true,
+  });
+
+  const [accuracySeries, setAccuracySeries] = useState([]);
+  const [growthSeries, setGrowthSeries] = useState([]);
+  const [difficultyData, setDifficultyData] = useState([]);
+
+  const smooth = (arr, w = 3) => {
+    if (arr.length <= w) return arr;
+    const out = [];
+    for (let i = 0; i < arr.length; i++) {
+      const a = Math.max(0, i - (w - 1));
+      const b = i + 1;
+      const slice = arr.slice(a, b);
+      out.push(slice.reduce((s, x) => s + x, 0) / slice.length);
+    }
+    return out;
+  };
+
+  useEffect(() => {
+    const byDay = {};
+    const push = (ts, correct) => {
+      const d = new Date(ts).toISOString().slice(0, 10);
+      if (!byDay[d]) byDay[d] = { correct: 0, total: 0 };
+      byDay[d].total += 1;
+      if (correct) byDay[d].correct += 1;
+    };
+
+    if (lastAttempts.length) {
+      lastAttempts.forEach((a) => push(a.ts || Date.now(), a.correct));
+    } else {
+      const today = new Date();
+      for (let i = 50; i >= 0; i--) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        const total = 3 + (i % 4);
+        const correct = Math.max(0, total - (i % 3));
+        for (let j = 0; j < total; j++) push(d, j < correct);
+      }
+    }
+
+    const days = Object.keys(byDay).sort();
+    const last = days.slice(-daysWindow);
+
+    const raw = last.map((d) => (byDay[d].total ? byDay[d].correct / byDay[d].total : 0));
+    const smoothed = smooth(raw, 4);
+
+    setAccuracySeries([
+      { name: "Accuracy", data: last.map((d, i) => [Date.parse(d), smoothed[i]]) },
+    ]);
+
+    setGrowthSeries([
+      { name: "Attempts", data: last.map((d) => [Date.parse(d), byDay[d].total]) },
+    ]);
+  }, [lastAttempts, daysWindow]);
+
+  useEffect(() => {
+    const base = { Starter: 6, Medium: 5, Difficult: 4 };
+    lastAttempts.forEach((a) => {
+      const k = a.difficulty || "Starter";
+      base[k] = (base[k] || 0) + 1;
+    });
+    const data = Object.entries(base)
+      .filter(([name]) => diffFilter[name])
+      .map(([name, y]) => ({ name, y }));
+    setDifficultyData(data);
+  }, [lastAttempts, diffFilter]);
+
+  const accuracyCfg = {
+    chart: { type: "spline", spacing: [8, 8, 14, 8] },
+    title: { text: "Performance Trend" },
+    xAxis: {
+      type: "datetime",
+      lineColor: "#dfe6f3",
+      tickColor: "#cfd9ee",
+      tickLength: 5,
+      labels: { enabled: true, style: { fontSize: "11px" } },
+    },
+    yAxis: {
+      min: 0, max: 1,
+      lineColor: "#dfe6f3",
+      tickColor: "#cfd9ee",
+      labels: { formatter() { return `${fmtPct(this.value)}%`; }, style: { fontSize: "11px" } },
+    },
+    tooltip: { pointFormat: "<b>{point.y:.2f}</b> accuracy" },
+    plotOptions: { spline: { lineWidth: 3, marker: { enabled: false } } },
+    series: accuracySeries,
+    credits: { enabled: false },
+  };
+
+  const growthCfg = {
+    chart: { type: "column", spacing: [8, 8, 14, 8] },
+    title: { text: "Growth Over Time" },
+    xAxis: {
+      type: "datetime",
+      lineColor: "#dfe6f3",
+      tickColor: "#cfd9ee",
+      tickLength: 5,
+      labels: { enabled: true, style: { fontSize: "11px" } },
+    },
+    yAxis: {
+      title: { text: null },
+      labels: { enabled: true, style: { fontSize: "11px" } },
+    },
+    tooltip: { pointFormat: "<b>{point.y}</b> attempts" },
+    series: growthSeries,
+    credits: { enabled: false },
+  };
+
+  const difficultyCfg = {
+    chart: { type: "pie", spacing: [8, 8, 14, 8] },
+    title: { text: "Difficulty Breakdown" },
+    tooltip: { pointFormat: "<b>{point.y}</b> items" },
+    plotOptions: {
+      pie: { allowPointSelect: true, dataLabels: { enabled: true, format: "{point.name}" } },
+    },
+    series: [{ name: "Items", data: difficultyData }],
+    credits: { enabled: false },
+  };
+
+  const totalCompleted = (totals.correct || 12) + (totals.incorrect || 6);
+  const overallAcc =
+    Math.round(((totals.correct || 12) / Math.max(1, totalCompleted)) * 100) ||
+    0;
+
+  return (
+    <div className="dashboard-grid">
+      <div className="chart-card chart-fill row1 hc-flex">
+        <div className="chart-actions">
+          <div className="seg">
+            {[3, 7, 30, 40].map((d) => (
+              <button
+                key={d}
+                className={`seg-btn ${daysWindow === d ? "active" : ""}`}
+                onClick={() => setDaysWindow(d)}
+              >
+                {d}d
+              </button>
+            ))}
+          </div>
+        </div>
+        <HighchartsReact
+          highcharts={Highcharts}
+          options={accuracyCfg}
+          containerProps={{ style: { height: "100%", width: "100%" } }}
+        />
+      </div>
+
+      <div className="kpi-row">
+        <div className="kpi card">
+          <span>Quizzes Completed</span>
+          <strong>{totalCompleted}</strong>
+        </div>
+        <div className="kpi card">
+          <span>Overall Accuracy</span>
+          <strong>{overallAcc}%</strong>
+        </div>
+      </div>
+
+      <div className="chart-pair row3">
+        <div className="chart-card chart-fill hc-flex">
+          <div className="seg seg-inline">
+            {["Starter", "Medium", "Difficult"].map((k) => (
+              <button
+                key={k}
+                className={`seg-btn ${diffFilter[k] ? "active" : ""}`}
+                onClick={() =>
+                  setDiffFilter((p) => ({ ...p, [k]: !p[k] }))
+                }
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+          <HighchartsReact
+            highcharts={Highcharts}
+            options={difficultyCfg}
+            containerProps={{ style: { height: "100%", width: "100%" } }}
+          />
+        </div>
+        <div className="chart-card chart-fill hc-flex">
+          <HighchartsReact
+            highcharts={Highcharts}
+            options={growthCfg}
+            containerProps={{ style: { height: "100%", width: "100%" } }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------- LIVE CHAT ---------------------- */
 function LiveChatTab() {
   const { user } = useQuiz();
   const [socket, setSocket] = useState(null);
@@ -674,60 +966,31 @@ function LiveChatTab() {
     setSocket(s);
     s.emit("join", { room, name: user?.name });
     s.on("message", (m) => setMsgs((prev) => [...prev, m]));
-    s.on("challenge", (m) =>
-      setMsgs((prev) => [
-        ...prev,
-        { system: true, text: `⚔️ ${m.from} challenged ${m.to}!`, ts: nowIso() },
-      ])
-    );
-    return () => {
-      s.disconnect();
-    };
+    return () => s.disconnect();
   }, [room, user?.name]);
 
-  const sendMsg = (payload) => {
-    if (payload?.text?.trim()) {
-      const data = { room, from: user?.name, text: payload.text, ts: nowIso() };
-      socket.emit("message", data);
-      setMsgs((m) => [...m, data]);
-    } else if (payload?.audioFile) {
-      const data = { room, from: user?.name, text: "🎤 Voice message sent.", ts: nowIso() };
-      socket.emit("message", data);
-      setMsgs((m) => [...m, data]);
-    }
-  };
-
-  const challenge = () => {
-    socket.emit("challenge", { room, from: user?.name, to: "Anyone", ts: nowIso() });
-  };
-
   return (
-    <div className="chat-panel">
-      <div className="chat-header">
+    <div className="live-chat-shell fullheight-section">
+      <div className="live-chat-top">
         <h3>Live Chat</h3>
-        <button className="btn ghost" onClick={challenge}>⚔️ Challenge</button>
       </div>
 
-      <div className="chat-log bubbles">
-        {msgs.map((m, i) => (
-          <div
-            key={i}
-            className={`bubble-row ${
-              m.system ? "center" : m.from === user?.name ? "right" : "left"
-            }`}
-          >
-            <div className={`bubble ${m.system ? "system" : m.from === user?.name ? "me" : "ai"}`}>
-              <div className="bubble-meta">
-                {m.system ? "System" : m.from} • {new Date(m.ts || Date.now()).toLocaleTimeString()}
-              </div>
-              <div className="bubble-text">{m.text}</div>
+      <div className="chat-body no-scrollbar">
+        {msgs.map((m, i) => {
+          const mine = m.from === user?.name;
+          return (
+            <div
+              key={i}
+              className={`chat-msg ${mine ? "user" : "bot"}`}
+              style={{
+                alignSelf: mine ? "flex-end" : "flex-start",
+                maxWidth: "70%",
+              }}
+            >
+              {m.text}
             </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="chat-dock">
-        <ChatInputWidget onSendMessage={sendMsg} />
+          );
+        })}
       </div>
     </div>
   );
