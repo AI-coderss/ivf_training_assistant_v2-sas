@@ -78,7 +78,7 @@
 
 .ink-msg.user {
   margin-left: auto;
-  background: var(--accent);
+  background: #007BFF !important;
   color: #fff;
   border-top-right-radius: 6px;
 }

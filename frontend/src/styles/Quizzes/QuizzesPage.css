@@ -13,33 +13,37 @@
 
 /* ===== Page shell ===== */
 .qp-wrap {
-  min-height: 100vh;
+  height: 100vh;
   padding: 22px 12px 20px;
-  margin-top: 28px;
+  margin-top: 15px;
   background: var(--bg);
   color: var(--text);
   overflow-x: hidden;
 }
-.qp-wrap.no-outer-scroll { height: 100vh; overflow: hidden; }
+/* keep outer scroll available so content below the fold is reachable */
+.qp-wrap.no-outer-scroll { height: auto; overflow: visible; }
 
+/* Header */
 .qp-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
-.header-right { display: flex; gap: 8px; align-items: center; }
+.header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .user-name { opacity: .82; }
 
 .qp-body { margin-top: 16px; }
 
-/* ===== Tabs ===== */
+/* ===== Tabs (centered like original) ===== */
 .tabs {
   margin-top: 18px;
   display: flex;
-  justify-content: center;
+  justify-content: center;   /* ✅ always centered */
   align-items: center;
   gap: 0;
+  flex-wrap: nowrap;
 }
 .tab {
   border: 1px solid var(--line);
@@ -52,9 +56,10 @@
   transition: background .12s, color .12s;
   border-right: 0;
   font-size: 14px;
+  white-space: nowrap;
 }
 .tab.first { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
-.tab.last { border-right: 1px solid var(--line); border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+.tab.last  { border-right: 1px solid var(--line); border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
 .tab:hover, .tab.active { background: var(--accent); color: #fff; }
 
 .btn {
@@ -80,23 +85,16 @@
   font-size: 12px;
 }
 
-/* ===== Quizzes ===== */
+/* ===== Quizzes (unchanged visual) ===== */
 .quizzes-tab { min-height: calc(100vh - var(--top-offset)); }
 .scrollable-hidden { overflow-y: auto; }
 .scrollable-hidden::-webkit-scrollbar { width: 0; height: 0; }
 .scrollable-hidden { scrollbar-width: none; }
 
 .quiz-topbar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
+  display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;
 }
-.pill {
-  background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 999px;
-  padding: 4px 8px; font-size: 12px;
-}
+.pill { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 999px; padding: 4px 8px; font-size: 12px; }
 .q-card {
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -108,11 +106,8 @@
 .q-title { margin: 0 0 6px; }
 .options { display: grid; gap: 8px; margin-top: 8px; }
 .opt {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 8px;
-  display: flex; gap: 8px; align-items: center;
-  cursor: pointer;
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px;
+  display: flex; gap: 8px; align-items: center; cursor: pointer;
   transition: border-color .12s, background .12s;
 }
 .opt.sel { outline: 2px solid var(--accent); background: var(--accent-ghost); }
@@ -122,37 +117,29 @@
 .cites { margin-top: 10px; font-size: 13px; }
 .cites a { margin-right: 8px; text-decoration: underline; }
 
-/* ===== Fullheight helpers ===== */
-.fullheight { height: calc(100vh - var(--top-offset)); }
-.fullheight-section {
-  height: calc(100vh - var(--top-offset));
-  overflow: hidden;
-  display: flex; flex-direction: column;
-}
-
 /* ===== Feedback ===== */
 .feedback-grid {
-  height: calc(100vh - var(--top-offset));
+  /* allow natural height so floating elements don’t clip */
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
-  gap: 16px;
-  overflow: hidden;
+  gap: 2px;
   position: relative;
 }
 .feedback-left {
   display: grid;
   grid-template-rows: 1fr 1fr;
-  gap: 16px;
-  min-height: 0;
+  gap: 10px;
+  height: 780px;
+ 
 }
-.feedback-right { min-height: 0; display: flex; }
+.feedback-right { height: 0; display: flex; }
 
 .chat-card {
   border: 1px solid var(--line);
   background: var(--card);
   border-radius: 14px;
-  width: 100%;
-  height: 100%;
+  width: 590px;
+  height: 780px;
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .06);
 }
@@ -168,7 +155,7 @@
   overflow: hidden;
   min-height: 0;
 }
-.hc-flex { display: flex; flex-direction: column; min-height: 280px; }
+.hc-flex { display: flex; flex-direction: column; min-height: 300px; }
 .chart-fill .highcharts-container,
 .chart-fill .highcharts-root { width: 100% !important; height: 100% !important; }
 
@@ -177,11 +164,10 @@
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
   gap: 14px;
-  height: 100%;
   min-height: 0;
 }
 .lb-left, .lb-right { display: flex; flex-direction: column; min-height: 0; }
-.lb-filters { display: flex; gap: 8px; margin-bottom: 8px; }
+.lb-filters { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 
 .table-viewport {
   flex: 1 1 auto;
@@ -215,21 +201,32 @@
   padding: 10px 12px;
 }
 
-/* ===== Dashboard ===== */
+/* ===== Dashboard (no overlap, natural height) ===== */
 .dashboard-grid {
   display: grid;
-  grid-template-rows: 0.9fr 0.55fr 1fr;
-  gap: 14px;
-  height: calc(100vh - var(--top-offset));
-  overflow: hidden;
+  grid-template-areas:
+    "trend"
+    "pair"
+    "kpis";
+  grid-template-rows: auto auto auto;   /* ✅ natural height for each row */
+  row-gap: 14px;
+  /* let content grow; no clipping */
+  height: auto;                         /* ✅ was fixed vh */
+  min-height: calc(100vh - var(--top-offset));
+  overflow: visible;                    /* ✅ no covering/stacking */
   max-width: 1180px;
   margin: 0 auto;
 }
+.area-trend { grid-area: trend; }
+.area-pair  { grid-area: pair; }
+.area-kpis  { grid-area: kpis; }
+
 .row1 { min-height: 0; }
 .kpi-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px; align-items: stretch;
+  position: relative; z-index: 0;       /* ✅ ensure no overlay */
 }
 .kpi.card {
   border: 1px solid var(--line);
@@ -243,7 +240,7 @@
 .kpi.card strong { font-size: 22px; }
 .chart-pair.row3 {
   display: grid; grid-template-columns: 1fr 1fr;
-  gap: 14px; overflow: hidden;
+  gap: 14px; overflow: visible;         /* ✅ visible so children can size naturally */
 }
 
 /* Actions on spline */
@@ -258,125 +255,49 @@
 }
 .seg-btn.active { background: #2790ff; color: #fff; }
 
-/* ===== Floating chat – base styles (hidden by default, any screen) ===== */
-.float-toggle { display: none; } /* shown only on mobile */
+/* ===== Floating chat – fixed overlay ===== */
+.float-toggle { display: none; }
 .float-chat {
-  display: none;        /* hidden everywhere unless mobile + .open */
-  position: absolute;
-  left: 8px; right: 8px; bottom: 8px;
-  height: 52vh;
-  background: rgba(255,255,255,.94);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,.7);
-  border-radius: 16px;
-  box-shadow: 0 18px 40px rgba(0,0,0,.18);
-  overflow: hidden;
-  z-index: 30;
-}
-.float-chat .glass-container.embedded {
-  height: calc(100% - 16px);
-  max-width: 100%;
-  border-radius: 0;
-  background: rgba(255,255,255,.98);
-}
-.float-handle {
-  height: 16px;
-  cursor: ns-resize;
-  background: linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,.2));
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  position: relative;
-}
-.float-handle::after {
-  content: "";
-  position: absolute;
-  left: 50%; top: 6px; transform: translateX(-50%);
-  width: 44px; height: 4px; border-radius: 999px;
-  background: rgba(0,0,0,.18);
-}
-.float-chat.dragging { cursor: ns-resize; }
-
-/* ===== Mobile tweaks ===== */
-@media (max-width: 860px) {
-  .tab { width: 27%; font-size: 13px; padding: 7px 8px; }
-  .badge-pill { padding: 4px 7px; font-size: 11px; }
-
-  .feedback-grid { grid-template-columns: 1fr; }
-  .desktop-chat { display: none; }
-
-  /* mobile button & floating panel visibility */
-  .float-toggle {
-    position: absolute;
-    right: 10px; bottom: 10px;
-    z-index: 31;
-    background: #2790ff; color: #fff;
-    border: none; border-radius: 999px;
-    padding: 8px 12px; font-size: 12px;
-    box-shadow: 0 8px 22px rgba(0,0,0,.18);
-    display: inline-flex; align-items: center; justify-content: center;
-  }
-  .float-chat.open { display: block; }
-
-  /* Leaderboard stacks: table first, chart after */
-  .leaderboard-grid { grid-template-columns: 1fr; grid-template-rows: auto auto; }
-  .lb-right { order: 1; }
-  .lb-left  { order: 2; }
-
-  /* Dashboard compact */
-  .dashboard-grid { grid-template-rows: 1fr .6fr 1.1fr; max-width: 94%; }
-  .chart-pair.row3 { grid-template-columns: 1fr; }
-  .kpi-row { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 720px) {
-  .tab { width: 31%; font-size: 12px; }
-}
-/* keep your existing variables + styles from your last working file */
-
-/* ... (everything you already have stays the same) ... */
-
-/* Floating chat (fixed so it never gets clipped; charts remain behind) */
-.float-toggle {
-  display: none; /* mobile-only below */
-}
-.float-chat{
   display: none;
-  position: fixed;           /* fixed overlay */
+  position: fixed;
   left: 8px; right: 8px;
-  bottom: 8px;
-  top: 64px;                 /* below header bar */
+  bottom: 8px; top: 64px;
   background: rgba(255,255,255,.94);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,.65);
+  border: 1px solid rgba(0,0,0,.06);
   border-radius: 16px;
   box-shadow: 0 18px 40px rgba(0,0,0,.18);
   overflow: hidden;
   z-index: 9999;
 }
-.float-chat.open{ display:block; }
-.float-chat.dragging{ cursor: ns-resize; }
-.float-handle{
+.float-chat.open { display: block; }
+.float-chat.dragging { cursor: ns-resize; }
+.float-handle {
   height: 16px;
   cursor: ns-resize;
   background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(255,255,255,.25));
   border-bottom: 1px solid rgba(0,0,0,.06);
   position: relative;
 }
-.float-handle::after{
-  content:"";
-  position:absolute; left:50%; top:6px; transform: translateX(-50%);
-  width:44px; height:4px; border-radius:999px; background: rgba(0,0,0,.18);
+.float-handle::after {
+  content: "";
+  position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
+  width: 44px; height: 4px; border-radius: 999px; background: rgba(0,0,0,.18);
 }
+.float-chat .cb-container { height: calc(100% - 16px); border-radius: 0; }
 
-/* Make embedded ChatBot fill the float box nicely */
-.float-chat .cb-container{
-  height: calc(100% - 16px);
-  border-radius: 0;
-}
+/* ===== Mobile tweaks ===== */
+@media (max-width: 860px) {
+  /* Tabs remain centered, just slightly smaller */
+  .tab { width: clamp(86px, 28vw, 120px); font-size: 12px; padding: 7px 8px; }
+  .badge-pill { padding: 4px 7px; font-size: 11px; }
 
-/* Mobile layout toggles */
-@media (max-width: 860px){
-  .feedback-grid{ grid-template-columns: 1fr; }
-  .float-toggle{
+  /* Feedback becomes single column; desktop chat hidden */
+  .feedback-grid { grid-template-columns: 1fr; }
+  .desktop-chat { display: none; }
+
+  /* Floating chat toggle */
+  .float-toggle {
     position: fixed; right: 10px; bottom: 12px;
     z-index: 10000;
     background: #2790ff; color:#fff; border:none; border-radius:999px;
@@ -384,4 +305,27 @@
     box-shadow: 0 8px 22px rgba(0,0,0,.18);
     display: inline-flex; align-items:center; justify-content:center;
   }
+
+  /* Leaderboard stacks */
+  .leaderboard-grid { grid-template-columns: 1fr; grid-template-rows: auto auto; }
+  .lb-right { order: 1; }
+  .lb-left  { order: 2; }
+
+  /* Dashboard: charts first, KPIs last; big chart heights */
+  .dashboard-grid {
+    grid-template-areas:
+      "trend"
+      "pair"
+      "kpis";
+    grid-template-rows: auto auto auto;
+    max-width: 100%;
+  }
+  .chart-pair.row3 { grid-template-columns: 1fr; }
+  .kpi-row { grid-template-columns: 1fr; }
+  .hc-flex { min-height: 360px; }
+}
+
+@media (max-width: 380px) {
+  .tab { width: clamp(80px, 30vw, 110px); font-size: 11px; padding: 6px 8px; }
+  .hc-flex { min-height: 400px; }
 }
