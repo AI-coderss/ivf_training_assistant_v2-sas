@@ -1,4 +1,6 @@
 import os
+import eventlet
+eventlet.monkey_patch()
 import tempfile
 from uuid import uuid4
 from datetime import datetime
@@ -426,19 +428,12 @@ def generate_followups():
 # OpenAI Realtime bridge (threaded)
 # -----------------------------
 class OpenAIRealtimeBridge:
-    """
-    Threaded bridge to OpenAI Realtime WS.
-    - Sends initial transcription_session.update
-    - Pumps messages from a Queue (client -> OpenAI)
-    - Forwards OpenAI events to the browser via client_ws.send()
-    """
     def __init__(self, client_ws, model=ASR_MODEL):
         self.client_ws = client_ws
         self.model = model
-        self.ws = None  # websocket.WebSocketApp instance
+        self.ws = None
         self.sender_thread = None
         self.ws_thread = None
-
         self.to_openai = queue.Queue(maxsize=512)
         self.stop_event = threading.Event()
         self.opened_event = threading.Event()
@@ -446,15 +441,14 @@ class OpenAIRealtimeBridge:
 
     # ---- websocket-client callbacks ----
     def _on_open(self, ws):
-        # Send session.update per OpenAI docs
         try:
             payload = {
                 "type": "transcription_session.update",
                 "input_audio_format": "pcm16",
                 "input_audio_transcription": {
-                    "model": self.model,   # "gpt-4o-mini-transcribe" or "gpt-4o-transcribe"
+                    "model": self.model,
                     "prompt": "",
-                    "language": ""         # "" = auto-detect; set "en" if desired
+                    "language": ""
                 },
                 "turn_detection": {
                     "type": "server_vad",
@@ -466,12 +460,9 @@ class OpenAIRealtimeBridge:
                 "include": ["item.input_audio_transcription.logprobs"]
             }
             ws.send(json.dumps(payload))
-        except Exception as e:
-            self.last_error = f"Failed to send session.update: {e}"
         finally:
             self.opened_event.set()
 
-        # Start a thread to drain to_openai queue and send to OpenAI
         def _pump_to_openai():
             while not self.stop_event.is_set():
                 try:
@@ -488,7 +479,6 @@ class OpenAIRealtimeBridge:
         self.sender_thread.start()
 
     def _on_message(self, ws, message):
-        # Forward OpenAI JSON text frames to the browser
         try:
             self.client_ws.send(message)
         except Exception as e:
@@ -503,7 +493,6 @@ class OpenAIRealtimeBridge:
             pass
 
     def _on_close(self, ws, status_code, msg):
-        # Inform browser
         try:
             self.client_ws.send(json.dumps({
                 "type": "info",
@@ -529,11 +518,12 @@ class OpenAIRealtimeBridge:
             on_close=self._on_close,
             header=headers,
         )
-        # Run forever in its own thread
-        self.ws_thread = threading.Thread(target=self.ws.run_forever, kwargs={"ping_interval": 20}, daemon=True)
+        self.ws_thread = threading.Thread(
+            target=self.ws.run_forever,
+            kwargs={"ping_interval": 20},
+            daemon=True
+        )
         self.ws_thread.start()
-
-        # Wait (briefly) until open/init attempts
         self.opened_event.wait(timeout=5.0)
 
     def stop(self):
@@ -543,7 +533,6 @@ class OpenAIRealtimeBridge:
                 self.ws.close()
         except Exception:
             pass
-
         if self.sender_thread and self.sender_thread.is_alive():
             try:
                 self.sender_thread.join(timeout=1.0)
@@ -555,9 +544,7 @@ class OpenAIRealtimeBridge:
             except Exception:
                 pass
 
-    # ---- public api ----
     def send_to_openai(self, json_str):
-        # Non-blocking put; drop if queue full
         try:
             self.to_openai.put_nowait(json_str)
         except queue.Full:
@@ -568,14 +555,6 @@ class OpenAIRealtimeBridge:
 # -----------------------------
 @sock.route("/ws/transcribe")
 def ws_transcribe(client_ws):
-    """
-    Browser connects to: wss://<host>/ws/transcribe
-    - We open a server-side WS to OpenAI Realtime (intent=transcription)
-    - Send session.update
-    - Bridge:
-        client -> OpenAI  : JSON frames (append/commit/clear/session.update)
-        OpenAI  -> client : all JSON events (speech_started/stopped, final text, etc.)
-    """
     if not OPENAI_API_KEY:
         client_ws.send(json.dumps({"type": "error", "error": "OPENAI_API_KEY not set"}))
         client_ws.close()
@@ -584,27 +563,25 @@ def ws_transcribe(client_ws):
     bridge = OpenAIRealtimeBridge(client_ws)
     try:
         bridge.start()
-        # If OpenAI failed immediately, surface error
         if bridge.last_error:
             client_ws.send(json.dumps({"type": "error", "error": bridge.last_error}))
 
-        # Browser receive loop (blocking; keeps WS open)
+        # NOTE: use a timeout to avoid indefinite blocking (keeps worker happy)
         while True:
-            data = client_ws.receive()
+            data = client_ws.receive(timeout=30)  # <-- key change
             if data is None:
-                break  # client closed
-            # Expect JSON strings from client
-            if isinstance(data, (bytes, bytearray)):
-                # Ignore binary; protocol uses JSON text frames
+                # timeout elapsed; send a small ping/keepalive if you want
+                # client_ws.send(json.dumps({"type":"ping","ts":time.time()}))
                 continue
-            # Light validation: ensure it's JSON
+
+            # Expect JSON text frames
+            if isinstance(data, (bytes, bytearray)):
+                continue
             try:
                 _ = json.loads(data)
             except Exception:
-                # Skip malformed frames
                 continue
 
-            # Forward to OpenAI
             bridge.send_to_openai(data)
 
     except Exception as e:
@@ -619,8 +596,6 @@ def ws_transcribe(client_ws):
         except Exception:
             pass
 
-# -----------------------------
-# Local dev
 
 # === Run ===
 if __name__ == "__main__":
