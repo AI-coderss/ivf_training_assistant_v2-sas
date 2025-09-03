@@ -6,9 +6,13 @@ import json
 import re
 import base64
 import random
+import websockets
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
+import asyncio
+from threading import Thread
+from flask_sock import Sock
 import qdrant_client
 from openai import OpenAI
 from prompts.prompt import engineeredprompt
@@ -22,6 +26,9 @@ from routes.ocr_routes import ocr_bp
 
 # Load env vars
 load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+ASR_MODEL="gpt-4o-mini-transcribe"
+OPENAI_REALTIME_URL="wss://api.openai.com/v1/realtime?intent=transcription"
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -35,7 +42,7 @@ CORS(app, resources={
         "supports_credentials": True
     }
 })
-
+sock = Sock(app)
 app.register_blueprint(bp_realtime, url_prefix="/api")
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
@@ -43,6 +50,11 @@ collection_name = os.getenv("QDRANT_COLLECTION_NAME")
 # Initialize OpenAI client
 client = OpenAI()
 app.register_blueprint(ocr_bp)
+
+@app.get("/healthz")
+def health():
+    ok = bool(OPENAI_API_KEY)
+    return jsonify({"ok": ok, "model": ASR_MODEL}), (200 if ok else 500)
 # === VECTOR STORE ===
 def get_vector_store():
     qdrant = qdrant_client.QdrantClient(
@@ -406,7 +418,144 @@ def generate_followups():
         print(f"Error generating followups: {e}")
         return jsonify({"followups": []})
 
+# -----------------------------
+# Async event loop (runs in a bg thread)
+# -----------------------------
+loop = asyncio.new_event_loop()
 
+def _start_loop(evloop: asyncio.AbstractEventLoop):
+    asyncio.set_event_loop(evloop)
+    evloop.run_forever()
+
+Thread(target=_start_loop, args=(loop,), daemon=True).start()
+
+# -----------------------------
+# OpenAI Realtime helpers
+# -----------------------------
+async def openai_ws_connect():
+    """
+    Connect to OpenAI Realtime WS with Authorization header.
+    """
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        # Some SDKs include this to pin Realtime behaviour; harmless if ignored:
+        "OpenAI-Beta": "realtime=v1",
+    }
+    # websockets 12.x uses 'additional_headers'
+    return await websockets.connect(OPENAI_REALTIME_URL, additional_headers=headers)
+
+async def send_session_update(ws):
+    """
+    Configure transcription (pcm16 input, server VAD, near-field NR, chosen model).
+    Mirrors OpenAI docs for 'transcription_session.update'.
+    """
+    payload = {
+        "type": "transcription_session.update",
+        "input_audio_format": "pcm16",
+        "input_audio_transcription": {
+            "model": ASR_MODEL,   # "gpt-4o-mini-transcribe" | "gpt-4o-transcribe"
+            "prompt": "",
+            "language": ""        # empty = auto-detect; set "en" if desired
+        },
+        "turn_detection": {
+            "type": "server_vad",
+            "threshold": 0.5,
+            "prefix_padding_ms": 300,
+            "silence_duration_ms": 500
+        },
+        "input_audio_noise_reduction": {"type": "near_field"},
+        "include": ["item.input_audio_transcription.logprobs"]
+    }
+    await ws.send(json.dumps(payload))
+
+async def pipe_openai_to_client(openai_ws, client_ws):
+    """
+    Forward all OpenAI events to the browser WS as text frames.
+    """
+    try:
+        async for message in openai_ws:
+            await client_ws.send(message)
+    except websockets.ConnectionClosed:
+        pass
+    except Exception as e:
+        try:
+            await client_ws.send(json.dumps({"type": "error", "error": str(e)}))
+        except Exception:
+            pass
+
+async def pipe_client_to_openai(client_ws, openai_ws):
+    """
+    Forward client JSON events to OpenAI.
+    Expected client messages (JSON):
+      - {"type":"input_audio_buffer.append","audio":"<base64 PCM16>"}
+      - {"type":"input_audio_buffer.commit"} (optional if not using server VAD)
+      - {"type":"input_audio_buffer.clear"}  (optional)
+      - {"type":"transcription_session.update", ...} (optional overrides)
+    """
+    while True:
+        data = await client_ws.receive()
+        if data is None:
+            break
+        if isinstance(data, (bytes, bytearray)):
+            # Expect JSON only
+            continue
+        try:
+            evt = json.loads(data)
+        except Exception:
+            continue
+
+        # Pass-through to OpenAI
+        try:
+            await openai_ws.send(json.dumps(evt))
+        except Exception:
+            break
+
+# -----------------------------
+# WebSocket route for clients
+# -----------------------------
+@sock.route("/ws/transcribe")
+def ws_transcribe(client_ws):
+    """
+    Browser connects here (wss://.../ws/transcribe)
+    We:
+      1) open our server-side WS to OpenAI Realtime (intent=transcription),
+      2) send the transcription_session.update config,
+      3) bridge: client -> OpenAI (audio append, commits) and OpenAI -> client (events).
+    """
+    if not OPENAI_API_KEY:
+        client_ws.send(json.dumps({"type": "error", "error": "OPENAI_API_KEY not set"}))
+        client_ws.close()
+        return
+
+    async def session():
+        async with await openai_ws_connect() as ows:
+            await send_session_update(ows)
+            # Bridge in parallel
+            consumer = asyncio.create_task(pipe_openai_to_client(ows, client_ws))
+            producer = asyncio.create_task(pipe_client_to_openai(client_ws, ows))
+            done, pending = await asyncio.wait(
+                [consumer, producer],
+                return_when=asyncio.FIRST_COMPLETED
+            )
+            for t in pending:
+                t.cancel()
+
+    fut = asyncio.run_coroutine_threadsafe(session(), loop)
+    try:
+        fut.result()
+    except Exception as e:
+        try:
+            client_ws.send(json.dumps({"type": "error", "error": str(e)}))
+        except Exception:
+            pass
+        finally:
+            try:
+                client_ws.close()
+            except Exception:
+                pass
+
+# -----------------------------
+# Dev entrypoint (Render uses Procfile)
 # === Run ===
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)
