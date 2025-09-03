@@ -1,6 +1,4 @@
 import os
-import eventlet
-eventlet.monkey_patch()
 import tempfile
 from uuid import uuid4
 from datetime import datetime
@@ -8,16 +6,9 @@ import json
 import re
 import base64
 import random
-import websockets
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
-import asyncio
-from threading import Thread
-import queue
-import threading
-import websocket
-from flask_sock import Sock
 import qdrant_client
 from openai import OpenAI
 from prompts.prompt import engineeredprompt
@@ -31,9 +22,7 @@ from routes.ocr_routes import ocr_bp
 
 # Load env vars
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-ASR_MODEL="gpt-4o-mini-transcribe"
-OPENAI_REALTIME_URL="wss://api.openai.com/v1/realtime?intent=transcription"
+
 app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
@@ -50,15 +39,6 @@ CORS(app, resources={
 app.register_blueprint(bp_realtime, url_prefix="/api")
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
-sock = Sock(app)
-
-@app.get("/healthz")
-def healthz():
-    return jsonify({
-        "ok": bool(OPENAI_API_KEY),
-        "model": ASR_MODEL,
-        "endpoint": OPENAI_REALTIME_URL
-    }), (200 if OPENAI_API_KEY else 500)
 
 # Initialize OpenAI client
 client = OpenAI()
@@ -425,176 +405,64 @@ def generate_followups():
     except Exception as e:
         print(f"Error generating followups: {e}")
         return jsonify({"followups": []})
-# OpenAI Realtime bridge (threaded)
-# -----------------------------
-class OpenAIRealtimeBridge:
-    def __init__(self, client_ws, model=ASR_MODEL):
-        self.client_ws = client_ws
-        self.model = model
-        self.ws = None
-        self.sender_thread = None
-        self.ws_thread = None
-        self.to_openai = queue.Queue(maxsize=512)
-        self.stop_event = threading.Event()
-        self.opened_event = threading.Event()
-        self.last_error = None
+@app.get("/healthz")
+def healthz():
+    return jsonify({"ok": True, "model": "whisper-1"}), 200
 
-    # ---- websocket-client callbacks ----
-    def _on_open(self, ws):
-        try:
-            payload = {
-                "type": "transcription_session.update",
-                "input_audio_format": "pcm16",
-                "input_audio_transcription": {
-                    "model": self.model,
-                    "prompt": "",
-                    "language": ""
-                },
-                "turn_detection": {
-                    "type": "server_vad",
-                    "threshold": 0.5,
-                    "prefix_padding_ms": 300,
-                    "silence_duration_ms": 500
-                },
-                "input_audio_noise_reduction": {"type": "near_field"},
-                "include": ["item.input_audio_transcription.logprobs"]
-            }
-            ws.send(json.dumps(payload))
-        finally:
-            self.opened_event.set()
-
-        def _pump_to_openai():
-            while not self.stop_event.is_set():
-                try:
-                    msg = self.to_openai.get(timeout=0.25)
-                except queue.Empty:
-                    continue
-                try:
-                    ws.send(msg)
-                except Exception as e:
-                    self.last_error = f"Send to OpenAI failed: {e}"
-                    break
-
-        self.sender_thread = threading.Thread(target=_pump_to_openai, daemon=True)
-        self.sender_thread.start()
-
-    def _on_message(self, ws, message):
-        try:
-            self.client_ws.send(message)
-        except Exception as e:
-            self.last_error = f"Forward to client failed: {e}"
-            self.stop()
-
-    def _on_error(self, ws, error):
-        self.last_error = f"OpenAI WS error: {error}"
-        try:
-            self.client_ws.send(json.dumps({"type": "error", "error": str(error)}))
-        except Exception:
-            pass
-
-    def _on_close(self, ws, status_code, msg):
-        try:
-            self.client_ws.send(json.dumps({
-                "type": "info",
-                "message": "OpenAI connection closed",
-                "code": status_code,
-                "detail": msg
-            }))
-        except Exception:
-            pass
-        self.stop_event.set()
-
-    # ---- lifecycle ----
-    def start(self):
-        headers = [
-            f"Authorization: Bearer {OPENAI_API_KEY}",
-            "OpenAI-Beta: realtime=v1"
-        ]
-        self.ws = websocket.WebSocketApp(
-            OPENAI_REALTIME_URL,
-            on_open=self._on_open,
-            on_message=self._on_message,
-            on_error=self._on_error,
-            on_close=self._on_close,
-            header=headers,
-        )
-        self.ws_thread = threading.Thread(
-            target=self.ws.run_forever,
-            kwargs={"ping_interval": 20},
-            daemon=True
-        )
-        self.ws_thread.start()
-        self.opened_event.wait(timeout=5.0)
-
-    def stop(self):
-        self.stop_event.set()
-        try:
-            if self.ws:
-                self.ws.close()
-        except Exception:
-            pass
-        if self.sender_thread and self.sender_thread.is_alive():
-            try:
-                self.sender_thread.join(timeout=1.0)
-            except Exception:
-                pass
-        if self.ws_thread and self.ws_thread.is_alive():
-            try:
-                self.ws_thread.join(timeout=1.0)
-            except Exception:
-                pass
-
-    def send_to_openai(self, json_str):
-        try:
-            self.to_openai.put_nowait(json_str)
-        except queue.Full:
-            self.last_error = "to_openai queue is full; dropping chunk."
-
-# -----------------------------
-# WS Route
-# -----------------------------
-@sock.route("/ws/transcribe")
-def ws_transcribe(client_ws):
-    if not OPENAI_API_KEY:
-        client_ws.send(json.dumps({"type": "error", "error": "OPENAI_API_KEY not set"}))
-        client_ws.close()
-        return
-
-    bridge = OpenAIRealtimeBridge(client_ws)
+@app.post("/transcribe")
+def transcribe():
+    """
+    Expects multipart/form-data with:
+      - audio: the audio file blob (webm, wav, m4a, mp3, etc.)
+      - (optional) language: BCP-47/ISO code like 'en', 'ar', ...
+      - (optional) prompt: custom prior text to bias decoding
+      - (optional) response_format: 'text' | 'json' | 'srt' | 'vtt' | 'verbose_json'
+    Returns JSON: { "text": "..." }
+    """
     try:
-        bridge.start()
-        if bridge.last_error:
-            client_ws.send(json.dumps({"type": "error", "error": bridge.last_error}))
+        file = request.files.get("audio") or request.files.get("file")
+        if not file:
+            return jsonify({"error": "No file uploaded. Use field name 'audio'."}), 400
 
-        # NOTE: use a timeout to avoid indefinite blocking (keeps worker happy)
-        while True:
-            data = client_ws.receive(timeout=30)  # <-- key change
-            if data is None:
-                # timeout elapsed; send a small ping/keepalive if you want
-                # client_ws.send(json.dumps({"type":"ping","ts":time.time()}))
-                continue
+        language = (request.form.get("language") or "").strip() or None
+        prompt = (request.form.get("prompt") or "").strip() or None
+        response_format = (request.form.get("response_format") or "text").strip()
 
-            # Expect JSON text frames
-            if isinstance(data, (bytes, bytearray)):
-                continue
-            try:
-                _ = json.loads(data)
-            except Exception:
-                continue
+        # Persist to temp file so the SDK can stream it reliably
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            file.save(tmp.name)
+            tmp_path = tmp.name
 
-            bridge.send_to_openai(data)
+        # OpenAI Whisper transcription (server-side)
+        # Docs: https://platform.openai.com/docs/guides/speech-to-text/transcriptions
+        with open(tmp_path, "rb") as audio_f:
+            result = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_f,
+                language=language,           # None = auto-detect
+                prompt=prompt,
+                response_format=response_format  # "text" is simplest → str
+            )
 
+        # Clean up temp
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+
+        # If response_format='text', result is a plain string on .text
+        text = getattr(result, "text", None)
+        if isinstance(result, str) and not text:
+            # Some SDK versions return str directly when response_format='text'
+            text = result
+
+        if not text:
+            # Fallback: try common fields
+            text = getattr(result, "text_output", "") or getattr(result, "text", "")
+
+        return jsonify({"text": (text or "").strip()})
     except Exception as e:
-        try:
-            client_ws.send(json.dumps({"type": "error", "error": str(e)}))
-        except Exception:
-            pass
-    finally:
-        bridge.stop()
-        try:
-            client_ws.close()
-        except Exception:
-            pass
+        return jsonify({"error": str(e)}), 500
 
 
 # === Run ===

@@ -1,198 +1,136 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // src/components/ChatInputWidget.jsx
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import SendIcon from "@mui/icons-material/Send";
 import MicIcon from "@mui/icons-material/Mic";
 import StopIcon from "@mui/icons-material/Stop";
 import "../styles/ChatInputWidget.css";
 
-/**
- * Realtime transcription via your backend WS bridge
- * Backend base: https://ivf-backend-server.onrender.com
- * WS endpoint : wss://ivf-backend-server.onrender.com/ws/transcribe
- *
- * Notes:
- * - Use wss:// for secure WebSocket when your backend is https. :contentReference[oaicite:0]{index=0}
- */
+const BACKEND_TRANSCRIBE_URL = "https://ivf-backend-server.onrender.com/transcribe";
+
 const ChatInputWidget = ({ onSendMessage }) => {
   const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [err, setErr] = useState(null);
 
   const textAreaRef = useRef(null);
-
-  // WS + audio refs
-  const wsRef = useRef(null);
-  const audioCtxRef = useRef(null);
-  const processorRef = useRef(null);
-  const sourceRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
   const streamRef = useRef(null);
 
-  // 🔗 Fixed backend WS URL (no dynamic location usage)
-  const BACKEND_WS_URL = "wss://ivf-backend-server.onrender.com/ws/transcribe";
-
+  // --------- UI helpers ---------
   const adjustTextAreaHeight = (reset = false) => {
     if (!textAreaRef.current) return;
     textAreaRef.current.style.height = "auto";
-    if (!reset) textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
+    if (!reset) {
+      textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
+    }
   };
 
   useEffect(() => {
     adjustTextAreaHeight();
   }, []);
 
-  const floatTo16BitPCM = (float32Array) => {
-    const out = new Int16Array(float32Array.length);
-    for (let i = 0; i < float32Array.length; i++) {
-      let s = Math.max(-1, Math.min(1, float32Array[i]));
-      out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-    }
-    return out;
-  };
-
-  const base64EncodePCM16 = (int16) => {
-    let binary = "";
-    const bytes = new Uint8Array(int16.buffer);
-    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-    return btoa(binary);
-  };
-
-  // Handle events from your backend → OpenAI Realtime
-  const handleRealtimeEvent = useCallback((evt) => {
-    let data;
-    try {
-      data = JSON.parse(evt.data);
-    } catch {
-      return;
-    }
-    const t = data?.type || "";
-
-    if (t === "input_audio_buffer.speech_started") {
-      setIsTranscribing(true);
-      return;
-    }
-    if (t === "input_audio_buffer.speech_stopped") {
-      return;
-    }
-
-    const maybeText =
-      data?.text || data?.transcript || data?.output_text || data?.item?.content || null;
-
-    if (t.includes("transcription") && maybeText) {
-      setInputText((prev) => {
-        const sep = prev && !prev.endsWith(" ") ? " " : "";
-        const merged = `${prev}${sep}${maybeText}`.trim();
-        requestAnimationFrame(adjustTextAreaHeight);
-        return merged;
-      });
-      setIsTranscribing(false);
-      return;
-    }
-
-    if (t.endsWith(".delta") && (data?.delta || data?.text)) {
-      const delta = data?.delta || data?.text;
-      setInputText((prev) => {
-        const sep = prev && !prev.endsWith(" ") ? " " : "";
-        const merged = `${prev}${sep}${delta}`.trim();
-        requestAnimationFrame(adjustTextAreaHeight);
-        return merged;
-      });
-    }
-  }, []);
-
+  // --------- Recording ---------
   const startRecording = useCallback(async () => {
-    setErrorMsg(null);
+    setErr(null);
+    chunksRef.current = [];
     try {
-      // 1) Connect to your fixed WS URL (Render requires wss + no custom port). :contentReference[oaicite:1]{index=1}
-      const ws = new WebSocket(BACKEND_WS_URL);
-      wsRef.current = ws;
-
-      ws.onopen = () => {};
-      ws.onmessage = handleRealtimeEvent;
-      ws.onerror = () => setErrorMsg("Transcription socket error.");
-      ws.onclose = () => {
-        wsRef.current = null;
-        setIsTranscribing(false);
-      };
-
-      // 2) getUserMedia and stream PCM16 → base64 → input_audio_buffer.append
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: { ideal: 1 },
           noiseSuppression: true,
           echoCancellation: true,
           autoGainControl: true,
-          sampleRate: 16000,
         },
         video: false,
       });
       streamRef.current = stream;
 
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-      audioCtxRef.current = audioCtx;
+      const mr = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      mediaRecorderRef.current = mr;
 
-      const source = audioCtx.createMediaStreamSource(stream);
-      sourceRef.current = source;
-
-      const processor = audioCtx.createScriptProcessor(2048, 1, 1);
-      processorRef.current = processor;
-
-      source.connect(processor);
-      processor.connect(audioCtx.destination);
-
-      processor.onaudioprocess = (e) => {
-        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-        const input = e.inputBuffer.getChannelData(0);
-        const pcm16 = floatTo16BitPCM(input);
-        const b64 = base64EncodePCM16(pcm16);
-        wsRef.current.send(JSON.stringify({ type: "input_audio_buffer.append", audio: b64 }));
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
       };
 
+      mr.onstop = async () => {
+        try {
+          const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+          chunksRef.current = [];
+          await transcribeBlob(blob);
+        } catch (e) {
+          setErr("Failed to process recording.");
+        } finally {
+          // stop tracks
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
+          }
+          setIsRecording(false);
+        }
+      };
+
+      mr.start(250); // collect in small chunks
       setIsRecording(true);
-      setIsTranscribing(true);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Microphone or socket failed. Check permissions and server.");
-      try {
-        if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
-      } catch {}
-      try {
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) wsRef.current.close();
-      } catch {}
-      wsRef.current = null;
+    } catch (e) {
+      console.error(e);
+      setErr("Microphone permission denied or unavailable.");
       setIsRecording(false);
-      setIsTranscribing(false);
     }
-  }, [handleRealtimeEvent]);
+  }, []);
 
   const stopRecording = useCallback(() => {
     try {
-      if (processorRef.current) {
-        processorRef.current.disconnect();
-        processorRef.current.onaudioprocess = null;
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
       }
-      if (sourceRef.current) sourceRef.current.disconnect();
-      if (audioCtxRef.current) audioCtxRef.current.close();
-      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
-    } catch {}
-    processorRef.current = null;
-    sourceRef.current = null;
-    audioCtxRef.current = null;
-    streamRef.current = null;
-
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.close();
+    } catch (e) {
+      // ignore
     }
-    wsRef.current = null;
-
-    setIsRecording(false);
-    setIsTranscribing(false);
   }, []);
 
-  // input + send (unchanged)
-  const handleInputChange = (e) => {
-    setInputText(e.target.value);
-    adjustTextAreaHeight();
+  // --------- Upload to backend → Whisper ---------
+  const transcribeBlob = useCallback(async (blob) => {
+    setIsLoading(true);
+    setErr(null);
+    try {
+      const form = new FormData();
+      form.append("audio", blob, "recording.webm");
+      // Optional: lock language or add prompt
+      // form.append("language", "en");
+      // form.append("prompt", "Medical context: ...");
+      // form.append("response_format", "text");
+
+      const res = await fetch(BACKEND_TRANSCRIBE_URL, { method: "POST", body: form });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const newText = (data?.text || "").trim();
+
+      setInputText((prev) => {
+        const merged = prev ? `${prev}${prev.endsWith(" ") ? "" : " "}${newText}` : newText;
+        requestAnimationFrame(adjustTextAreaHeight);
+        return merged;
+      });
+    } catch (e) {
+      console.error(e);
+      setErr("Transcription failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // --------- Send behavior (unchanged) ---------
+  const handleSendMessage = () => {
+    if (inputText.trim().length > 0) {
+      onSendMessage?.({ text: inputText });
+      setInputText("");
+      adjustTextAreaHeight(true);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -200,15 +138,6 @@ const ChatInputWidget = ({ onSendMessage }) => {
       e.preventDefault();
       if (inputText.trim().length > 0) handleSendMessage();
     }
-  };
-
-  const handleSendMessage = () => {
-    if (inputText.trim().length > 0) {
-      onSendMessage({ text: inputText });
-      setInputText("");
-      adjustTextAreaHeight(true);
-    }
-    if (isRecording) stopRecording();
   };
 
   const handleIconClick = () => {
@@ -222,21 +151,42 @@ const ChatInputWidget = ({ onSendMessage }) => {
 
   return (
     <div className="chat-container">
+      {/* Loader overlay */}
+      {isLoading && (
+        <div className="loader-overlay">
+          <div className="loader-card">
+            <div className="spinner" />
+            <div className="loader-text">Transcribing with Whisper…</div>
+          </div>
+        </div>
+      )}
+
       <textarea
         ref={textAreaRef}
         className="chat-input"
-        placeholder={isTranscribing ? "Transcribing…" : "Chat in text or start speaking..."}
+        placeholder={isRecording ? "Recording… press stop when done" : "Chat in text or start speaking..."}
         value={inputText}
-        onChange={handleInputChange}
+        onChange={(e) => {
+          setInputText(e.target.value);
+          adjustTextAreaHeight();
+        }}
         onKeyDown={handleKeyDown}
         rows={1}
         style={{ resize: "none", overflow: "hidden" }}
-        disabled={isTranscribing}
+        disabled={isLoading}
       />
-      <button className="icon-btn" onClick={handleIconClick} disabled={isTranscribing}>
-        {inputText.trim().length > 0 ? <SendIcon /> : isRecording ? <StopIcon /> : <MicIcon />}
+
+      <button className="icon-btn" onClick={handleIconClick} disabled={isLoading}>
+        {inputText.trim().length > 0 ? (
+          <SendIcon />
+        ) : isRecording ? (
+          <StopIcon />
+        ) : (
+          <MicIcon />
+        )}
       </button>
-      {errorMsg && <div className="chat-error">{errorMsg}</div>}
+
+      {err && <div className="chat-error">{err}</div>}
     </div>
   );
 };
