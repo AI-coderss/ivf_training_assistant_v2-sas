@@ -19,6 +19,8 @@ flask
 flask-cors
 flask-sock
 websockets
+websocket-client
+eventlet
 gunicorn
 
 
