@@ -1,12 +1,31 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-// src/components/ChatInputWidget.jsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import SendIcon from "@mui/icons-material/Send";
 import MicIcon from "@mui/icons-material/Mic";
 import StopIcon from "@mui/icons-material/Stop";
 import "../styles/ChatInputWidget.css";
 
+// Your backend endpoint:
 const BACKEND_TRANSCRIBE_URL = "https://ivf-backend-server.onrender.com/transcribe";
+
+// Keep this tiny: pick a sane MIME and map to an extension
+const pickMime = () => {
+  const prefs = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/mpeg"];
+  for (const t of prefs) {
+    if (window.MediaRecorder?.isTypeSupported?.(t)) return t;
+  }
+  return ""; // let browser choose
+};
+
+const mimeToExt = (m) => {
+  const mime = (m || "").toLowerCase();
+  if (mime.startsWith("audio/webm")) return "webm";
+  if (mime === "audio/mp4" || mime === "video/mp4") return "mp4";
+  if (mime === "audio/mpeg" || mime === "audio/mp3") return "mp3";
+  if (mime === "audio/wav" || mime === "audio/x-wav") return "wav";
+  if (mime === "audio/ogg" || mime === "audio/oga") return "ogg";
+  return "webm";
+};
 
 const ChatInputWidget = ({ onSendMessage }) => {
   const [inputText, setInputText] = useState("");
@@ -18,64 +37,48 @@ const ChatInputWidget = ({ onSendMessage }) => {
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
+  const chosenMimeRef = useRef("");
 
-  // --------- UI helpers ---------
   const adjustTextAreaHeight = (reset = false) => {
     if (!textAreaRef.current) return;
     textAreaRef.current.style.height = "auto";
-    if (!reset) {
-      textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
-    }
+    if (!reset) textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
   };
 
-  useEffect(() => {
-    adjustTextAreaHeight();
-  }, []);
+  useEffect(() => { adjustTextAreaHeight(); }, []);
 
-  // --------- Recording ---------
   const startRecording = useCallback(async () => {
     setErr(null);
     chunksRef.current = [];
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: { ideal: 1 },
-          noiseSuppression: true,
-          echoCancellation: true,
-          autoGainControl: true,
-        },
-        video: false,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       streamRef.current = stream;
 
-      const mr = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      const mime = pickMime();
+      chosenMimeRef.current = mime;
+      const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       mediaRecorderRef.current = mr;
 
-      mr.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
+      mr.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
       mr.onstop = async () => {
         try {
-          const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+          const finalMime = mr.mimeType || chosenMimeRef.current || (chunksRef.current[0]?.type || "audio/webm");
+          const blob = new Blob(chunksRef.current, { type: finalMime });
           chunksRef.current = [];
-          await transcribeBlob(blob);
+          const ext = mimeToExt(finalMime);
+          await transcribeBlob(blob, ext);
         } catch (e) {
           setErr("Failed to process recording.");
         } finally {
-          // stop tracks
-          if (streamRef.current) {
-            streamRef.current.getTracks().forEach((t) => t.stop());
-            streamRef.current = null;
-          }
+          streamRef.current?.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
           setIsRecording(false);
         }
       };
 
-      mr.start(250); // collect in small chunks
+      mr.start(250);
       setIsRecording(true);
-    } catch (e) {
-      console.error(e);
+    } catch {
       setErr("Microphone permission denied or unavailable.");
       setIsRecording(false);
     }
@@ -86,47 +89,35 @@ const ChatInputWidget = ({ onSendMessage }) => {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
       }
-    } catch (e) {
-      // ignore
-    }
+    } catch {}
   }, []);
 
-  // --------- Upload to backend → Whisper ---------
-  const transcribeBlob = useCallback(async (blob) => {
+  const transcribeBlob = useCallback(async (blob, ext) => {
     setIsLoading(true);
     setErr(null);
     try {
       const form = new FormData();
-      form.append("audio", blob, "recording.webm");
-      // Optional: lock language or add prompt
-      // form.append("language", "en");
-      // form.append("prompt", "Medical context: ...");
-      // form.append("response_format", "text");
-
+      // FIELD NAME MUST BE 'audio_data' to match your backend
+      form.append("audio_data", blob, `recording.${ext || "webm"}`);
       const res = await fetch(BACKEND_TRANSCRIBE_URL, { method: "POST", body: form });
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      const newText = (data?.text || "").trim();
 
+      const newText = (data?.transcript || "").trim();
       setInputText((prev) => {
         const merged = prev ? `${prev}${prev.endsWith(" ") ? "" : " "}${newText}` : newText;
         requestAnimationFrame(adjustTextAreaHeight);
         return merged;
       });
     } catch (e) {
-      console.error(e);
       setErr("Transcription failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // --------- Send behavior (unchanged) ---------
   const handleSendMessage = () => {
-    if (inputText.trim().length > 0) {
+    if (inputText.trim()) {
       onSendMessage?.({ text: inputText });
       setInputText("");
       adjustTextAreaHeight(true);
@@ -136,27 +127,25 @@ const ChatInputWidget = ({ onSendMessage }) => {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (inputText.trim().length > 0) handleSendMessage();
+      if (inputText.trim()) handleSendMessage();
     }
   };
 
   const handleIconClick = () => {
-    if (inputText.trim().length > 0) {
+    if (inputText.trim()) {
       handleSendMessage();
     } else {
-      if (isRecording) stopRecording();
-      else startRecording();
+      isRecording ? stopRecording() : startRecording();
     }
   };
 
   return (
     <div className="chat-container">
-      {/* Loader overlay */}
       {isLoading && (
         <div className="loader-overlay">
           <div className="loader-card">
             <div className="spinner" />
-            <div className="loader-text">Transcribing with Whisper…</div>
+            <div className="loader-text">Transcribing…</div>
           </div>
         </div>
       )}
@@ -166,10 +155,7 @@ const ChatInputWidget = ({ onSendMessage }) => {
         className="chat-input"
         placeholder={isRecording ? "Recording… press stop when done" : "Chat in text or start speaking..."}
         value={inputText}
-        onChange={(e) => {
-          setInputText(e.target.value);
-          adjustTextAreaHeight();
-        }}
+        onChange={(e) => { setInputText(e.target.value); adjustTextAreaHeight(); }}
         onKeyDown={handleKeyDown}
         rows={1}
         style={{ resize: "none", overflow: "hidden" }}
@@ -177,13 +163,7 @@ const ChatInputWidget = ({ onSendMessage }) => {
       />
 
       <button className="icon-btn" onClick={handleIconClick} disabled={isLoading}>
-        {inputText.trim().length > 0 ? (
-          <SendIcon />
-        ) : isRecording ? (
-          <StopIcon />
-        ) : (
-          <MicIcon />
-        )}
+        {inputText.trim() ? <SendIcon /> : isRecording ? <StopIcon /> : <MicIcon />}
       </button>
 
       {err && <div className="chat-error">{err}</div>}
@@ -192,3 +172,4 @@ const ChatInputWidget = ({ onSendMessage }) => {
 };
 
 export default ChatInputWidget;
+

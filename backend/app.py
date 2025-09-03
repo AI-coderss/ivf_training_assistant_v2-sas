@@ -409,61 +409,48 @@ def generate_followups():
 def healthz():
     return jsonify({"ok": True, "model": "whisper-1"}), 200
 
-@app.post("/transcribe")
+SUPPORTED_FORMATS = ['flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm']
+
+def speech_to_text(path: str) -> dict:
+    with open(path, "rb") as f:
+        res = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=f,
+            response_format="text"   # simplest: returns raw text string
+        )
+    # Some SDKs return a str directly for response_format="text"
+    text = getattr(res, "text", None)
+    if isinstance(res, str) and not text:
+        text = res
+    return {"text": (text or "").strip()}
+
+@app.route("/transcribe", methods=["POST"])
 def transcribe():
-    """
-    Expects multipart/form-data with:
-      - audio: the audio file blob (webm, wav, m4a, mp3, etc.)
-      - (optional) language: BCP-47/ISO code like 'en', 'ar', ...
-      - (optional) prompt: custom prior text to bias decoding
-      - (optional) response_format: 'text' | 'json' | 'srt' | 'vtt' | 'verbose_json'
-    Returns JSON: { "text": "..." }
-    """
+    if "audio_data" not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    audio_file = request.files["audio_data"]
+    file_extension = (audio_file.filename.rsplit(".", 1)[-1] if "." in audio_file.filename else "").lower()
+
+    if file_extension not in SUPPORTED_FORMATS:
+        return jsonify({
+            "error": f"Unsupported file format: {file_extension}. "
+                     f"Supported formats: {SUPPORTED_FORMATS}"
+        }), 400
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as tmp:
+        audio_file.save(tmp.name)
+        temp_path = tmp.name
+
     try:
-        file = request.files.get("audio") or request.files.get("file")
-        if not file:
-            return jsonify({"error": "No file uploaded. Use field name 'audio'."}), 400
-
-        language = (request.form.get("language") or "").strip() or None
-        prompt = (request.form.get("prompt") or "").strip() or None
-        response_format = (request.form.get("response_format") or "text").strip()
-
-        # Persist to temp file so the SDK can stream it reliably
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            file.save(tmp.name)
-            tmp_path = tmp.name
-
-        # OpenAI Whisper transcription (server-side)
-        # Docs: https://platform.openai.com/docs/guides/speech-to-text/transcriptions
-        with open(tmp_path, "rb") as audio_f:
-            result = client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_f,
-                language=language,           # None = auto-detect
-                prompt=prompt,
-                response_format=response_format  # "text" is simplest → str
-            )
-
-        # Clean up temp
+        transcript_result = speech_to_text(temp_path)
+    finally:
         try:
-            os.remove(tmp_path)
+            os.remove(temp_path)
         except Exception:
             pass
 
-        # If response_format='text', result is a plain string on .text
-        text = getattr(result, "text", None)
-        if isinstance(result, str) and not text:
-            # Some SDK versions return str directly when response_format='text'
-            text = result
-
-        if not text:
-            # Fallback: try common fields
-            text = getattr(result, "text_output", "") or getattr(result, "text", "")
-
-        return jsonify({"text": (text or "").strip()})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+    return jsonify({"transcript": transcript_result.get("text", "")})
 
 # === Run ===
 if __name__ == "__main__":
