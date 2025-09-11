@@ -138,7 +138,7 @@ const ChatWithYourBook = ({
 
         // Call Flask API
         const res = await axios.post(
-          "http://127.0.0.1:5000/chatwithbooks/upload", // 🔹 update with your Flask backend URL
+          "https://chat-with-your-books-server.onrender.com/chatwithbooks/upload", // 🔹 update with your Flask backend URL
           formData,
           {
             headers: { "Content-Type": "multipart/form-data" },
@@ -205,7 +205,7 @@ const ChatWithYourBook = ({
 
   const handleNewChat = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5000/chatwithbooks/reset", {
+      const res = await fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
