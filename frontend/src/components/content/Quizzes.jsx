@@ -185,7 +185,7 @@ const [content, setContent]= useState("")
     setContent(refrenceText)
   
     try {
-      let endpoint = `http://127.0.0.1:5003/generate`;
+      let endpoint = `https://immersive-reader-quizzes-api.onrender.com/generate`;
 
       const res = await fetch(endpoint, {
         method: "POST",

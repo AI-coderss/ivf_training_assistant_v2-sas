@@ -14,7 +14,7 @@ import concurrent.futures
 
 load_dotenv()
 
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 DEFAULT_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", "0.2"))
 SAVE_LAST_TO = os.getenv("SAVE_LAST_TO", "last_generated_quiz.json")
 
