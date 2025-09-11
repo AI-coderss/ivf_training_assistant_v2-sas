@@ -24,7 +24,7 @@ export default function ChatBot({
 }) {
   // messages: [{role:'user'|'bot', html, ts}]
   const [messages, setMessages] = useState(() => [
-    { role: "bot", html: initialMessage, ts: ts() },
+    // { role: "bot", html: "", ts: ts() },
   ]);
   const [text, setText] = useState("");
   const [recording, setRecording] = useState(false);
@@ -47,6 +47,12 @@ export default function ChatBot({
     return id;
   }, []);
 
+  useEffect(()=>{
+    if(initialMessage.trim()!=null){
+      streamAI(initialMessage)
+    }
+  },[initialMessage])
+
   /* ---------- Speech Recognition (optional) ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -67,7 +73,9 @@ export default function ChatBot({
 
     recognitionRef.current = rec;
     return () => {
-      try { rec.abort(); } catch {}
+      try {
+        rec.abort();
+      } catch {}
     };
   }, []);
 
@@ -97,7 +105,10 @@ export default function ChatBot({
   const streamAI = async (userText) => {
     setTyping(true);
     // placeholder bubble to progressively update
-    setMessages((prev) => [...prev, { role: "bot", html: "", ts: ts(), _ph: true }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: "bot", html: "", ts: ts(), _ph: true },
+    ]);
 
     try {
       abortCtrlRef.current?.abort?.();
@@ -187,7 +198,11 @@ export default function ChatBot({
       if (!dragging) return;
       const y = "touches" in e ? e.touches[0].clientY : e.clientY;
       const dy = y - startY;
-      const nh = clamp(startH - dy, window.innerHeight * 0.5, window.innerHeight * 0.95);
+      const nh = clamp(
+        startH - dy,
+        window.innerHeight * 0.5,
+        window.innerHeight * 0.95
+      );
       el.style.height = `${nh}px`;
     };
     const onEnd = () => {
@@ -218,17 +233,28 @@ export default function ChatBot({
 
   /* ---------- helpers ---------- */
   function ts() {
-    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
   const push = (role, html) =>
     setMessages((prev) => [...prev, { role, html, ts: ts() }]);
   const escapeUser = (s) =>
-    String(s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
 
   const hasText = text.trim().length > 0;
 
   return (
-    <div className="ink-chatbot-shell" ref={shellRef} role="region" aria-label="AI feedback chat">
+    <div
+      className="ink-chatbot-shell"
+      ref={shellRef}
+      role="region"
+      aria-label="AI feedback chat"
+    >
       {/* mobile drag handle */}
       <div className="ink-drag-handle" aria-hidden="true">
         <span />
@@ -239,27 +265,42 @@ export default function ChatBot({
         <h3 className="ink-chatbot-title">{title}</h3>
 
         {/* Desktop-only accordion toggle */}
-        <button className="ink-acc-btn desktop-only" onClick={toggleAccordion} aria-expanded={open}>
+        <button
+          className="ink-acc-btn desktop-only"
+          onClick={toggleAccordion}
+          aria-expanded={open}
+        >
           {open ? "Hide Suggestions" : "Show Suggestions"}
         </button>
       </div>
 
       {/* Desktop-only accordion content */}
       {open && (
-        <div className="ink-acc desktop-only" role="region" aria-label="Suggested questions">
+        <div
+          className="ink-acc desktop-only"
+          role="region"
+          aria-label="Suggested questions"
+        >
           <div className="ink-acc-content">
             {chips.map((q) => (
               <button key={q} className="chip" onClick={() => useChip(q)}>
                 {q}
               </button>
             ))}
-            {chips.length === 0 && <span className="chip-empty">All suggestions used 👍</span>}
+            {chips.length === 0 && (
+              <span className="chip-empty">All suggestions used 👍</span>
+            )}
           </div>
         </div>
       )}
 
       {/* Chat body */}
-      <div className="ink-chatbot-body" ref={chatRef} role="log" aria-live="polite">
+      <div
+        className="ink-chatbot-body"
+        ref={chatRef}
+        role="log"
+        aria-live="polite"
+      >
         {messages.map((m, i) => (
           <div className={`ink-msg ${m.role}`} key={`${m.ts}-${i}`}>
             {m.role === "bot" ? (
@@ -270,9 +311,15 @@ export default function ChatBot({
                     ul: ({ children }) => <ul className="md-ul">{children}</ul>,
                     ol: ({ children }) => <ol className="md-ul">{children}</ol>,
                     li: ({ children }) => <li className="md-li">{children}</li>,
-                    h1: ({ children }) => <strong className="md-h">{children}</strong>,
-                    h2: ({ children }) => <strong className="md-h">{children}</strong>,
-                    h3: ({ children }) => <strong className="md-h">{children}</strong>,
+                    h1: ({ children }) => (
+                      <strong className="md-h">{children}</strong>
+                    ),
+                    h2: ({ children }) => (
+                      <strong className="md-h">{children}</strong>
+                    ),
+                    h3: ({ children }) => (
+                      <strong className="md-h">{children}</strong>
+                    ),
                   }}
                 >
                   {m.html}
@@ -299,7 +346,9 @@ export default function ChatBot({
         <input
           className="ink-input"
           type="text"
-          placeholder={recording ? "Listening…" : "Chat in text or start speaking..."}
+          placeholder={
+            recording ? "Listening…" : "Chat in text or start speaking..."
+          }
           value={text}
           onChange={(e) => setText(e.target.value)}
           ref={inputRef}
@@ -332,6 +381,8 @@ export default function ChatBot({
 
 /* utils */
 function ts() {
-  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
-
