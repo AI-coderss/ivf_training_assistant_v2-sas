@@ -16,14 +16,18 @@ from openai import OpenAI
 load_dotenv()
 
 app = Flask(__name__)
-CORS(
-    app,
-    origins=[
-        "https://ivfvirtualtrainingassistantdsah.onrender.com",
-        "https://ivf-virtual-training-assistant-dsah.onrender.com",
-        "http://localhost:3000",
-    ],
-)
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://ivf-virtual-training-assistant-dsah.onrender.com",
+            "http://localhost:3000"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
+# In-memory storage for chat histories and vector stores
 
 chat_histories = {}
 vector_stores = {}
