@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "generated_at": "2025-09-11T06:14:31Z",
+    "quiz_type": "Both",
+    "difficulty": "easy",
+    "requested_count": 10,
+    "actual_count": 10,
+    "fallback": true
+  },
+  "questions": [
+    {
+      "type": "mcq",
+      "question": "In the passage: 'Practical Manual of In Vitro Fertilization  Zsolt Peter Nagy • Alex C', which of the following matches the beginning of the sentence?",
+      "options": [
+        "Practical Manual of",
+        "A) • Alex C",
+        "None of the above",
+        "Both A and B"
+      ],
+      "correctAnswer": "Practical Manual of",
+      "source_snippet": "Practical Manual of In Vitro Fertilization  Zsolt Peter Nagy • Alex C",
+      "difficulty": "easy"
+    },
+    {
+      "type": "truefalse",
+      "question": "True or False: The passage states that 'Practical' is mentioned.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correctAnswer": "True",
+      "source_snippet": "Practical Manual of In Vitro Fertilization  Zsolt Peter Nagy • Alex C",
+      "difficulty": "easy"
+    },
+    {
+      "type": "mcq",
+      "question": "In the passage: 'VargheseAshok AgarwalEditorsPractical Manual of In VitroFertilizationAdvanced Methods and Novel Devices EditorsZsolt Pet', which of the following matches the beginning of the sentence?",
+      "options": [
+        "VargheseAshok AgarwalEditorsPractical Manual",
+        "A) 44195, USAAlex C",
+        "None of the above",
+        "Both A and B"
+      ],
+      "correctAnswer": "VargheseAshok AgarwalEditorsPractical Manual",
+      "source_snippet": "VargheseAshok AgarwalEditorsPractical Manual of In VitroFertilizationAdvanced Methods and Novel Devices EditorsZsolt Peter Nagy, MD, PhD,HCLD (ABB), EMB (ACE)Sc",
+      "difficulty": "easy"
+    },
+    {
+      "type": "truefalse",
+      "question": "True or False: The passage states that 'VargheseAshok' is mentioned.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correctAnswer": "True",
+      "source_snippet": "VargheseAshok AgarwalEditorsPractical Manual of In VitroFertilizationAdvanced Methods and Novel Devices EditorsZsolt Peter Nagy, MD, PhD,HCLD (ABB), EMB (ACE)Sc",
+      "difficulty": "easy"
+    },
+    {
+      "type": "mcq",
+      "question": "In the passage: 'Varghese, PhDSenior EmbryologistMontreal Reproductive CentreMontreal, QC H4A 3J3, CanadaISBN 978-1-4419-1779-9 e-ISBN 97', which of the following matches the beginning of the sentence?",
+      "options": [
+        "Varghese, PhDSenior EmbryologistMontreal",
+        "A) e-ISBN 978-1-4419-1780-5DOI 10",
+        "None of the above",
+        "Both A and B"
+      ],
+      "correctAnswer": "Varghese, PhDSenior EmbryologistMontreal",
+      "source_snippet": "Varghese, PhDSenior EmbryologistMontreal Reproductive CentreMontreal, QC H4A 3J3, CanadaISBN 978-1-4419-1779-9 e-ISBN 978-1-4419-1780-5DOI 10",
+      "difficulty": "easy"
+    },
+    {
+      "type": "truefalse",
+      "question": "True or False: The passage states that 'Varghese,' is mentioned.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correctAnswer": "True",
+      "source_snippet": "Varghese, PhDSenior EmbryologistMontreal Reproductive CentreMontreal, QC H4A 3J3, CanadaISBN 978-1-4419-1779-9 e-ISBN 978-1-4419-1780-5DOI 10",
+      "difficulty": "easy"
+    },
+    {
+      "type": "mcq",
+      "question": "In the passage: '1007/978-1-4419-1780-5Springer New York Dordrecht Heidelberg LondonLibrary of Congress Control Number: 2012934564© Sprin', which of the following matches the beginning of the sentence?",
+      "options": [
+        "1007/978-1-4419-1780-5Springer New York",
+        "A) 2012All rights reserved",
+        "None of the above",
+        "Both A and B"
+      ],
+      "correctAnswer": "1007/978-1-4419-1780-5Springer New York",
+      "source_snippet": "1007/978-1-4419-1780-5Springer New York Dordrecht Heidelberg LondonLibrary of Congress Control Number: 2012934564© Springer Science+Business Media, LLC 2012All",
+      "difficulty": "easy"
+    },
+    {
+      "type": "truefalse",
+      "question": "True or False: The passage states that '1007/978-1-4419-1780-5Springer' is mentioned.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correctAnswer": "True",
+      "source_snippet": "1007/978-1-4419-1780-5Springer New York Dordrecht Heidelberg LondonLibrary of Congress Control Number: 2012934564© Springer Science+Business Media, LLC 2012All",
+      "difficulty": "easy"
+    },
+    {
+      "type": "mcq",
+      "question": "In the passage: 'This work may not be translated or copied in whole or in part without the written permissionof the publisher (Springer S', which of the following matches the beginning of the sentence?",
+      "options": [
+        "This work may",
+        "A) or scholarly analysis",
+        "None of the above",
+        "Both A and B"
+      ],
+      "correctAnswer": "This work may",
+      "source_snippet": "This work may not be translated or copied in whole or in part without the written permissionof the publisher (Springer Science+Business Media, LLC, 233 Spring S",
+      "difficulty": "easy"
+    },
+    {
+      "type": "truefalse",
+      "question": "True or False: The passage states that 'This' is mentioned.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correctAnswer": "True",
+      "source_snippet": "This work may not be translated or copied in whole or in part without the written permissionof the publisher (Springer Science+Business Media, LLC, 233 Spring S",
+      "difficulty": "easy"
+    }
+  ]
+}

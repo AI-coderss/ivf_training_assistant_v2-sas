@@ -75,6 +75,7 @@ const Chatbot = ({
       });
 
       if (!response.ok) {
+        console.log("========")
         const errData = await response.json();
         throw new Error(
           errData.error || `HTTP error! Status: ${response.status}`

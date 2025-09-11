@@ -16,7 +16,14 @@ from openai import OpenAI
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["https://ivfvirtualtrainingassistantdsah.onrender.com","https://ivf-virtual-training-assistant-dsah.onrender.com"])
+CORS(
+    app,
+    origins=[
+        "https://ivfvirtualtrainingassistantdsah.onrender.com",
+        "https://ivf-virtual-training-assistant-dsah.onrender.com",
+        "http://localhost:3000",
+    ],
+)
 
 chat_histories = {}
 vector_stores = {}
@@ -26,12 +33,13 @@ client = OpenAI()
 chunk_size = 1000
 chunk_overlap = 300
 
+
 def get_chunks(documents):
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap
     )
     return text_splitter.split_documents(documents)
+
 
 def get_vectorestore_from_path(file_path):
     loader = PyPDFLoader(file_path)
@@ -39,29 +47,42 @@ def get_vectorestore_from_path(file_path):
     chunks = get_chunks(documents)
     return FAISS.from_documents(chunks, OpenAIEmbeddings())
 
+
 def get_context_retriever_chain(vector_store):
     llm = ChatOpenAI()
     retriever = vector_store.as_retriever()
-    prompt = ChatPromptTemplate.from_messages([
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("user", "{input}"),
-        ("user", "Given the above conversation, generate a search query to look up relevant information.")
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("user", "{input}"),
+            (
+                "user",
+                "Given the above conversation, generate a search query to look up relevant information.",
+            ),
+        ]
+    )
     return create_history_aware_retriever(llm, retriever, prompt)
+
 
 def get_conversational_rag_chain(retriever_chain):
     llm = ChatOpenAI()
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "Answer the user's question  please answer them with more delails and high specificity given the below context:\n\n{context} use markdowns for detailed and enumerated answers with bold texts."),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("user", "{input}")
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "Answer the user's question  please answer them with more delails and high specificity given the below context:\n\n{context} use markdowns for detailed and enumerated answers with bold texts.",
+            ),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("user", "{input}"),
+        ]
+    )
     stuff_chain = create_stuff_documents_chain(llm, prompt)
     return create_retrieval_chain(retriever_chain, stuff_chain)
 
-@app.route('/chatwithbooks/upload', methods=['POST'])
+
+@app.route("/chatwithbooks/upload", methods=["POST"])
 def upload_pdf():
-    file = request.files['file']
+    file = request.files["file"]
     user_id = request.form.get("user_id", "default_user")
 
     try:
@@ -72,68 +93,155 @@ def upload_pdf():
             vector_store = get_vectorestore_from_path(tmp.name)
             vector_stores[user_id] = vector_store
             chat_histories[user_id] = [
-                AIMessage(content="Hello! I'm your book assistant. How can I help you today?")
+                AIMessage(
+                    content="Hello! I'm your book assistant. How can I help you today?"
+                )
             ]
 
             # ✅ Step 2: Generate suggested questions using RAG
             retriever_chain = get_context_retriever_chain(vector_store)
             conversation_chain = get_conversational_rag_chain(retriever_chain)
 
-            response = conversation_chain.invoke({
-                "chat_history": [],
-                "input": "Suggest 25 questions to understand this book better and summarize key sections."
-            })
+            response = conversation_chain.invoke(
+                {
+                    "chat_history": [],
+                    "input": "Suggest 5 suggestion questions for user to understand this book better.",
+                }
+            )
 
             suggestions = response.get("answer", "").split("\n")
             questions = [q.strip("•- 1234567890.") for q in suggestions if q.strip()]
 
             # ✅ Step 3: Return signal to frontend
-            return jsonify({
-                "embedding_done": True,
-                "message": "Embedding completed successfully.",
-                "suggested_questions": questions[:25]
-            }), 200
+            return (
+                jsonify(
+                    {
+                        "embedding_done": True,
+                        "message": "Embedding completed successfully.",
+                        "suggested_questions": questions[:25],
+                    }
+                ),
+                200,
+            )
 
     except Exception as e:
         print(f"[ERROR] Upload failed: {e}")
-        return jsonify({
-            "embedding_done": False,
-            "error": "Embedding or question generation failed.",
-            "details": str(e)
-        }), 500
+        return (
+            jsonify(
+                {
+                    "embedding_done": False,
+                    "error": "Embedding or question generation failed.",
+                    "details": str(e),
+                }
+            ),
+            500,
+        )
 
-@app.route('/chatwithbooks/message', methods=['POST'])
+
+@app.route("/chatwithbooks/message", methods=["POST"])
 def chat_message():
     data = request.get_json()
-    user_input = data['message']
-    user_id = data.get('user_id', 'default_user')
+    user_input = data["message"]
+    user_id = data.get("user_id", "default_user")
 
     if user_id not in chat_histories or user_id not in vector_stores:
-        return jsonify({"error": "No vector store found. Please upload a PDF first."}), 400
+        return (
+            jsonify({"error": "No vector store found. Please upload a PDF first."}),
+            400,
+        )
 
     chat_history = chat_histories[user_id]
     vector_store = vector_stores[user_id]
     retriever_chain = get_context_retriever_chain(vector_store)
     conversation_chain = get_conversational_rag_chain(retriever_chain)
 
-    def generate():
-        for chunk in conversation_chain.stream({
-            "chat_history": chat_history,
-            "input": user_input
-        }):
-            content = chunk.get("answer", "")
-            yield content
+    # First get the full response to extract page numbers
+    full_response = conversation_chain.invoke(
+        {"chat_history": chat_history, "input": user_input}
+    )
+    answer = full_response["answer"]
+    documents = full_response["context"]
 
+    # Extract page numbers from documents
+    page_numbers = set()
+    for doc in documents:
+        if 'page' in doc.metadata:
+            page_numbers.add(str(doc.metadata['page'] + 1))  # Convert to 1-indexed
+
+    # Format page numbers string
+    page_refs = ", ".join(sorted(page_numbers)) if page_numbers else ""
+
+    # Update chat history
     chat_histories[user_id].append(HumanMessage(content=user_input))
-    return Response(stream_with_context(generate()), content_type='text/plain')
+    chat_histories[user_id].append(AIMessage(content=answer))
 
-@app.route('/chatwithbooks/reset', methods=['POST'])
+    # Create a generator that streams the answer and then adds page references
+    def generate():
+        # Stream the answer
+        for char in answer:
+            yield char
+        
+        # Add page references at the end
+        if page_refs:
+            yield f"\n\nReference pages: {page_refs}"
+
+    return Response(stream_with_context(generate()), content_type="text/plain")
+
+
+# @app.route("/chatwithbooks/message", methods=["POST"])
+# def chat_message():
+#     data = request.get_json()
+#     user_input = data["message"]
+#     user_id = data.get("user_id", "default_user")
+
+#     if user_id not in chat_histories or user_id not in vector_stores:
+#         return (
+#             jsonify({"error": "No vector store found. Please upload a PDF first."}),
+#             400,
+#         )
+
+#     chat_history = chat_histories[user_id]
+#     vector_store = vector_stores[user_id]
+#     retriever_chain = get_context_retriever_chain(vector_store)
+#     conversation_chain = get_conversational_rag_chain(retriever_chain)
+
+#     # Collect response and context documents
+#     full_response = conversation_chain.invoke(
+#         {"chat_history": chat_history, "input": user_input}
+#     )
+#     answer = full_response["answer"]
+#     documents = full_response["context"]
+
+#     # Extract page numbers from documents
+#     page_numbers = set()
+#     for doc in documents:
+#         if 'page' in doc.metadata:
+#             page_numbers.add(str(doc.metadata['page'] + 1))  # Convert to 1-indexed
+
+#     # Format page numbers string
+#     page_refs = ", ".join(sorted(page_numbers)) if page_numbers else ""
+
+#     # Update chat history
+#     chat_histories[user_id].append(HumanMessage(content=user_input))
+#     chat_histories[user_id].append(AIMessage(content=answer))
+
+#     # Create response with answer and page references
+#     response_data = {
+#         "answer": answer,
+#         "page_numbers": page_refs
+#     }
+
+#     return jsonify(response_data)
+
+
+@app.route("/chatwithbooks/reset", methods=["POST"])
 def reset_chat():
     user_id = request.form.get("user_id", "default_user")
     chat_histories[user_id] = []
     vector_stores.pop(user_id, None)
     return jsonify({"message": "Session reset."})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
 

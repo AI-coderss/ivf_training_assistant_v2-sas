@@ -1,5 +1,8 @@
+
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-unused-vars */import React, { useState, useRef, useEffect } from "react";
+/* eslint-disable no-unused-vars */
+import React, { useState, useRef, useEffect } from "react";
+
 import useBookStore from "../../store/bookStore";
 
 const MAX_CHARS = 200;
@@ -21,50 +24,109 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
     setIsPlaying,
   } = useBookStore();
   const [timings, setTimings] = useState([]);
+  const [voice, setVoice] = useState("alloy");
+
   const audioRef = useRef(null);
   const nextAudioRef = useRef(null);
   const audios = useRef({});
 
   // Chunking of text into manageable parts
+
+  // useEffect(() => {
+  //   if (text) {
+  //     const cleanText = text.replace(/\s+/g, " ").trim();
+  //     const words = cleanText.split(" ");
+
+  //     let result = [];
+  //     let chunk = "";
+  //     let currentStart = 0;
+  //     let globalIndex = 0; // tracks character position in original cleanText
+
+  //     for (let word of words) {
+  //       // +1 for the space we add
+  //       if ((chunk + " " + word).length > MAX_CHARS) {
+  //         const chunkText = chunk.trim();
+  //         result.push({
+  //           text: chunkText,
+  //           startIndex: currentStart,
+  //           endIndex: currentStart + chunkText.length - 1,
+  //         });
+
+  //         // prepare next chunk
+  //         currentStart = globalIndex;
+  //         chunk = word;
+  //       } else {
+  //         if (chunk === "") {
+  //           currentStart = globalIndex; // new chunk start
+  //         }
+  //         chunk += " " + word;
+  //       }
+
+  //       globalIndex += word.length + 1; // +1 for space
+  //     }
+
+  //     if (chunk) {
+  //       const chunkText = chunk.trim();
+  //       result.push({
+  //         text: chunkText,
+  //         startIndex: currentStart,
+  //         endIndex: currentStart + chunkText.length - 1,
+  //       });
+  //     }
+
+  //     setChunks(result);
+  //     setSelectedChunkIndex(0);
+  //     audios.current = [];
+  //     setIsPlaying(false);
+  //   }
+  // }, [text]);
+
   useEffect(() => {
     if (text) {
       const cleanText = text.replace(/\s+/g, " ").trim();
       const words = cleanText.split(" ");
+      const result = [];
 
-      let result = [];
       let chunk = "";
       let currentStart = 0;
-      let globalIndex = 0; // tracks character position in original cleanText
+      let globalIndex = 0;
 
-      for (let word of words) {
-        // +1 for the space we add
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
         if ((chunk + " " + word).length > MAX_CHARS) {
-          const chunkText = chunk.trim();
+          // Look for punctuation near the end of the chunk
+          let lastPunct = Math.max(
+            chunk.lastIndexOf("."),
+            chunk.lastIndexOf(","),
+            chunk.lastIndexOf("!"),
+            chunk.lastIndexOf("?")
+          );
+
+          let splitIndex = lastPunct > 0 ? lastPunct + 1 : chunk.length;
+
+          const chunkText = chunk.slice(0, splitIndex).trim();
           result.push({
             text: chunkText,
             startIndex: currentStart,
             endIndex: currentStart + chunkText.length - 1,
           });
 
-          // prepare next chunk
-          currentStart = globalIndex;
-          chunk = word;
+          // Prepare next chunk
+          const remaining = chunk.slice(splitIndex).trim();
+          chunk = remaining + " " + word;
+          currentStart = globalIndex - remaining.length;
         } else {
-          if (chunk === "") {
-            currentStart = globalIndex; // new chunk start
-          }
-          chunk += " " + word;
+          if (chunk === "") currentStart = globalIndex;
+          chunk += (chunk ? " " : "") + word;
         }
-
-        globalIndex += word.length + 1; // +1 for space
+        globalIndex += word.length + 1;
       }
 
       if (chunk) {
-        const chunkText = chunk.trim();
         result.push({
-          text: chunkText,
+          text: chunk.trim(),
           startIndex: currentStart,
-          endIndex: currentStart + chunkText.length - 1,
+          endIndex: currentStart + chunk.trim().length - 1,
         });
       }
 
@@ -211,25 +273,25 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
     onAutoFlip,
     highlightedWordIndex,
   ]);
-
+  // https://immersive-reader-realtime-tts-server.onrender.com
   // Fetch TTS timings for highlighting
   const fetchTimings = async (chunkText) => {
-    const res = await fetch("https://immersive-reader-realtime-tts-server.onrender.com/tts-timings", {
+    const res = await fetch("http://127.0.0.1:5001/tts-timings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: chunkText }),
+      body: JSON.stringify({ text: chunkText, voice }),
     });
     const data = await res.json();
     return data.timings || [];
   };
-
+  // https://immersive-reader-realtime-tts-server.onrender.com
   // Fetch audio for a given chunk index
   const fetchChunkAudio = async (chunkIndex) => {
     if (!chunks[chunkIndex]) return null;
-    const res = await fetch("https://immersive-reader-realtime-tts-server.onrender.com/tts-chunk", {
+    const res = await fetch("http://127.0.0.1:5001/tts-chunk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: chunks[chunkIndex].text }),
+      body: JSON.stringify({ text: chunks[chunkIndex].text, voice: voice }),
     });
     if (!res.ok) return null;
     return new Audio(URL.createObjectURL(await res.blob()));
@@ -256,6 +318,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
       }
     }
   };
+
   const handleWordClick = (wordIdx) => {
     const audio = audios.current[selectedChunkIndex];
     if (audio) {
@@ -271,241 +334,132 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
     <div
       style={{
         fontFamily: "system-ui, -apple-system, sans-serif",
-        maxWidth: "800px",
-        margin: "auto auto 0 auto",
-        height: "100%",
+        maxWidth: "fit-content",
+        margin: "auto",
+        padding: "10px 20px",
+        borderRadius: "16px",
+        display: "flex",
+        alignItems: "center",
+        gap: "16px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+        background: "white",
+        position: "relative",
+        zIndex: 90,
       }}
     >
-      {/* Toolbar - Modern Card Style */}
-      <div
-        className="glass-card "
+      {/* Speed Control */}
+      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <label style={{ fontWeight: "500", fontSize: "14px", color: "#4B5563" }}>
+          Speed:
+        </label>
+        <select
+          value={speed}
+          onChange={handleSpeedChange}
+          style={{
+            padding: "6px 10px",
+            borderRadius: "6px",
+            border: "1px solid #d1d5db",
+            background: "white",
+            fontWeight: "500",
+            fontSize: "14px",
+          }}
+        >
+          {[0.75, 1, 1.25, 1.5, 1.75, 2].map((s) => (
+            <option key={s} value={s}>
+              {s}x
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Voice Select */}
+      <select
+        value={voice}
+        onChange={(e) => setVoice(e.target.value)}
+        style={{
+          padding: "6px 10px",
+          borderRadius: "6px",
+          border: "1px solid #d1d5db",
+          background: "white",
+          fontWeight: "500",
+          fontSize: "14px",
+          minWidth: "80px",
+        }}
+      >
+        {["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"].map((v) => (
+          <option key={v} value={v}>
+            {v}
+          </option>
+        ))}
+      </select>
+
+      {/* Play / Pause Button */}
+      <button
+        onClick={handlePlayPause}
+        style={{
+          borderRadius: "50%",
+          border: "none",
+          background: "#4F46E5",
+          color: "white",
+          width: "36px",
+          height: "36px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "16px",
+          cursor: "pointer",
+        }}
+      >
+        {isPlaying ? "⏸" : "▶"}
+      </button>
+
+      {/* Auto Scroll Toggle */}
+      <label
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 20px",
-          borderRadius: "16px",
-          marginBottom: "20px",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)", // Stronger shadow
-          backdropFilter: "blur(12px)", // Glass blur
-          WebkitBackdropFilter: "blur(12px)", // Safari support
-          border: "1px solid rgba(255, 255, 255, 0.3)", // Subtle border
-          flexWrap: "wrap",
-          gap: "16px",
-          zIndex: '90'
+          gap: "8px",
+          fontWeight: "500",
+          fontSize: "14px",
+          color: "#4B5563",
+          cursor: "pointer",
+          whiteSpace: "nowrap",
         }}
       >
-        {/* Left side controls */}
-        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          {/* Speed Control */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <label
-              style={{ fontWeight: "600", color: "#000", fontSize: "15px" }}
-            >
-              Speed:
-            </label>
-            <select
-              value={speed}
-              onChange={handleSpeedChange}
-              style={{
-                padding: "8px 12px",
-                borderRadius: "8px",
-                border: "1px solid #e5e7eb",
-                background: "white",
-                cursor: "pointer",
-                fontWeight: "500",
-              }}
-            >
-              {[0.75, 1, 1.25, 1.5, 1.75, 2].map((s) => (
-                <option key={s} value={s}>
-                  {s}x
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Centered Play/Pause Button or Loading Indicator */}
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          {!audioReady ? (
-            <div
-              style={{
-                padding: "10px 20px",
-                borderRadius: "8px",
-                border: "none",
-                background: "#f3f4f6",
-                color: "#4b5563",
-                cursor: "pointer",
-                fontWeight: "600",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "background 0.2s",
-              }}
-            >
-              <div
-                style={{
-                  width: "18px",
-                  height: "18px",
-                  border: "2px solid #e5e7eb",
-                  borderTop: "2px solid #007BFF",
-                  borderRadius: "50%",
-                  animation: "spin 1s linear infinite",
-                }}
-              />
-            </div>
-          ) : (
-            <button
-              onClick={handlePlayPause}
-              style={{
-                borderRadius: "100%",
-                border: "none",
-                background: "#007BFF",
-                color: "white",
-                cursor: "pointer",
-                fontWeight: "600",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "background 0.2s",
-                width: "50px",
-                height: "50px",
-              }}
-            >
-              {isPlaying ? (
-                <>
-                  <span style={{ fontSize: "18px" }}>⏸</span>
-                </>
-              ) : (
-                <>
-                  <span style={{ fontSize: "18px" }}>▶</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
-
-        {/* Right side controls */}
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "20px",
-            justifyContent: "flex-end",
+            width: "36px",
+            height: "20px",
+            borderRadius: "10px",
+            background: isAutoScrolling ? "#4F46E5" : "#E5E7EB",
+            position: "relative",
+            transition: "background 0.2s",
           }}
         >
-          {/* Auto Scroll Toggle */}
-          <label
+          <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              cursor: "pointer",
-              userSelect: "none",
-              fontWeight: "600",
-              color: "#3b3b3b",
-              fontSize: "15px",
+              position: "absolute",
+              top: "2px",
+              left: isAutoScrolling ? "18px" : "2px",
+              width: "16px",
+              height: "16px",
+              borderRadius: "50%",
+              background: "#FFF",
+              transition: "left 0.2s",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
             }}
-          >
-            <div
-              style={{
-                width: "40px",
-                height: "22px",
-                borderRadius: "11px",
-                background: isAutoScrolling ? "#858b99" : "#e5e7eb",
-                position: "relative",
-                transition: "background 0.2s",
-                boxShadow: "#b3b7bb 0px 7px 20px 2px",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  top: "3px",
-                  left: isAutoScrolling ? "21px" : "3px",
-                  width: "16px",
-                  height: "16px",
-                  background: "white",
-                  borderRadius: "50%",
-                  transition: "left 0.2s",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                }}
-              />
-            </div>
-            <input
-              type="checkbox"
-              checked={isAutoScrolling}
-              onChange={() => setIsAutoScrolling(!isAutoScrolling)}
-              style={{ display: "none" }}
-            />
-            Auto Scroll
-          </label>
-
-          {/* Progress Indicator */}
-          {/* <div
-            style={{
-              background: "#f3f4f6",
-              padding: "6px 14px",
-              borderRadius: "20px",
-              fontSize: "14px",
-              fontWeight: "600",
-              color: "#4b5563",
-              minWidth: "100px",
-              textAlign: "center"
-            }}
-          >
-            {selectedChunkIndex + 1} / {chunks.length}
-          </div> */}
+          />
         </div>
-      </div>
-
-      {/* Text Viewer - Modern Card Style */}
-      {/* <div
-        style={{
-          maxHeight: "300px",
-          overflowY: "auto",
-          padding: "20px",
-          background: "white",
-          borderRadius: "16px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-          lineHeight: "1.6",
-          fontSize: "18px"
-        }}
-      >
-        {currentWords.map((word, i) => {
-          const isCurrentWord = highlightedWordIndex === i;
-          return (
-            <span
-              id={`word-${selectedChunkIndex}-${i}`}
-              key={i}
-              style={{
-                marginRight: "6px",
-                cursor: "pointer",
-                fontWeight: isCurrentWord ? "600" : "400",
-                background: isCurrentWord ? "#4f46e5" : "transparent",
-                color: isCurrentWord ? "white" : "#1f2937",
-                padding: isCurrentWord ? "2px 6px" : "0",
-                borderRadius: isCurrentWord ? "6px" : "0",
-                transition: "all 0.15s ease"
-              }}
-              onClick={() => handleWordClick(i)}
-            >
-              {word}
-            </span>
-          );
-        })}
-      </div> */}
-
-      {/* CSS for the spinning animation */}
-      <style>
-        {`
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `}
-      </style>
+        <input
+          type="checkbox"
+          checked={isAutoScrolling}
+          onChange={() => setIsAutoScrolling(!isAutoScrolling)}
+          style={{ display: "none" }}
+        />
+        Auto Scroll
+      </label>
     </div>
+
   );
 };
 

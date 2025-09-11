@@ -1,0 +1,67 @@
+.page-range-inputs {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+.page-input {
+  width: 80px;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.page-input:focus {
+  outline: none;
+  border-color: #6c5ce7;
+  box-shadow: 0 0 5px rgba(108, 92, 231, 0.4);
+}
+.page-range-info {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 0.5rem;
+  text-align: right;
+}
+.page-range-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.range-separator {
+  font-weight: bold;
+  color: #888;
+}
+/* Error message box */
+.error-message {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 75, 75, 0.1);
+  border: 1px solid #ff4b4b;
+  color: #d32f2f;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Add warning icon style if needed */
+.error-message::before {
+  content: "⚠️";
+  margin-right: 6px;
+}
+
+/* Red border highlight for invalid input fields */
+.input-error {
+  border: 1px solid #ff4b4b !important;
+  background: #ffecec;
+}
+
+.input-error:focus {
+  outline: none;
+  border-color: #e53935;
+  box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.2);
+}

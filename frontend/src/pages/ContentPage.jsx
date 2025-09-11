@@ -3,11 +3,12 @@ import "../styles/content/ContentPage.css";
 import BookViewer from "../components/content/BookViewer";
 import VoiceAssistant from "../components/content/VoiceAssistant";
 import BookShelf from "../components/content/BookShelf";
-import Tabs from "../components/content/Tabs"; // ← NEW
+import Tabs from "../components/content/Tabs";
+import useBookStore from "../store/bookStore";
 
 const ContentPage = () => {
   const [voiceAssistantVisible, setVoiceAssistantVisible] = useState(false);
-  const [selectedBookUrl, setSelectedBookUrl] = useState("/pdf/manual.pdf");
+  const { selectedBookUrl, setSelectedBookUrl } = useBookStore()
   const [ocrContext, setOcrContext] = useState("");
   const [showBookshelf, setShowBookshelf] = useState(false);
 
@@ -56,14 +57,10 @@ const ContentPage = () => {
             </div>
           </div>
         )}
-
-        {/* ← NEW: Slim tools rail between bookshelf and viewer */}
         <Tabs />
-
         <div
-          className={`viewer-column ${
-            voiceAssistantVisible ? "with-assistant" : ""
-          }`}
+          className={`viewer-column ${voiceAssistantVisible ? "with-assistant" : ""
+            }`}
         >
           <BookViewer
             selectedBookUrl={selectedBookUrl}

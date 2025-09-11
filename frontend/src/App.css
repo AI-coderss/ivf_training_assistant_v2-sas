@@ -40,11 +40,12 @@ a:hover {
     rgba(255, 255, 255, 0.3) 0%,
     rgba(255, 255, 255, 0.05) 100%
   );
-  color: white;
+  
   font-family: Arial, sans-serif;
   background-color: #80808047;
-  width: 60%;
+  /* width: 60%; */
   margin: 0 auto;
+  
 }
 
 .glass-card::before {

@@ -89,14 +89,11 @@
   background: #2563eb;
   border-radius: 3px;
 }
-
-/* === compact glass cards below the tabs === */
 .glass-card {
-  /* ↓ Reserve a top strip for the close button and anchor it */
   --close-size: 34px;
   --close-pad: 12px;
 
-  margin-top: 24px;                /* a little more breathing room under tabs */
+  margin-top: 20px;                /* a little more breathing room under tabs */
   padding: 16px 12px 12px;         /* base padding */
   padding-top: calc(var(--close-size) + (var(--close-pad) * 2) + 6px); /* space for the close dock */
   position: relative;              /* ensure .card-close positions to this card */
@@ -279,4 +276,110 @@
   .tabs-bar {
     gap: 10px;
   }
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+
+}
+
+.modal-content {
+  background: #ffffff;
+  color: #333; 
+  padding: 24px;
+ 
+   max-height: 90vh; /* LIMIT HEIGHT */
+  overflow-y: auto; 
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  font-family: "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  position: relative;
+  height: 80vh;
+  margin-top: 7em;
+  border:1;
+  
+  
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 22px;
+  font-weight: bold;
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.modal-close:hover {
+  color: #d00;
+}
+
+.custom-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 16px;
+  
+}
+
+.custom-dropdown {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  padding: 5px 12px;
+  cursor: pointer;
+  position: relative;
+}
+
+.selected-option {
+  font-weight: 500;
+  font-size: 1rem;
+  color: #333;
+}
+
+.dropdown-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 0 0 6px 6px;
+  z-index: 10;
+  max-height: 150px;
+  overflow-y: auto;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.dropdown-option {
+  padding: 10px 12px;
+  font-size: 1rem;
+  transition: background 0.2s ease, font-weight 0.2s ease;
+  color: #000;
+}
+
+.dropdown-option:hover {
+  background-color: #007BFF;
+  font-weight: 600;
+  color: #fff;
+}
+
+.dropdown-option.selected {
+  background-color: #e6f0ff;
+  font-weight: 700;
+  color: black;
 }

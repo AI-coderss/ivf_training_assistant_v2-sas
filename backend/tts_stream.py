@@ -4,10 +4,21 @@ import requests
 from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
 import openai
+from openai import OpenAI
 import tempfile
 import traceback
 import re
+from dotenv import load_dotenv
 
+
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import ChatOpenAI
+from langchain.chains.summarize import load_summarize_chain
+from langchain.docstore.document import Document
+
+load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
 app = Flask(__name__)
 CORS(
     app,
@@ -191,6 +202,103 @@ def tts_chunk():
         print("[TTS ERROR]", e)
         traceback.print_exc()
         return {"error": str(e)}, 500
+
+
+
+@app.route("/api/generate_summary", methods=["POST"])
+def generate_summary():
+    try:
+        data = request.json
+
+        # Get fields
+        text = data.get("text", "")
+        mode = data.get("mode", "paragraph").lower()
+        length = data.get("length", "short").lower()
+        tone = data.get("tone", "neutral").lower()
+        scope = data.get("scope", "selection").lower()
+        extras = data.get("extras", {})
+
+        # Page info / custom range
+        page_info = data.get("page_info", {})
+        custom_range = data.get("customRange") or page_info.get("customRange", {})
+
+        # Source reference logic
+        source_reference = "0"
+        if custom_range:
+            start = custom_range.get("start")
+            end = custom_range.get("end")
+            if start and end:
+                source_reference = f"{start}" if start == end else f"{start}-{end}"
+        elif page_info:
+            current_page = page_info.get("currentPage")
+            start = page_info.get("startPage")
+            end = page_info.get("endPage")
+            chapter = page_info.get("chapter")
+
+            if scope == "current page" and current_page:
+                source_reference = f"{current_page}"
+            elif scope in ["page range", "selection"] and start and end:
+                source_reference = f"{start}" if start == end else f"{start}-{end}"
+            elif scope == "chapter" and chapter is not None:
+                source_reference = f"{chapter}"
+
+        # Length config
+        length_config = {
+            "short": {"words": 150, "bullets": 5, "tokens": 200},
+            "medium": {"words": 300, "bullets": 8, "tokens": 400},
+            "long": {"words": 600, "bullets": 12, "tokens": 800},
+        }
+        length_settings = length_config.get(length, length_config["medium"])
+
+        # Instructions
+        instructions = f"Summarize in {mode} format. Tone: {tone}. Scope: {scope}. Length: {length}."
+        if mode == "paragraph":
+            instructions += " Maintain coherent paragraphs."
+        elif mode == "bullets":
+            instructions += f" Generate about {length_settings['bullets']} clear bullet points."
+
+        # === Special handling for entire book ===
+        if scope == "entire book":
+            llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
+
+            # Split text into chunks
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=3000, chunk_overlap=200)
+            docs = [Document(page_content=chunk) for chunk in text_splitter.split_text(text)]
+
+            # Map-reduce summarization chain
+            chain = load_summarize_chain(llm, chain_type="map_reduce", verbose=False)
+
+            result = chain.run(docs)
+            result = f"{result}\n\n(Source: Entire Book)"
+        
+        else:
+            # Default: direct GPT call (for smaller scopes)
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that summarizes text as per user instructions."
+                },
+                {
+                    "role": "user",
+                    "content": f"{instructions}\n\nText:\n{text}\n\n(Source: {source_reference})"
+                },
+            ]
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=length_settings["tokens"],
+            )
+            result = response.choices[0].message.content.strip()
+
+        return jsonify({
+            "result": result,
+            "source_reference": source_reference,
+            "length_setting": length
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

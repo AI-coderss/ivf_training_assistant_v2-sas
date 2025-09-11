@@ -42,6 +42,23 @@ const useBookStore = create((set) => ({
     // for mobile view
     currentPage: 1,
     setCurrentPage: (page) => set({ currentPage: page }),
+
+
+    pageRanges: [],
+    setPageRanges: (ranges) => set({ pageRanges: ranges }),
+
+
+    currentVisiblePages: [],
+    setCurrentVisiblePages: (pages) => set({ currentVisiblePages: pages }),
+
+
+    selectedBookUrl: '/pdf/manual.pdf',
+    setSelectedBookUrl: (url) => set({ selectedBookUrl: url }),
+
+
+    goToPage: null,
+    setGoToPage: (page) => set({ goToPage: page }),
+
 }))
 
 export default useBookStore;
