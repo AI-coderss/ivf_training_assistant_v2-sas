@@ -26,7 +26,7 @@ function stripMarkdown(text) {
  * Opens only from the "Chat" tab. No floating icon.
  */
 const ChatWithYourBook = ({
-  endpoint = "chatwithbooks",
+  endpoint = "https://chat-with-your-books-server.onrender.com/chatwithbooks",
   open = false,
   onOpenChange,
 }) => {
