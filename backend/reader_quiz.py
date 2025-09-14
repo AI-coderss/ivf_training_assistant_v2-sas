@@ -19,8 +19,17 @@ DEFAULT_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", "0.2"))
 SAVE_LAST_TO = os.getenv("SAVE_LAST_TO", "last_generated_quiz.json")
 
 app = Flask(__name__)
-CORS(app)
-
+CORS(app, resources={
+    r"/generate/*": {
+        "origins": [
+            "http://localhost:3000",
+            "https://ivf-virtual-training-assistant-dsah.onrender.com",
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": False
+    }
+})
 
 def build_prompt(text: str, quiz_type: str, difficulty: str, count: int) -> str:
     """
