@@ -218,61 +218,6 @@ def chunk_text(text: str, chunk_size: int = 3000, chunk_overlap: int = 200):
     )
     return splitter.split_text(text)
 
-# @app.route("/generate", methods=["POST"])
-# def generate():
-#     data = request.get_json(force=True)
-#     text = data.get("text", "")
-#     if not text or not text.strip():
-#         return jsonify({"error": "Missing 'text' field with content to generate questions from."}), 400
-
-#     quiz_type = data.get("quiz_type", "both")
-#     difficulty = data.get("difficulty", "medium")
-#     try:
-#         count = int(data.get("count", 10))
-#     except Exception:
-#         return jsonify({"error": "'count' must be an integer."}), 400
-
-#     if count < 1 or count > 200:
-#         return jsonify({"error": "'count' must be between 1 and 200."}), 400
-
-#     model = DEFAULT_MODEL
-#     temperature = DEFAULT_TEMPERATURE
-
-#     try:
-#         # 🚀 Step 1: Chunk the text if too long
-#         chunks = chunk_text(text)
-
-#         all_questions = []
-#         for i, chunk in enumerate(chunks):
-#             prompt = build_prompt(chunk, quiz_type, difficulty, count // len(chunks) or 1)
-#             raw = call_openai_chat(prompt, model=model, temperature=temperature)
-#             parsed = safe_parse_json(raw)
-#             if parsed and "questions" in parsed:
-#                 all_questions.extend(parsed["questions"])
-
-#         # 🚀 Step 2: Build final response
-#         final_response = {
-#             "meta": {
-#                 "requested_count": count,
-#                 "actual_count": len(all_questions),
-#                 "quiz_type": quiz_type,
-#                 "difficulty": difficulty,
-#                 "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-#             },
-#             "questions": all_questions[:count]  # trim to requested count
-#         }
-
-#         return jsonify(final_response)
-
-#     except Exception as e:
-#         app.logger.exception("OpenAI generation failed: %s", str(e))
-#         fallback = fallback_generator(text, quiz_type, difficulty, count)
-#         return jsonify({
-#             "warning": "OpenAI call failed, returning fallback questions.",
-#             "error": str(e),
-#             "result": fallback
-#         }), 200
-
 
 
 def process_chunk(chunk, quiz_type, difficulty, count, model, temperature):
