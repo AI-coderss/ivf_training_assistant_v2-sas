@@ -20,13 +20,13 @@ function stripMarkdown(text) {
     .replace(/[*-]\s/g, "") // list bullets
     .trim();
 }
-
+const BACKEND_URL = "https://chat-with-your-books-server.onrender.com"; // Your Flask backend URL
 /**
  * Draggable chat widget (header = drag handle).
  * Opens only from the "Chat" tab. No floating icon.
  */
 const ChatWithYourBook = ({
-  endpoint = "https://chat-with-your-books-server.onrender.com/chatwithbooks",
+  endpoint = `${BACKEND_URL}/chatwithbooks`,
   open = false,
   onOpenChange,
 }) => {
@@ -138,7 +138,7 @@ const ChatWithYourBook = ({
 
         // Call Flask API
         const res = await axios.post(
-          "https://chat-with-your-books-server.onrender.com/chatwithbooks/upload", // 🔹 update with your Flask backend URL
+          `${BACKEND_URL}/chatwithbooks/upload`, // 🔹 update with your Flask backend URL
           formData,
           {
             headers: { "Content-Type": "multipart/form-data" },
@@ -167,7 +167,7 @@ const ChatWithYourBook = ({
 
     let botText = "";
     try {
-      const response = await fetch(endpoint + "/message", {
+      const response = await fetch(`${BACKEND_URL}/chatwithbooks/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, session_id: sessionId }),
@@ -205,7 +205,7 @@ const ChatWithYourBook = ({
 
   const handleNewChat = async () => {
     try {
-      const res = await fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/reset", {
+      const res = await fetch(`${BACKEND_URL}/chatwithbooks/reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
