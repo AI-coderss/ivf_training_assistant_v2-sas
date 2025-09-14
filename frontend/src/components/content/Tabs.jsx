@@ -22,7 +22,8 @@ const Tabs = () => {
   const [showQuizzPage, setShowQuizzPage] = useState(false);
   const [showTrueFalseQuiz, setShowTrueFalseQuiz] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-
+  const BACKEND_URL_Summary = "https://immersive-reader-realtime-tts-server.onrender.com"; // Your Flask backend URL
+  const BACKEND_URL_Chat = "https://chat-with-your-books-server.onrender.com"; // Your Flask backend URL
   // Summary state
   const [summaryConfig, setSummaryConfig] = useState({
     length: "Short",
@@ -512,7 +513,7 @@ const Tabs = () => {
       };
 
       const response = await fetch(
-        "http://127.0.0.1:5001/api/generate_summary",
+        `${BACKEND_URL_Summary}/api/generate_summary`,
         {
           method: "POST",
           headers: {
@@ -688,7 +689,7 @@ const Tabs = () => {
 
       {/* Draggable chat */}
       <ChatWithYourBook
-        endpoint="http://127.0.0.1:5000/chatwithbooks"
+        endpoint={`${BACKEND_URL_Chat}/chatwithbooks`}
         open={chatOpen}
         onOpenChange={(v) => {
           setChatOpen(v);
