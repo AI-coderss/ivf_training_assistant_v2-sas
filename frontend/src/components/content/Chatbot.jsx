@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import "../../styles/content/Chatbot.css"; // Create this CSS file
 
 const USER_ID = "default_user"; // Or manage this more dynamically
-const BACKEND_URL = "http://localhost:5000"; // Your Flask backend URL
+const BACKEND_URL = "https://chat-with-your-books-server.onrender.com"; // Your Flask backend URL
 
 const Chatbot = ({
   isVisible,
