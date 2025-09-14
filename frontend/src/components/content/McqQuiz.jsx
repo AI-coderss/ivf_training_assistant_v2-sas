@@ -6,7 +6,6 @@ import TimerDisplay from "../Quizzes/TimerDisplay";
 import QuestionBlock from "../Quizzes/QuestionBlock";
 import ResultSummary from "../Quizzes/ResultSummary";
 import Badge from "../Quizzes/Badge";
-import ChatBot from "../Quizzes/Chatbot";
 
 const McqQuiz = ({ quizData, questionType = "MCQ", referenceText }) => {
   const [questions, setQuestions] = useState([]);
@@ -42,33 +41,6 @@ const McqQuiz = ({ quizData, questionType = "MCQ", referenceText }) => {
     setTimeLeft(900);
     setTimerActive(true);
   };
-
-  // const startQuiz = async () => {
-  //   setError("");
-  //   setLoading(true);
-
-  //   try {
-  //     await new Promise((resolve) => setTimeout(resolve, 500));
-
-  //     const processedQuestions = quizData.map((q, index) => ({
-  //       id: index + 1,
-  //       text: q.question,
-  //       options: q.options, // MCQ options
-  //       correct: q.correctAnswer,
-  //       difficulty: q.difficulty || "medium",
-  //     }));
-
-  //     setQuestions(processedQuestions);
-  //     setQuizStarted(true);
-  //     setTimeLeft(900);
-  //     setTimerActive(true);
-  //   } catch (err) {
-  //     console.error("Quiz loading error:", err);
-  //     setError("Failed to load quiz.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const handleAnswer = (questionId, selectedOption) => {
     if (feedbackShown[questionId]) return;
@@ -208,13 +180,6 @@ Please provide:
             )}
             %
           </p>
-          {showChatbot && (
-            <ChatBot
-              open={true}
-              initialMessage={feedbackPrompt}
-              predefinedQuestions={predefinedQuestions}
-            />
-          )}
           <button className="restart-button" onClick={restart}>
             Try Again
           </button>
