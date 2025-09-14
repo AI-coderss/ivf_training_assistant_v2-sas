@@ -89,6 +89,16 @@
     margin-bottom: 10px;
     scroll-behavior: smooth;
     min-height: 0;
+
+    /* Hide vertical scrollbar while allowing scroll */
+    -ms-overflow-style: none;       /* IE 10+ / old Edge */
+    scrollbar-width: none;          /* Firefox */
+    -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+}
+.chat-body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;                  /* Chrome/Safari/Opera */
 }
 
 /* Loader dots */
@@ -116,14 +126,10 @@
 }
 
 @keyframes dot-blink {
-
-    0%,
-    80%,
-    100% {
+    0%, 80%, 100% {
         opacity: .3;
         transform: scale(.8);
     }
-
     40% {
         opacity: 1;
         transform: scale(1.2);

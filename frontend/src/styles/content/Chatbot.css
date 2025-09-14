@@ -102,7 +102,7 @@
 }
 
 .user-message .message-bubble {
-  background-color: #007bff; /* User message color */
+  background-color: #007BFF !important; /* User message color */
   color: white;
   margin-left: auto; /* Align to right */
   border-bottom-right-radius: 5px; /* Differentiate user bubble */
@@ -122,6 +122,7 @@
 
 .user-message .message-sender {
   text-align: right;
+  background-color: #007BFF !important;
 }
 
 .bot-message .message-sender {

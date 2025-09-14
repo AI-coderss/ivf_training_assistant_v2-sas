@@ -17,16 +17,17 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app, resources={
-    r"/*": {
+    r"/chatwithbooks/*": {
         "origins": [
+            "http://localhost:3000",
             "https://ivf-virtual-training-assistant-dsah.onrender.com",
-            "http://localhost:3000"
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
+        "supports_credentials": False
     }
 })
+
 # In-memory storage for chat histories and vector stores
 
 chat_histories = {}

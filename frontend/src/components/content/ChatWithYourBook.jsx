@@ -125,7 +125,7 @@ const ChatWithYourBook = ({
       try {
         setUploading(true);
         // Fetch file from public folder
-        const response = await fetch(selectedBookUrl);
+        const response = await fetch(selectedBookUrl, { mode: "cors" });
         const blob = await response.blob();
         const file = new File([blob], "manual.pdf", {
           type: "application/pdf",
@@ -134,11 +134,11 @@ const ChatWithYourBook = ({
         // Prepare form data
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("user_id", "default_user"); // 🔹 set your user_id dynamically if needed
+        formData.append("user_id", sessionId); // 🔹 use the same identifier across all calls
 
         // Call Flask API
         const res = await axios.post(
-          "https://chat-with-your-books-server.onrender.com/chatwithbooks/upload", // 🔹 update with your Flask backend URL
+          `${endpoint}/upload`, // 🔹 use the same endpoint base
           formData,
           {
             headers: { "Content-Type": "multipart/form-data" },
@@ -158,7 +158,7 @@ const ChatWithYourBook = ({
     };
 
     uploadPdf();
-  }, [selectedBookUrl]);
+  }, [selectedBookUrl, endpoint, sessionId]);
 
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim()) return;
@@ -167,10 +167,11 @@ const ChatWithYourBook = ({
 
     let botText = "";
     try {
-      const response = await fetch(endpoint + "/message", {
+      const response = await fetch(`${endpoint}/message`, {
         method: "POST",
+        mode: "cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, session_id: sessionId }),
+        body: JSON.stringify({ message: text, user_id: sessionId }), // 🔹 send user_id, not session_id
       });
       if (!response.ok || !response.body) throw new Error("Streaming failed");
 
@@ -205,9 +206,11 @@ const ChatWithYourBook = ({
 
   const handleNewChat = async () => {
     try {
-      const res = await fetch("https://chat-with-your-books-server.onrender.com/chatwithbooks/reset", {
+      const res = await fetch(`${endpoint}/reset`, {
         method: "POST",
+        mode: "cors",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: sessionId }), // 🔹 reset the same user/session bucket
       });
 
       const data = await res.json();
