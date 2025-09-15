@@ -28,8 +28,6 @@ CORS(app, resources={
     }
 })
 
-# In-memory storage for chat histories and vector stores
-
 chat_histories = {}
 vector_stores = {}
 client = OpenAI()
@@ -193,52 +191,6 @@ def chat_message():
     return Response(stream_with_context(generate()), content_type="text/plain")
 
 
-# @app.route("/chatwithbooks/message", methods=["POST"])
-# def chat_message():
-#     data = request.get_json()
-#     user_input = data["message"]
-#     user_id = data.get("user_id", "default_user")
-
-#     if user_id not in chat_histories or user_id not in vector_stores:
-#         return (
-#             jsonify({"error": "No vector store found. Please upload a PDF first."}),
-#             400,
-#         )
-
-#     chat_history = chat_histories[user_id]
-#     vector_store = vector_stores[user_id]
-#     retriever_chain = get_context_retriever_chain(vector_store)
-#     conversation_chain = get_conversational_rag_chain(retriever_chain)
-
-#     # Collect response and context documents
-#     full_response = conversation_chain.invoke(
-#         {"chat_history": chat_history, "input": user_input}
-#     )
-#     answer = full_response["answer"]
-#     documents = full_response["context"]
-
-#     # Extract page numbers from documents
-#     page_numbers = set()
-#     for doc in documents:
-#         if 'page' in doc.metadata:
-#             page_numbers.add(str(doc.metadata['page'] + 1))  # Convert to 1-indexed
-
-#     # Format page numbers string
-#     page_refs = ", ".join(sorted(page_numbers)) if page_numbers else ""
-
-#     # Update chat history
-#     chat_histories[user_id].append(HumanMessage(content=user_input))
-#     chat_histories[user_id].append(AIMessage(content=answer))
-
-#     # Create response with answer and page references
-#     response_data = {
-#         "answer": answer,
-#         "page_numbers": page_refs
-#     }
-
-#     return jsonify(response_data)
-
-
 @app.route("/chatwithbooks/reset", methods=["POST"])
 def reset_chat():
     user_id = request.form.get("user_id", "default_user")
@@ -249,4 +201,3 @@ def reset_chat():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
