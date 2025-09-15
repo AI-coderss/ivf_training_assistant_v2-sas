@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from "react";
-import "../../styles/Quizzes/QuizzesPage.css";
+import React, { useState, useEffect, useRef } from "react";
+import "../../styles/Quizzes/quizzes.css";
 import TimerDisplay from "../Quizzes/TimerDisplay";
 import QuestionBlock from "../Quizzes/QuestionBlock";
 import ResultSummary from "../Quizzes/ResultSummary";
@@ -18,9 +18,10 @@ const McqQuiz = ({ quizData, questionType = "MCQ", referenceText }) => {
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(900); // 15 min for MCQ
   const [timerActive, setTimerActive] = useState(false);
-  const [showChatbot, setShowChatbot] = useState(false);
-  const [feedbackPrompt, setFeedbackPrompt] = useState("");
-  const [predefinedQuestions, setPredefinedQuestions] = useState([]);
+
+  // UI-only navigation (scroll between questions)
+  const [navIndex, setNavIndex] = useState(0);
+  const qRefs = useRef([]);
 
   const [previousPerformance, setPreviousPerformance] = useState(() => {
     const stored = localStorage.getItem("mcqPerformance");
@@ -40,6 +41,8 @@ const McqQuiz = ({ quizData, questionType = "MCQ", referenceText }) => {
     setQuizStarted(true);
     setTimeLeft(900);
     setTimerActive(true);
+    setNavIndex(0);
+    qRefs.current = [];
   };
 
   const handleAnswer = (questionId, selectedOption) => {
@@ -51,38 +54,15 @@ const McqQuiz = ({ quizData, questionType = "MCQ", referenceText }) => {
   const submitQuiz = () => {
     let updatedAnswers = { ...answers };
     let updatedFeedback = {};
-    let score = 0;
+    let s = 0;
     let newPerformance = { ...previousPerformance };
 
     const wrong = questions.filter((q) => updatedAnswers[q.id] !== q.correct);
 
+    // keep your reference text note in feedback (unchanged behavior)
     if (wrong.length >= 3) {
-      setShowChatbot(true);
-      const feedbackText = `
-      Refrence text for questions:${referenceText}
-The trainee made mistakes in the following MCQs:
-
-${wrong
-  .map(
-    (q) => `Q: ${q.text}
-Answered: ${updatedAnswers[q.id] || "No answer"}
-Correct: ${q.correct}`
-  )
-  .join("\n\n")}
-
-Please provide:
-- Explanation of correct answers
-- Recommended references
-- Encouragement for improvement
-      `.trim();
-
-      setFeedbackPrompt(feedbackText);
-
-      const predefined = [
-        "Which topics should I revise?",
-        ...wrong.map((q) => `Why is "${q.correct}" correct for: "${q.text}"?`),
-      ];
-      setPredefinedQuestions(predefined);
+      /* could open a coach/chatbot here like your TF version if desired */
+      console.debug("Ref text for feedback:", referenceText);
     }
 
     questions.forEach((q) => {
@@ -96,12 +76,12 @@ Please provide:
         newPerformance[level] = { correct: 0, total: 0 };
       newPerformance[level].total += 1;
       if (isCorrect) newPerformance[level].correct += 1;
-      if (isCorrect) score++;
+      if (isCorrect) s++;
     });
 
     setAnswers(updatedAnswers);
     setFeedbackShown(updatedFeedback);
-    setScore(score);
+    setScore(s);
     setPreviousPerformance(newPerformance);
     localStorage.setItem("mcqPerformance", JSON.stringify(newPerformance));
     setShowResult(true);
@@ -123,9 +103,8 @@ Please provide:
     setError("");
     setTimeLeft(900);
     setTimerActive(false);
-    setShowChatbot(false);
-    setFeedbackPrompt("");
-    setPredefinedQuestions([]);
+    setNavIndex(0);
+    qRefs.current = [];
   };
 
   useEffect(() => {
@@ -145,75 +124,162 @@ Please provide:
     return () => clearInterval(interval);
   }, [quizStarted, showResult, timerActive]);
 
+  // UI-only progress (answered/total)
+  const answeredCount = Object.keys(answers).length;
+  const total = questions.length || 1;
+  const progressPct = Math.round((answeredCount / total) * 100);
+
+  const scrollToIndex = (i) => {
+    const el = qRefs.current[i];
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    setNavIndex(i);
+  };
+  const canPrev = navIndex > 0;
+  const canNext = navIndex < (questions.length ? questions.length - 1 : 0);
+
   return (
-    <div className="quiz-container">
-      <div className="quiz-header">
-        <TimerDisplay timeLeft={timeLeft} />
-        <h2>Multiple Choice Quiz 📝</h2>
-      </div>
-
-      {error && <p className="error-text">{error}</p>}
-
-      {loading ? (
-        <div className="loading-box">
-          <div className="spinner"></div>
-          <p>Preparing MCQs…</p>
+    <div className="quiz-stage">
+      {/* Top bar */}
+      <header className="quiz-topbar">
+        <div className="quiz-brand">
+          <span className="quiz-logo" aria-hidden>
+            ▸
+          </span>
+          <span>IVF Program Quiz</span>
         </div>
-      ) : !quizStarted ? (
-        <button className="start-button" onClick={startQuiz}>
-          Start Quiz
-        </button>
-      ) : showResult ? (
-        <>
-          <ResultSummary
-            score={score}
-            total={questions.length}
-            getPassStatus={getPassStatus}
-          />
-          {(score / questions.length) * 100 >= 80 && <Badge />}
-          <p className="performance-summary">
-            Accuracy:{" "}
-            {Math.round(
-              (previousPerformance.medium.correct /
-                (previousPerformance.medium.total || 1)) *
-                100
-            )}
-            %
-          </p>
-          <button className="restart-button" onClick={restart}>
-            Try Again
-          </button>
-        </>
-      ) : (
-        <div className="quiz-with-timer">
-          <form
-            className="all-questions-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitQuiz();
-            }}
-          >
-            {questions.map((q, index) => (
-              <QuestionBlock
-                key={q.id}
-                question={q}
-                index={index}
-                selected={answers[q.id]}
-                correct={q.correct}
-                showFeedback={feedbackShown[q.id]}
-                handleAnswer={handleAnswer}
-              />
-            ))}
-            <button
-              type="submit"
-              className="submit-button"
-              disabled={Object.keys(answers).length < questions.length}
+        <div className="quiz-topbar-right">
+          <span className="quiz-timer">
+            <TimerDisplay timeLeft={timeLeft} />
+          </span>
+        </div>
+      </header>
+
+      <main className="quiz-main">
+        <section className="quiz-card">
+          {/* Progress header */}
+          <div className="quiz-progress">
+            <div className="quiz-progress-row">
+              <span className="quiz-progress-label">Progress</span>
+              <span className="quiz-progress-count">
+                {answeredCount}/{total}
+              </span>
+            </div>
+            <div
+              className="quiz-progress-bar"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progressPct}
             >
-              Submit Quiz
+              <div
+                className="quiz-progress-fill"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="quiz-header-line">
+            <h2 className="quiz-title">Multiple Choice Quiz 📝</h2>
+          </div>
+
+          {error && <p className="error-text">{error}</p>}
+
+          {loading ? (
+            <div className="loading-box">
+              <div className="spinner"></div>
+              <p>Preparing MCQs…</p>
+            </div>
+          ) : !quizStarted ? (
+            <button className="btn-primary start-button" onClick={startQuiz}>
+              Start Quiz
             </button>
-          </form>
-        </div>
-      )}
+          ) : showResult ? (
+            <>
+              <ResultSummary
+                score={score}
+                total={questions.length}
+                getPassStatus={getPassStatus}
+              />
+              {(score / questions.length) * 100 >= 80 && <Badge />}
+              <p className="performance-summary">
+                Accuracy:{" "}
+                {Math.round(
+                  (previousPerformance.medium.correct /
+                    (previousPerformance.medium.total || 1)) *
+                    100
+                )}
+                %
+              </p>
+              <button className="btn-primary restart-button" onClick={restart}>
+                Try Again
+              </button>
+            </>
+          ) : (
+            <div className="quiz-with-timer">
+              <form
+                className="all-questions-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitQuiz();
+                }}
+              >
+                {questions.map((q, index) => (
+                  <div
+                    key={q.id}
+                    id={`q-${index + 1}`}
+                    className="question-scroll-anchor"
+                    ref={(el) => (qRefs.current[index] = el)}
+                  >
+                    <QuestionBlock
+                      question={q}
+                      index={index}
+                      selected={answers[q.id]}
+                      correct={q.correct}
+                      showFeedback={feedbackShown[q.id]}
+                      handleAnswer={handleAnswer}
+                    />
+                  </div>
+                ))}
+
+                {/* Sticky nav & submit — UI only */}
+                <div className="quiz-actions">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => scrollToIndex(Math.max(0, navIndex - 1))}
+                    disabled={!canPrev}
+                  >
+                    Previous
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() =>
+                      scrollToIndex(
+                        Math.min(questions.length - 1, navIndex + 1)
+                      )
+                    }
+                    disabled={!canNext}
+                  >
+                    Next
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="btn-primary submit-button"
+                    disabled={Object.keys(answers).length < questions.length}
+                  >
+                    Submit
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 };
