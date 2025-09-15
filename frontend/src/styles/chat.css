@@ -336,13 +336,6 @@
   height: 100%;
   object-fit: cover;
 }
-
-/* Hover Effect */
-.chat-message:hover .avatar {
-  transform: scale(1.4);
-  transition: transform 0.3s ease-in-out;
-}
-
 /* Loading State */
 .loading .message-text {
   padding: 0;
