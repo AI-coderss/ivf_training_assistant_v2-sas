@@ -17,7 +17,11 @@
     overflow: hidden;
     padding-bottom: 80px;
 }
-
+.chat-msg.user {
+    align-self: flex-end;
+    background: #007bff !important;
+    color: #fff;
+}
 /* Drag positioning via CSS vars (TOP/LEFT) */
 .chat-drag {
     left: var(--drag-left, 360px);
