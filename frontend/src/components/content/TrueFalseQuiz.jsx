@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import "../../styles/Quizzes/quizzes.css";
 import TimerDisplay from "../Quizzes/TimerDisplay";
 import QuestionBlock from "../Quizzes/QuestionBlock";
@@ -8,7 +9,13 @@ import ResultSummary from "../Quizzes/ResultSummary";
 import Badge from "../Quizzes/Badge";
 import ChatBot from "../Quizzes/Chatbot";
 
-const TrueFalseQuiz = ({ quizData, questionType = "TrueFalse" }) => {
+/**
+ * NOTE:
+ * - All original logic kept.
+ * - Added single-question pagination (idx) for a clean view.
+ * - Added draggable header + close toggle (calls optional onClose()).
+ */
+const TrueFalseQuiz = ({ quizData, questionType = "TrueFalse", onClose }) => {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [feedbackShown, setFeedbackShown] = useState({});
@@ -23,9 +30,8 @@ const TrueFalseQuiz = ({ quizData, questionType = "TrueFalse" }) => {
   const [feedbackPrompt, setFeedbackPrompt] = useState("");
   const [predefinedQuestions, setPredefinedQuestions] = useState([]);
 
-  // purely-for-UI navigation (scroll only; does NOT affect scoring logic)
-  const [navIndex, setNavIndex] = useState(0);
-  const qRefs = useRef([]);
+  // UI: single-question pagination
+  const [idx, setIdx] = useState(0);
 
   const [previousPerformance, setPreviousPerformance] = useState(() => {
     const stored = localStorage.getItem("trueFalsePerformance");
@@ -34,7 +40,7 @@ const TrueFalseQuiz = ({ quizData, questionType = "TrueFalse" }) => {
 
   const startQuiz = async () => {
     setQuestions(
-      quizData.map((q, index) => ({
+      (quizData || []).map((q, index) => ({
         id: index + 1,
         text: q.question,
         options: ["True", "False"],
@@ -45,8 +51,7 @@ const TrueFalseQuiz = ({ quizData, questionType = "TrueFalse" }) => {
     setQuizStarted(true);
     setTimeLeft(600);
     setTimerActive(true);
-    setNavIndex(0);
-    qRefs.current = [];
+    setIdx(0);
   };
 
   const handleAnswer = (questionId, selectedOption) => {
@@ -69,18 +74,19 @@ const TrueFalseQuiz = ({ quizData, questionType = "TrueFalse" }) => {
 The trainee made mistakes in the following questions:
 
 ${wrong
-          .map(
-            (q) =>
-              `Q: ${q.text}
+  .map(
+    (q) =>
+      `Q: ${q.text}
 Answered: ${updatedAnswers[q.id] || "No answer"}
 Correct: ${q.correct}`
-          )
-          .join("\n\n")}
+  )
+  .join("\n\n")}
 
 Please offer feedback on:
 - Key misconceptions
 - Suggested readings or review points
-- Motivation for the learner`.trim();
+- Motivation for the learner
+      `.trim();
 
       setFeedbackPrompt(feedbackText);
 
@@ -137,8 +143,7 @@ Please offer feedback on:
     setShowChatbot(false);
     setFeedbackPrompt("");
     setPredefinedQuestions([]);
-    setNavIndex(0);
-    qRefs.current = [];
+    setIdx(0);
   };
 
   useEffect(() => {
@@ -158,74 +163,58 @@ Please offer feedback on:
     return () => clearInterval(interval);
   }, [quizStarted, showResult, timerActive]);
 
-  // UI-only progress (answered/total)
-  const answeredCount = Object.keys(answers).length;
   const total = questions.length || 1;
-  const progressPct = Math.round((answeredCount / total) * 100);
-
-  const scrollToIndex = (i) => {
-    const el = qRefs.current[i];
-    if (el && typeof el.scrollIntoView === "function") {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    setNavIndex(i);
-  };
-  const canPrev = navIndex > 0;
-  const canNext = navIndex < (questions.length ? questions.length - 1 : 0);
+  const q = questions[idx] || {};
+  const canPrev = idx > 0;
+  const canNext = idx < total - 1;
+  const canSubmit = Object.keys(answers).length === total;
 
   return (
-    <div className="quiz-stage">
-      {/* Top bar */}
-      <header className="quiz-topbar">
-        <div className="quiz-brand">
-          <span className="quiz-logo" aria-hidden>
-            ▸
-          </span>
-          <span>IVF Program Quiz</span>
-        </div>
-        <div className="quiz-topbar-right">
-          <span className="quiz-timer">
-            <TimerDisplay timeLeft={timeLeft} />
-          </span>
-        </div>
-      </header>
+    <div className="quiz-overlay-root" aria-hidden={false}>
+      <motion.div
+        className="quiz-float-card"
+        drag
+        dragMomentum={false}
+        dragElastic={0.12}
+        whileDrag={{ scale: 1.01 }}
+      >
+        <header className="quiz-drag-header" aria-label="Drag to move">
+          <div className="quiz-brand">
+            <span className="quiz-logo" aria-hidden>▸</span>
+            <span>IVF Program Quiz</span>
+          </div>
+          <div className="quiz-header-right">
+            <span className="quiz-timer"><TimerDisplay timeLeft={timeLeft} /></span>
+            {typeof onClose === "function" && (
+              <button className="quiz-close" onClick={onClose} aria-label="Close quiz">×</button>
+            )}
+          </div>
+        </header>
 
-      <main className="quiz-main">
-        <section className="quiz-card">
-          {/* Progress header */}
+        <main className="quiz-body">
+          {/* Progress like screenshot: index-based */}
           <div className="quiz-progress">
             <div className="quiz-progress-row">
               <span className="quiz-progress-label">Progress</span>
-              <span className="quiz-progress-count">
-                {answeredCount}/{total}
-              </span>
+              <span className="quiz-progress-count">{Math.min(idx + 1, total)}/{total}</span>
             </div>
             <div
               className="quiz-progress-bar"
               role="progressbar"
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={progressPct}
+              aria-valuenow={Math.round(((idx + 1) / total) * 100)}
             >
               <div
                 className="quiz-progress-fill"
-                style={{ width: `${progressPct}%` }}
+                style={{ width: `${Math.round(((idx + 1) / total) * 100)}%` }}
               />
             </div>
           </div>
 
-          <div className="quiz-header-line">
-            <h2 className="quiz-title">True / False Quiz 🔍</h2>
-          </div>
-
           {error && <p className="error-text">{error}</p>}
 
-          {loading ? (
-            <div className="loading-box">
-              <div className="spinner"></div>
-              <p>Preparing quiz…</p>
-            </div>
-          ) : !quizStarted ? (
+          {!quizStarted ? (
             <button className="btn-primary start-button" onClick={startQuiz}>
               Start Quiz
             </button>
@@ -237,15 +226,6 @@ Please offer feedback on:
                 getPassStatus={getPassStatus}
               />
               {(score / questions.length) * 100 >= 80 && <Badge />}
-              <p className="performance-summary">
-                Accuracy:{" "}
-                {Math.round(
-                  (previousPerformance.easy.correct /
-                    (previousPerformance.easy.total || 1)) *
-                  100
-                )}
-                %
-              </p>
               {showChatbot && (
                 <ChatBot
                   open={true}
@@ -258,71 +238,59 @@ Please offer feedback on:
               </button>
             </>
           ) : (
-            <div className="quiz-with-timer">
-              <form
-                className="all-questions-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  submitQuiz();
-                }}
-              >
-                {questions.map((q, index) => (
-                  <div
-                    key={q.id}
-                    id={`q-${index + 1}`}
-                    className="question-scroll-anchor"
-                    ref={(el) => (qRefs.current[index] = el)}
-                  >
-                    <QuestionBlock
-                      question={q}
-                      index={index}
-                      selected={answers[q.id]}
-                      correct={q.correct}
-                      showFeedback={feedbackShown[q.id]}
-                      handleAnswer={handleAnswer}
-                    />
-                  </div>
-                ))}
+            <>
+              <h2 className="quiz-question">
+                {q.text || "—"}
+              </h2>
 
-                {/* Sticky nav & submit — purely UI; does not alter quiz logic */}
-                <div className="quiz-actions">
+              {q.id && (
+                <QuestionBlock
+                  question={q}
+                  index={idx}
+                  selected={answers[q.id]}
+                  correct={q.correct}
+                  showFeedback={feedbackShown[q.id]}
+                  handleAnswer={handleAnswer}
+                />
+              )}
+
+              <div className="quiz-actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setIdx((v) => Math.max(0, v - 1))}
+                  disabled={!canPrev}
+                >
+                  Previous
+                </button>
+
+                {canNext ? (
                   <button
                     type="button"
-                    className="btn-secondary"
-                    onClick={() => scrollToIndex(Math.max(0, navIndex - 1))}
-                    disabled={!canPrev}
-                  >
-                    Previous
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() =>
-                      scrollToIndex(
-                        Math.min(questions.length - 1, navIndex + 1)
-                      )
-                    }
-                    disabled={!canNext}
+                    className="btn-primary"
+                    onClick={() => setIdx((v) => Math.min(total - 1, v + 1))}
                   >
                     Next
                   </button>
-
+                ) : (
                   <button
-                    type="submit"
-                    className="btn-primary submit-button"
-                    disabled={Object.keys(answers).length < questions.length}
+                    type="button"
+                    className="btn-primary"
+                    onClick={submitQuiz}
+                    disabled={!canSubmit}
                   >
                     Submit
                   </button>
-                </div>
-              </form>
-            </div>
+                )}
+              </div>
+            </>
           )}
-        </section>
-      </main>
+        </main>
+      </motion.div>
     </div>
   );
 };
 
 export default TrueFalseQuiz;
+
+
