@@ -3,7 +3,7 @@ import { useState } from "react";
 import McqQuiz from "./McqQuiz";
 import TrueFalseQuiz from "./TrueFalseQuiz";
 import useBookStore from "../../store/bookStore";
-import '../../styles/Summary/ReaderQuiz.css'
+import "../../styles/Summary/ReaderQuiz.css";
 
 // Quizzes Panel Component
 const QuizzesPanel = ({
@@ -19,20 +19,24 @@ const QuizzesPanel = ({
   const [quizData, setQuizData] = useState([]);
   const [pageRange, setPageRange] = useState({ start: 1, end: 1 });
   const [isLoading, setIsLoading] = useState(false);
-const [error, setError]=useState(null)
-const [content, setContent]= useState("")
+  const [error, setError] = useState(null);
+  const [content, setContent] = useState("");
   const { bookText, currentPage, pageRanges } = useBookStore();
- /** ✅ Validation helper */
+  /** ✅ Validation helper */
   const validateConfig = () => {
     if (!config.type) return "Please select a question type.";
     if (!config.difficulty) return "Please select a difficulty.";
-    if (!config.count || config.count <= 0) return "Please select number of questions.";
+    if (!config.count || config.count <= 0)
+      return "Please select number of questions.";
     if (!config.scope) return "Please select a scope.";
 
     if (config.scope === "page_range") {
-      if (!pageRange.start || !pageRange.end) return "Please enter a valid page range.";
-      if (pageRange.start > pageRange.end) return "Start page cannot be greater than end page.";
-      if (pageRange.end > (pageRanges?.length || 1)) return "Page range exceeds total number of pages.";
+      if (!pageRange.start || !pageRange.end)
+        return "Please enter a valid page range.";
+      if (pageRange.start > pageRange.end)
+        return "Start page cannot be greater than end page.";
+      if (pageRange.end > (pageRanges?.length || 1))
+        return "Page range exceeds total number of pages.";
     }
 
     return null; // valid
@@ -161,7 +165,7 @@ const [content, setContent]= useState("")
   };
 
   const handleGenerate = async () => {
-        setError(null);
+    setError(null);
 
     const configError = validateConfig();
     if (configError) {
@@ -169,7 +173,7 @@ const [content, setContent]= useState("")
       return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
     const refrenceText = extractText();
     if (!refrenceText || refrenceText.trim() === "") {
       setError("Reference text can't be empty.");
@@ -182,8 +186,8 @@ const [content, setContent]= useState("")
       return;
     }
 
-    setContent(refrenceText)
-  
+    setContent(refrenceText);
+
     try {
       let endpoint = `https://immersive-reader-quizzes-api.onrender.com/generate`;
 
@@ -226,16 +230,17 @@ const [content, setContent]= useState("")
 
   return (
     <div className="glass-card" role="region" aria-labelledby="quizzes-tab">
-      <button
-        className="card-close"
-        aria-label="Close quizzes"
-        title="Close"
-        onClick={onClose}
-      >
-        ✕
-      </button>
-
-      <h3 className="panel-title">Generate Quiz</h3>
+      <div className="crose-box">
+        <h3 className="panel-title">Generate Quiz</h3>
+        <button
+          className="card-close"
+          aria-label="Close quizzes"
+          title="Close"
+          onClick={onClose}
+        >
+          ✕
+        </button>
+      </div>
 
       {/* Question Type */}
       <div className="card-row">
@@ -277,18 +282,15 @@ const [content, setContent]= useState("")
       <div className="card-row">
         <span className="card-label">Scope</span>
         <div className="segmented wrap">
-          {[
-            `current_page`,
-            "page_range",
-            "entire_book",
-          ].map((sc) => (
+          {[`current_page`, "page_range", "entire_book"].map((sc) => (
             <button
               key={sc}
               className={`seg-btn ${config.scope === sc ? "is-active" : ""}`}
               aria-pressed={config.scope === sc}
               onClick={() => onConfigChange("scope", sc)}
             >
-              {sc.replace("_", " ")} {sc==='current_page'&&`(Page no: ${currentPage})`}
+              {sc.replace("_", " ")}{" "}
+              {sc === "current_page" && `(Page no: ${currentPage})`}
             </button>
           ))}
         </div>
@@ -350,9 +352,9 @@ const [content, setContent]= useState("")
       </div>
 
       <button className="cta-primary" onClick={handleGenerate}>
-        {isLoading?"Generating...":"Generate Quiz"}
+        {isLoading ? "Generating..." : "Generate Quiz"}
       </button>
-     {/* ✅ Error display */}
+      {/* ✅ Error display */}
       {error && (
         <div className="error-message" role="alert">
           {error}
@@ -364,9 +366,17 @@ const [content, setContent]= useState("")
           onClose={onCloseQuiz}
         >
           {showQuizzPage ? (
-            <McqQuiz quizData={quizData} referenceText={content} />
+            <McqQuiz
+              quizData={quizData}
+              referenceText={content}
+              onClose={onCloseQuiz}
+            />
           ) : (
-            <TrueFalseQuiz quizData={quizData} referenceText={content} />
+            <TrueFalseQuiz
+              quizData={quizData}
+              referenceText={content}
+              onClose={onCloseQuiz}
+            />
           )}
         </QuizModal>
       )}

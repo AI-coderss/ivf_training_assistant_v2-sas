@@ -1,4 +1,3 @@
-
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
@@ -276,7 +275,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
   // https://immersive-reader-realtime-tts-server.onrender.com
   // Fetch TTS timings for highlighting
   const fetchTimings = async (chunkText) => {
-    const res = await fetch("https://immersive-reader-realtime-tts-server.onrender.com/tts-timings", {
+    const res = await fetch("http://127.0.0.1:5001/tts-timings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: chunkText, voice }),
@@ -288,7 +287,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
   // Fetch audio for a given chunk index
   const fetchChunkAudio = async (chunkIndex) => {
     if (!chunks[chunkIndex]) return null;
-    const res = await fetch("https://immersive-reader-realtime-tts-server.onrender.com/tts-chunk", {
+    const res = await fetch("http://127.0.0.1:5001/tts-chunk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: chunks[chunkIndex].text, voice: voice }),
@@ -332,6 +331,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
   const currentWords = chunks[selectedChunkIndex]?.text?.split(" ") || [];
   return (
     <div
+      className="book-cover-input"
       style={{
         fontFamily: "system-ui, -apple-system, sans-serif",
         maxWidth: "fit-content",
@@ -349,7 +349,9 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
     >
       {/* Speed Control */}
       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-        <label style={{ fontWeight: "500", fontSize: "14px", color: "#4B5563" }}>
+        <label
+          style={{ fontWeight: "500", fontSize: "14px", color: "#4B5563" }}
+        >
           Speed:
         </label>
         <select
@@ -386,7 +388,18 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
           minWidth: "80px",
         }}
       >
-        {["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"].map((v) => (
+        {[
+          "alloy",
+          "ash",
+          "ballad",
+          "coral",
+          "echo",
+          "fable",
+          "nova",
+          "onyx",
+          "sage",
+          "shimmer",
+        ].map((v) => (
           <option key={v} value={v}>
             {v}
           </option>
@@ -395,6 +408,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
 
       {/* Play / Pause Button */}
       <button
+        class="vidio-icon"
         onClick={handlePlayPause}
         style={{
           borderRadius: "50%",
@@ -415,6 +429,7 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
 
       {/* Auto Scroll Toggle */}
       <label
+        className="lable-center"
         style={{
           display: "flex",
           alignItems: "center",
@@ -459,7 +474,6 @@ const BookTTSReader = ({ text, onAutoFlip, containerRef }) => {
         Auto Scroll
       </label>
     </div>
-
   );
 };
 

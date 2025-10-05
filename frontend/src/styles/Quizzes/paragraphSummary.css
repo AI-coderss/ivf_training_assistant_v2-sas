@@ -8,8 +8,8 @@
   color: #333;
   max-width: 600px;
   height: 150px;
-    overflow-y: auto;
-    overflow-x: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .paragraph-summary h2 {
@@ -23,12 +23,10 @@
   line-height: 1.6;
 }
 
-
-
 /* save and copy btn css  */
 /* Wrapper container */
 .save-copy-wrapper {
-  margin: 1rem;
+  margin: 1rem 0px;
   display: flex;
   gap: 1rem;
   display: flex;

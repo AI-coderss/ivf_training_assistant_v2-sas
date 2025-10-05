@@ -254,7 +254,7 @@ const ChatWithYourBook = ({
         }}
       >
         <span>Chat with Book</span>
-        <div>
+        <div className="space-right">
           <button
             className="new-chat"
             onClick={() => handleNewChat()}
@@ -414,12 +414,17 @@ const ChatWithYourBook = ({
 
                       {/* Detect and render references */}
                       {msg.text.includes("Reference pages:") && (
-                        <div className="reference-links" style={{ marginTop: "6px" }}>
+                        <div
+                          className="reference-links"
+                          style={{ marginTop: "6px" }}
+                        >
                           {msg.text
                             .match(/Reference pages:(.*)/)?.[1] // grab everything after "Reference pages:"
                             .split(",")
                             .map((page, i) => {
-                              const pageNum = page.trim().replace("===botText", "");
+                              const pageNum = page
+                                .trim()
+                                .replace("===botText", "");
                               return (
                                 <span
                                   key={i}

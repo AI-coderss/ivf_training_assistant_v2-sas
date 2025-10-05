@@ -1,13 +1,22 @@
+.quiz-container {
+  max-width: 900px;
+  margin: 0px auto 40px auto;
+  padding: 40px;
+  border-radius: 12px;
+  background-color: #ffffff;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  position: relative;
+}
 :root {
-  --top-offset: 210px;
-
-  --bg: #f8f9fa;
+  --bg: #f7fafc;
   --card: #ffffff;
+  --muted: #6b7280;
   --line: #e5e7eb;
-  --accent: #2790ff;
-  --accent-dark: #1f6fd4;
+  --accent: #007bff;
   --accent-ghost: #e6f0ff;
-  --text: #0f172a;
+  --ok: #16a34a;
+  --bad: #dc2626;
   --toast: #111827;
 }
 
@@ -21,7 +30,10 @@
   overflow-x: hidden;
 }
 /* keep outer scroll available so content below the fold is reachable */
-.qp-wrap.no-outer-scroll { height: auto; overflow: visible; }
+.qp-wrap.no-outer-scroll {
+  height: auto;
+  overflow: visible;
+}
 
 /* Header */
 .qp-header {
@@ -31,16 +43,25 @@
   gap: 12px;
   flex-wrap: wrap;
 }
-.header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.user-name { opacity: .82; }
+.header-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.user-name {
+  opacity: 0.82;
+}
 
-.qp-body { margin-top: 16px; }
+.qp-body {
+  margin-top: 16px;
+}
 
 /* ===== Tabs (centered like original) ===== */
 .tabs {
   margin-top: 18px;
   display: flex;
-  justify-content: center;   /* ✅ always centered */
+  justify-content: center; /* ✅ always centered */
   align-items: center;
   gap: 0;
   flex-wrap: nowrap;
@@ -53,14 +74,25 @@
   width: clamp(88px, 16vw, 150px);
   padding: 8px 10px;
   cursor: pointer;
-  transition: background .12s, color .12s;
+  transition: background 0.12s, color 0.12s;
   border-right: 0;
   font-size: 14px;
   white-space: nowrap;
 }
-.tab.first { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
-.tab.last  { border-right: 1px solid var(--line); border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
-.tab:hover, .tab.active { background: var(--accent); color: #fff; }
+.tab.first {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+.tab.last {
+  border-right: 1px solid var(--line);
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+.tab:hover,
+.tab.active {
+  background: var(--accent);
+  color: #fff;
+}
 
 .btn {
   padding: 8px 12px;
@@ -69,13 +101,26 @@
   background: var(--text);
   color: #fff;
   cursor: pointer;
-  transition: transform .12s ease;
+  transition: transform 0.12s ease;
 }
-.btn:hover { transform: translateY(-1px); }
-.btn.ghost { background: #fff; color: var(--text); }
-.btn-primary { background: var(--accent); border-color: var(--accent-dark); }
-.btn-primary:hover { background: var(--accent-dark); }
-.btn.big { font-size: 18px; padding: 14px 22px; }
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn.ghost {
+  background: #fff;
+  color: var(--text);
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent-dark);
+}
+.btn-primary:hover {
+  background: var(--accent-dark);
+}
+.btn.big {
+  font-size: 18px;
+  padding: 14px 22px;
+}
 
 .badge-pill {
   padding: 5px 8px;
@@ -86,36 +131,97 @@
 }
 
 /* ===== Quizzes (unchanged visual) ===== */
-.quizzes-tab { min-height: calc(100vh - var(--top-offset)); }
-.scrollable-hidden { overflow-y: auto; }
-.scrollable-hidden::-webkit-scrollbar { width: 0; height: 0; }
-.scrollable-hidden { scrollbar-width: none; }
+.quizzes-tab {
+  min-height: calc(100vh - var(--top-offset));
+}
+.scrollable-hidden {
+  overflow-y: auto;
+}
+.scrollable-hidden::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.scrollable-hidden {
+  scrollbar-width: none;
+}
 
 .quiz-topbar {
-  display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
 }
-.pill { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 999px; padding: 4px 8px; font-size: 12px; }
+.pill {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
 .q-card {
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 14px;
   background: var(--card);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .04);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
 }
-.q-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.q-title { margin: 0 0 6px; }
-.options { display: grid; gap: 8px; margin-top: 8px; }
+.q-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.q-title {
+  margin: 0 0 6px;
+}
+.options {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
 .opt {
-  border: 1px solid var(--line); border-radius: 10px; padding: 8px;
-  display: flex; gap: 8px; align-items: center; cursor: pointer;
-  transition: border-color .12s, background .12s;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
 }
-.opt.sel { outline: 2px solid var(--accent); background: var(--accent-ghost); }
-.free-text { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px; resize: vertical; }
-.actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-.hint { margin-top: 10px; background: #fffbeb; border: 1px solid #fde68a; padding: 10px; border-radius: 10px; }
-.cites { margin-top: 10px; font-size: 13px; }
-.cites a { margin-right: 8px; text-decoration: underline; }
+.opt.sel {
+  outline: 2px solid var(--accent);
+  background: var(--accent-ghost);
+}
+.free-text {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  resize: vertical;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.hint {
+  margin-top: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 10px;
+  border-radius: 10px;
+}
+.cites {
+  margin-top: 10px;
+  font-size: 13px;
+}
+.cites a {
+  margin-right: 8px;
+  text-decoration: underline;
+}
 
 /* ===== Feedback ===== */
 .feedback-grid {
@@ -130,9 +236,11 @@
   grid-template-rows: 1fr 1fr;
   gap: 10px;
   height: 780px;
- 
 }
-.feedback-right { height: 0; display: flex; }
+.feedback-right {
+  height: 0;
+  display: flex;
+}
 
 .chat-card {
   border: 1px solid var(--line);
@@ -141,9 +249,11 @@
   width: 590px;
   height: 780px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
-.desktop-chat { display: block; }
+.desktop-chat {
+  display: block;
+}
 
 /* Chart cards flex so Highcharts always gets height */
 .chart-card {
@@ -151,13 +261,20 @@
   border-radius: 12px;
   background: var(--card);
   padding: 10px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .04);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   min-height: 0;
 }
-.hc-flex { display: flex; flex-direction: column; min-height: 300px; }
+.hc-flex {
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+}
 .chart-fill .highcharts-container,
-.chart-fill .highcharts-root { width: 100% !important; height: 100% !important; }
+.chart-fill .highcharts-root {
+  width: 100% !important;
+  height: 100% !important;
+}
 
 /* ===== Leaderboard ===== */
 .leaderboard-grid {
@@ -166,8 +283,18 @@
   gap: 14px;
   min-height: 0;
 }
-.lb-left, .lb-right { display: flex; flex-direction: column; min-height: 0; }
-.lb-filters { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.lb-left,
+.lb-right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.lb-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
 
 .table-viewport {
   flex: 1 1 auto;
@@ -176,22 +303,51 @@
   border: 1px solid var(--line);
   border-radius: 12px;
 }
-.no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
-.no-scrollbar { scrollbar-width: none; }
-
-.table { width: 100%; border-collapse: separate; border-spacing: 0; }
-.lb-table thead th {
-  position: sticky; top: 0; z-index: 1;
-  background: #f7fbff; color: #0b1320;
-  border-bottom: 1px solid var(--line);
-  padding: 10px; font-weight: 700; text-align: left;
+.no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
-.lb-table tbody tr { height: 44px; }
-.lb-table tbody tr:nth-child(even) { background: #fafbfd; }
-.lb-table td { padding: 10px; border-bottom: 1px solid #f0f3f7; }
-.rank-cell { display: flex; align-items: center; gap: 8px; }
-.rank-num { opacity: .8; }
-.lb-table tr.me { background: #eaf3ff !important; }
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.lb-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f7fbff;
+  color: #0b1320;
+  border-bottom: 1px solid var(--line);
+  padding: 10px;
+  font-weight: 700;
+  text-align: left;
+}
+.lb-table tbody tr {
+  height: 44px;
+}
+.lb-table tbody tr:nth-child(even) {
+  background: #fafbfd;
+}
+.lb-table td {
+  padding: 10px;
+  border-bottom: 1px solid #f0f3f7;
+}
+.rank-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rank-num {
+  opacity: 0.8;
+}
+.lb-table tr.me {
+  background: #eaf3ff !important;
+}
 
 .me-card {
   margin-top: 10px;
@@ -208,108 +364,462 @@
     "trend"
     "pair"
     "kpis";
-  grid-template-rows: auto auto auto;   /* ✅ natural height for each row */
+  grid-template-rows: auto auto auto; /* ✅ natural height for each row */
   row-gap: 14px;
   /* let content grow; no clipping */
-  height: auto;                         /* ✅ was fixed vh */
+  height: auto; /* ✅ was fixed vh */
   min-height: calc(100vh - var(--top-offset));
-  overflow: visible;                    /* ✅ no covering/stacking */
+  overflow: visible; /* ✅ no covering/stacking */
   max-width: 1180px;
   margin: 0 auto;
 }
-.area-trend { grid-area: trend; }
-.area-pair  { grid-area: pair; }
-.area-kpis  { grid-area: kpis; }
+.area-trend {
+  grid-area: trend;
+}
+.area-pair {
+  grid-area: pair;
+}
+.area-kpis {
+  grid-area: kpis;
+}
 
-.row1 { min-height: 0; }
+.row1 {
+  min-height: 0;
+}
 .kpi-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px; align-items: stretch;
-  position: relative; z-index: 0;       /* ✅ ensure no overlay */
+  gap: 12px;
+  align-items: stretch;
+  position: relative;
+  z-index: 0; /* ✅ ensure no overlay */
 }
+
+.option-label input {
+  margin-right: 10px;
+}
+
+.result-box {
+  margin-top: 5px;
+  /* background-color: #234f9a; */
+  padding: 15px 56px;
+  width: 100%;
+  color: #000;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px,
+    rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
+  border-radius: 10px;
+  text-align: center;
+  margin-bottom: 5px;
+}
+.loading-box {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.spinner {
+  margin: 0 auto 16px auto;
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 123, 255, 0.2);
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+/* Wrap all questions nicely */
+.all-questions-form {
+  margin-top: 30px;
+  text-align: left;
+}
+
+.question-block {
+  padding: 16px;
+  border-radius: 10px;
+  /* background-color: #f7faff; */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  text-align: left;
+  box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px !important;
+}
+
+.question-block h4 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* Options already styled well, minor enhancement */
+.option-label {
+  display: block;
+  padding: 10px 14px;
+  margin: 6px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.option-label:hover {
+  background-color: #eef4ff;
+}
+/* Add to QuizzesPage.css or StreamingQuestion.css */
+.streaming-question {
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+
+/* Submit button */
+.submit-button {
+  display: block;
+  margin: 40px auto 20px auto;
+  padding: 12px 24px;
+  font-size: 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.submit-button:disabled {
+  background-color: #94d3a2;
+  cursor: not-allowed;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #218838;
+}
+.correct {
+  background-color: #e6f9e6;
+  border-color: #4caf50;
+}
+
+.incorrect {
+  background-color: #ffe6e6;
+  border-color: #f44336;
+}
+
+.feedback-text {
+  margin-top: 10px;
+  font-style: italic;
+  color: #444;
+}
+
+.feedback-icon {
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+.quiz-with-timer {
+  position: relative;
+}
+
+.correct {
+  background-color: #e6f9e6;
+  border-color: #4caf50;
+}
+
+.incorrect {
+  background-color: #ffe6e6;
+  border-color: #f44336;
+}
+
+.feedback-icon {
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+.feedback-text {
+  margin-top: 10px;
+  font-style: italic;
+  color: #333;
+}
+
+.feedback-icon {
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+/* Wrapper for the timer, this will be fixed to the top */
+.sticky-timer-wrapper {
+  position: fixed;
+  top: 0;
+  /* Instead of left: 0 and width: 100%, use: */
+  left: 50%; /* Move to horizontal center of viewport */
+  transform: translateX(-50%); /* Shift left by 50% of own width */
+  max-width: 900px; /* Match .quiz-container width */
+  width: 100%; /* Full width up to max-width */
+  z-index: 100sticky-timer-wrapper0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 0;
+  background-color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* optional: subtle shadow */
+  border-bottom: 1px solid #ddd; /* optional: separator line */
+}
+
+/* The actual timer display element, styled as per your preferred styles */
+.timer-display {
+  padding: 10px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #007bff; /* Ensure this has good contrast with your page/wrapper background */
+  background: rgba(
+    255,
+    255,
+    255,
+    0.25
+  ); /* Slightly more opaque for readability */
+  backdrop-filter: blur(1px); /* Adjusted blur for performance/preference */
+  -webkit-backdrop-filter: blur(1px);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12); /* Slightly adjusted shadow */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  /* margin-top: 40px; Slightly more opaque border */
+  /* No 'position' property needed here; its layout is handled by the flex parent */
+}
+
+/*
+   IMPORTANT: You need to add a margin-top to your main quiz content
+   to prevent it from being hidden underneath the fixed timer.
+   Create a class for your main quiz area or apply this to an existing one.
+*/
+.quiz-content-area {
+  /* Apply this class to the main container of your quiz questions */
+  margin-top: 70px; /* Adjust this value based on the actual height of .fixed-timer-wrapper.
+                         Calculate: .fixed-timer-wrapper padding + .timer-display height.
+                         E.g., if .timer-display is ~40px high and wrapper padding is 8px top/bottom,
+                         total is ~56px. 70px gives a bit of space. */
+}
+
+/*
+   Your existing .quiz-with-timer can remain as is if it's used
+   for other purposes within your quiz structure.
+   It's no longer directly responsible for the timer's fixed positioning.
+*/
+.quiz-with-timer {
+  position: relative;
+}
+
+/* Pass/Fail text styles (unrelated to timer positioning, kept for completeness) */
+.pass-text {
+  color: #28a745;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.fail-text {
+  color: #dc3545;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/*
+  The older CSS for .timer-display with `position: absolute; top: -60px;`
+  and the `.sticky-timer-wrapper` with `position: sticky;`
+  should be removed or commented out to avoid conflicts with this new fixed positioning.
+*/
+/* Responsive on mobile */
+@media (max-width: 768px) {
+  .timer-display {
+    font-size: 16px;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .question-block {
+    padding: 16px;
+    font-size: 14px;
+  }
+
+  .option-label {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .submit-button {
+    width: 100%;
+    font-size: 16px;
+  }
+}
+@media (max-width: 720px) {
+  .tabs {
+    justify-content: flex-start;
+  }
+  .kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
 .kpi.card {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--card);
   padding: 12px 14px;
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   min-height: 74px;
 }
-.kpi.card span { font-size: 14px; opacity: .9; }
-.kpi.card strong { font-size: 22px; }
+.kpi.card span {
+  font-size: 14px;
+  opacity: 0.9;
+}
+.kpi.card strong {
+  font-size: 22px;
+}
 .chart-pair.row3 {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 14px; overflow: visible;         /* ✅ visible so children can size naturally */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  overflow: visible; /* ✅ visible so children can size naturally */
 }
 
 /* Actions on spline */
-.chart-actions { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.chart-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
 .seg {
-  background: #eef4ff; border: 1px solid #dce7ff; padding: 4px;
-  border-radius: 999px; display: inline-flex; gap: 4px;
+  background: #eef4ff;
+  border: 1px solid #dce7ff;
+  padding: 4px;
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 4px;
 }
 .seg-btn {
-  border: 0; padding: 6px 10px; font-size: 12px; border-radius: 999px;
-  background: transparent; cursor: pointer; color: #193763;
+  border: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  color: #193763;
 }
-.seg-btn.active { background: #2790ff; color: #fff; }
+.seg-btn.active {
+  background: #2790ff;
+  color: #fff;
+}
 
 /* ===== Floating chat – fixed overlay ===== */
-.float-toggle { display: none; }
+.float-toggle {
+  display: none;
+}
 .float-chat {
   display: none;
   position: fixed;
-  left: 8px; right: 8px;
-  bottom: 8px; top: 64px;
-  background: rgba(255,255,255,.94);
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  top: 64px;
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(0,0,0,.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 16px;
-  box-shadow: 0 18px 40px rgba(0,0,0,.18);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
   overflow: hidden;
   z-index: 9999;
 }
-.float-chat.open { display: block; }
-.float-chat.dragging { cursor: ns-resize; }
+.float-chat.open {
+  display: block;
+}
+.float-chat.dragging {
+  cursor: ns-resize;
+}
 .float-handle {
   height: 16px;
   cursor: ns-resize;
-  background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(255,255,255,.25));
-  border-bottom: 1px solid rgba(0,0,0,.06);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.65),
+    rgba(255, 255, 255, 0.25)
+  );
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   position: relative;
 }
 .float-handle::after {
   content: "";
-  position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
-  width: 44px; height: 4px; border-radius: 999px; background: rgba(0,0,0,.18);
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
 }
-.float-chat .cb-container { height: calc(100% - 16px); border-radius: 0; }
+.float-chat .cb-container {
+  height: calc(100% - 16px);
+  border-radius: 0;
+}
 
 /* ===== Mobile tweaks ===== */
 @media (max-width: 860px) {
   /* Tabs remain centered, just slightly smaller */
-  .tab { width: clamp(86px, 28vw, 120px); font-size: 12px; padding: 7px 8px; }
-  .badge-pill { padding: 4px 7px; font-size: 11px; }
+  .tab {
+    width: clamp(86px, 28vw, 120px);
+    font-size: 12px;
+    padding: 7px 8px;
+  }
+  .badge-pill {
+    padding: 4px 7px;
+    font-size: 11px;
+  }
 
   /* Feedback becomes single column; desktop chat hidden */
-  .feedback-grid { grid-template-columns: 1fr; }
-  .desktop-chat { display: none; }
+  .feedback-grid {
+    grid-template-columns: 1fr;
+  }
+  .desktop-chat {
+    display: none;
+  }
 
   /* Floating chat toggle */
   .float-toggle {
-    position: fixed; right: 10px; bottom: 12px;
+    position: fixed;
+    right: 10px;
+    bottom: 12px;
     z-index: 10000;
-    background: #2790ff; color:#fff; border:none; border-radius:999px;
-    padding: 8px 12px; font-size: 12px;
-    box-shadow: 0 8px 22px rgba(0,0,0,.18);
-    display: inline-flex; align-items:center; justify-content:center;
+    background: #2790ff;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Leaderboard stacks */
-  .leaderboard-grid { grid-template-columns: 1fr; grid-template-rows: auto auto; }
-  .lb-right { order: 1; }
-  .lb-left  { order: 2; }
+  .leaderboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+  .lb-right {
+    order: 1;
+  }
+  .lb-left {
+    order: 2;
+  }
 
   /* Dashboard: charts first, KPIs last; big chart heights */
   .dashboard-grid {
@@ -320,12 +830,60 @@
     grid-template-rows: auto auto auto;
     max-width: 100%;
   }
-  .chart-pair.row3 { grid-template-columns: 1fr; }
-  .kpi-row { grid-template-columns: 1fr; }
-  .hc-flex { min-height: 360px; }
+  .chart-pair.row3 {
+    grid-template-columns: 1fr;
+  }
+  .kpi-row {
+    grid-template-columns: 1fr;
+  }
+  .hc-flex {
+    min-height: 360px;
+  }
 }
 
 @media (max-width: 380px) {
-  .tab { width: clamp(80px, 30vw, 110px); font-size: 11px; padding: 6px 8px; }
-  .hc-flex { min-height: 400px; }
+  .tab {
+    width: clamp(80px, 30vw, 110px);
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+  .hc-flex {
+    min-height: 400px;
+  }
+}
+
+.quiz-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #ffffff; /* or whatever your app background is */
+  padding: 12px 20px;
+  border-bottom: 1px solid #eee;
+  margin: 0;
+}
+.space-right {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Circular cross button */
+.space-right .x-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  background-color: #007bff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  margin-left: 10px;
+}
+
+.space-right .x-btn:active {
+  transform: scale(0.95);
 }

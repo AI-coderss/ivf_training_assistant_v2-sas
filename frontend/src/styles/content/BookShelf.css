@@ -1,9 +1,9 @@
 /* Add these at the top of your CSS or within the .bookshelf scope */
 :root {
-  --book-width-3d: 160px;   /* Adjust as desired */
-  --book-height-3d: 240px;  /* Adjust to maintain aspect ratio */
-  --book-depth-3d: 33px;    /* Thickness of the book */
-  --cover-offset-3d: 2px;   /* Small offset for pages from cover edge, like Codepen's 3px */
+  --book-width-3d: 160px; /* Adjust as desired */
+  --book-height-3d: 240px; /* Adjust to maintain aspect ratio */
+  --book-depth-3d: 33px; /* Thickness of the book */
+  --cover-offset-3d: 2px; /* Small offset for pages from cover edge, like Codepen's 3px */
 }
 /* --- Existing .bookshelf and .shelf-title (mostly unchanged) --- */
 .bookshelf {
@@ -74,15 +74,15 @@
 
 .book-item.selected {
   /* This might need adjustment if it interferes with 3D visually */
-   border: 2px solid #007bff;  /* Consider outline or a different indicator */
-   background-color: #eef6ff; 
+  border: 2px solid #007bff; /* Consider outline or a different indicator */
+  background-color: #eef6ff;
 
   /* For 3D, selection might be shown by a stronger lift or a different rotation */
   transform: rotateY(10deg) translateY(-15px) translateZ(20px);
-  
 }
 
-.book-image { /* This is now the FRONT COVER */
+.book-image {
+  /* This is now the FRONT COVER */
   width: 100%; /* Will take width from .book-item */
   height: 100%; /* Will take height from .book-item */
   object-fit: cover; /* Ensure image covers the area */
@@ -97,7 +97,9 @@
   box-shadow: 5px 5px 20px #ffffff;
 
   /* Ensure it's the front face */
-  transform: translateZ(0); /* Or a tiny positive value like 0.1px to ensure it's on top */
+  transform: translateZ(
+    0
+  ); /* Or a tiny positive value like 0.1px to ensure it's on top */
 
   /* Remove old transforms and transitions that conflict */
   /* transform: rotateY(-5deg) rotateX(5deg) translateZ(10px); NO */
@@ -110,10 +112,9 @@
 /* .book-image::before { display: none; } */
 /* .book-image::after { display: none; } */
 
-
 /* NEW: .book-item::before for PAGES/SPINE (Side of the book) */
 .book-item::before {
-  content: '';
+  content: "";
   position: absolute;
   /* Dimensions based on variables */
   width: var(--book-depth-3d);
@@ -128,16 +129,18 @@
   /* Transform from Codepen .book::before, adapted for variables */
   /* This positions the spine on the "right" side of the front cover (as book is rotated -30deg) */
   transform-origin: center left; /* Rotate around its own left edge when placing */
-   transform:
-    translateX(calc(var(--book-width-3d) - var(--book-depth-3d) / 2 - var(--cover-offset-3d)))
-    rotateY(90deg)
-    translateX(calc(var(--book-depth-3d) / 2));
+  transform: translateX(
+      calc(
+        var(--book-width-3d) - var(--book-depth-3d) / 2 - var(--cover-offset-3d)
+      )
+    )
+    rotateY(90deg) translateX(calc(var(--book-depth-3d) / 2));
   z-index: 0; /* Behind front cover image content, but part of the 3D object */
 }
 
 /* NEW: .book-item::after for BACK COVER (Replaces your wooden shelf line) */
 .book-item::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -165,7 +168,6 @@
   transform: translateZ(0); /* Reset any inherited 3D transformation */
 }
 
-
 /* --- RESPONSIVE OVERRIDES --- */
 @media (max-width: 1024px) {
   .bookshelf {
@@ -185,9 +187,17 @@
     display: flex;
     height: 8px;
   }
-  .bookshelf::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-  .bookshelf::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
-  .bookshelf::-webkit-scrollbar-thumb:hover { background: #555; }
+  .bookshelf::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  .bookshelf::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+  .bookshelf::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
 
   .book-item {
     /* Override 3D fixed dimensions */
@@ -247,28 +257,58 @@
 
 /* Further responsive overrides for smaller screens, mostly unchanged but ensure 3D reset is effective */
 @media (max-width: 480px) {
-  .bookshelf { padding: 6px; min-width: 0; }
-  .book-item { min-width: 110px; width: 110px; margin: 0 5px 10px 5px; }
-  .book-item:hover { transform: translateY(-3px); }
-  .book-title { font-size: 0.75rem; }
+  .bookshelf {
+    padding: 6px;
+    min-width: 0;
+  }
+  .book-item {
+    min-width: 110px;
+    width: 110px;
+    margin: 0 5px 10px 5px;
+  }
+  .book-item:hover {
+    transform: translateY(-3px);
+  }
+  .book-title {
+    font-size: 0.75rem;
+  }
 }
 
 @media (max-width: 600px) and (min-width: 481px) {
-  .bookshelf { padding: 8px; }
-  .book-item { min-width: 120px; width: 120px; margin: 0 8px 12px 8px; }
-  .book-item:hover { transform: translateY(-4px); }
-  .book-title { font-size: 0.8rem; }
+  .bookshelf {
+    padding: 8px;
+  }
+  .book-item {
+    min-width: 120px;
+    width: 120px;
+    margin: 0 8px 12px 8px;
+  }
+  .book-item:hover {
+    transform: translateY(-4px);
+  }
+  .book-title {
+    font-size: 0.8rem;
+  }
 }
 
-@media (max-width: 768px) and (min-width: 601px) { /* Tablet size, but <=768 already flattens */
+@media (max-width: 768px) and (min-width: 601px) {
+  /* Tablet size, but <=768 already flattens */
   /* If 768px is the breakpoint for flat, this rule might not see 3D.
      If you want 3D on tablets > 768px, adjust the 768px media query.
      For now, assuming this range is also flat due to the max-width: 768px rule. */
-  .bookshelf { padding: 10px; max-width: 100%; }
-  .book-item { min-width: 130px; width: 130px; margin: 0 10px 15px 10px; }
-  .book-title { font-size: 0.9rem; }
+  .bookshelf {
+    padding: 10px;
+    max-width: 100%;
+  }
+  .book-item {
+    min-width: 130px;
+    width: 130px;
+    margin: 0 10px 15px 10px;
+  }
+  .book-title {
+    font-size: 0.9rem;
+  }
 }
-
 
 /* Large devices (small laptops, 901px to 1200px) - 3D effect IS active here */
 @media (max-width: 1200px) and (min-width: 768px) {
@@ -286,24 +326,24 @@
 @media (max-width: 768px) {
   .bookshelf {
     /* Key styles for horizontal layout and scrolling */
-    flex-direction: row;   /* 1. Arrange book items in a row */
-    flex-wrap: nowrap;   /* 2. Prevent books from wrapping to the next line */
-    overflow-x: auto;    /* 3. Enable horizontal scrolling if content overflows */
-    
+    flex-direction: row; /* 1. Arrange book items in a row */
+    flex-wrap: nowrap; /* 2. Prevent books from wrapping to the next line */
+    overflow-x: auto; /* 3. Enable horizontal scrolling if content overflows */
+
     /* Other adjustments for horizontal layout */
-    overflow-y: hidden;  /* Disable vertical scrolling */
-    max-width: 100%;     /* Bookshelf takes full available width */
-    height: auto;        /* Height adjusts to content */
+    overflow-y: hidden; /* Disable vertical scrolling */
+    max-width: 100%; /* Bookshelf takes full available width */
+    height: auto; /* Height adjusts to content */
     border-right: none;
     border-bottom: 1px solid #ccc; /* Consistent with horizontal layout */
     padding: 10px;
-    max-height: none;    /* Remove max-height constraint */
+    max-height: none; /* Remove max-height constraint */
   }
 
   /* Optional: Styling for the horizontal scrollbar (Webkit browsers) */
   .bookshelf::-webkit-scrollbar {
     display: flex; /* Or display: block; depending on preference */
-    height: 8px;   /* Height of the horizontal scrollbar */
+    height: 8px; /* Height of the horizontal scrollbar */
   }
   .bookshelf::-webkit-scrollbar-track {
     background: #f1f1f1;
@@ -319,11 +359,11 @@
 
   .book-item {
     /* Adjust book item properties for horizontal layout */
-    width: 140px;       /* Set a specific width for books in the row */
+    width: 140px; /* Set a specific width for books in the row */
     height: auto;
-    min-width: 140px;   /* Ensure books don't get too small */
-    margin: 0 10px;     /* Add horizontal margin between books */
-    margin-bottom: 15px;/* Bottom margin, e.g., for title if it's below or scrollbar space */
+    min-width: 140px; /* Ensure books don't get too small */
+    margin: 0 10px; /* Add horizontal margin between books */
+    margin-bottom: 15px; /* Bottom margin, e.g., for title if it's below or scrollbar space */
 
     /* Disable 3D effects and use simpler mobile transforms */
     perspective: none;
@@ -343,12 +383,12 @@
   .book-item::after {
     display: none !important;
   }
-  
+
   /* Other mobile-specific resets as previously defined */
   .book-image {
     position: relative;
     border-radius: 6px;
-    box-shadow: 0 8px 14px rgba(0,0,0,0.15);
+    box-shadow: 0 8px 14px rgba(0, 0, 0, 0.15);
   }
   .book-title {
     transform: none;

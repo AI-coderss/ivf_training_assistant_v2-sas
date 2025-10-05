@@ -13,17 +13,37 @@ import useBookStore from "../store/bookStore";
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
-export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistantOpen, containerRef }) {
+export default function PdfFlipBookMobile({
+  pdfUrl,
+  width,
+  onOCRText,
+  isAssistantOpen,
+  containerRef,
+}) {
   const [numPages, setNumPages] = useState(null);
   const [isOCRMode, setIsOCRMode] = useState(false);
   const [loadingOCR, setLoadingOCR] = useState(false);
   const [selectedBox, setSelectedBox] = useState(null);
   const [pageRanges, setPageRanges] = useState([]);
-  const { chunks, setSelectedTextInfo, isAutoScrolling, selectedChunkIndex, setBookText, currentPage, setCurrentPage } = useBookStore()
+  const {
+    chunks,
+    setSelectedTextInfo,
+    isAutoScrolling,
+    selectedChunkIndex,
+    setBookText,
+    currentPage,
+    setCurrentPage,
+  } = useBookStore();
   const selectedTextInfo = useBookStore((state) => state.selectedTextInfo);
+  const goToPage = useBookStore((state) => state.goToPage);
+  const setGoToPage = useBookStore((state) => state.setGoToPage);
 
-
-  console.log("Mobile Viewer - selectedChunkIndex:", selectedChunkIndex, " | currentPage:", currentPage);
+  console.log(
+    "Mobile Viewer - selectedChunkIndex:",
+    selectedChunkIndex,
+    " | currentPage:",
+    currentPage
+  );
   useEffect(() => {
     if (!numPages) return;
 
@@ -36,7 +56,7 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        const pageText = content.items.map(it => it.str).join("");
+        const pageText = content.items.map((it) => it.str).join("");
         fullTextArr.push(pageText);
         const startIndex = globalIndex;
         const endIndex = globalIndex + pageText.length - 1;
@@ -51,6 +71,19 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
     buildPageRanges();
   }, [numPages, pdfUrl]);
 
+  useEffect(() => {
+    if (!goToPage || !containerRef?.current) return;
+
+    const pageElement = containerRef.current.querySelector(
+      `.react-pdf__Page[data-page-number="${goToPage}"]`
+    );
+
+    if (pageElement) {
+      pageElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      setGoToPage(null); // reset after scrolling
+    }
+  }, [goToPage, containerRef]);
+
   const playClickSound = () => {
     const sound = new Audio("/page-flip.mp3");
     sound.volume = 0.01; // Set volume to 1%
@@ -58,7 +91,6 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
       console.warn("Audio play failed:", e);
     });
   };
-
 
   useEffect(() => {
     if (!numPages || !pageRanges.length || selectedChunkIndex == null) return;
@@ -69,7 +101,7 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
     console.log("Selected Chunk :", chunk);
 
     const pagesRange = pageRanges.filter(
-      r => r.endIndex >= chunk.startIndex && r.startIndex <= chunk.endIndex
+      (r) => r.endIndex >= chunk.startIndex && r.startIndex <= chunk.endIndex
     );
     if (!pagesRange.length) return;
 
@@ -80,7 +112,7 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
     const allPages = containerRef.current?.querySelectorAll(
       ".react-pdf__Page__textContent span"
     );
-    allPages?.forEach(span => {
+    allPages?.forEach((span) => {
       if (span.dataset.originalText) {
         span.innerHTML = span.dataset.originalText;
         span.style.fontSize = "60%";
@@ -95,7 +127,7 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
     });
 
     // 🔹 Then apply highlights only on the required pages
-    pagesRange.forEach(pageRange => {
+    pagesRange.forEach((pageRange) => {
       const pageElement = containerRef.current?.querySelector(
         `.react-pdf__Page[data-page-number="${pageRange.pageNumber}"]`
       );
@@ -107,7 +139,7 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
 
       let charIndex = pageRange.startIndex;
 
-      spans.forEach(span => {
+      spans.forEach((span) => {
         const text = span.textContent;
         const length = text.length;
 
@@ -125,21 +157,19 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
           if (!document.getElementById(`chunk-${selectedChunkIndex}-start`)) {
             span.innerHTML = `<mark id="chunk-${selectedChunkIndex}-start" style="background-color: blue; color: white;">${text}</mark>`;
             if (isAutoScrolling) {
-              span.scrollIntoView({ behavior: "smooth", block: 'nearest' })
+              span.scrollIntoView({ behavior: "smooth", block: "nearest" });
             }
           } else {
             span.innerHTML = `<mark style="background-color: blue; color: white;">${text}</mark>`;
             if (isAutoScrolling) {
-              span.scrollIntoView({ behavior: "smooth", block: 'nearest' })
+              span.scrollIntoView({ behavior: "smooth", block: "nearest" });
             }
-
           }
         }
         charIndex += length;
       });
     });
   }, [selectedChunkIndex, pageRanges, chunks, numPages, selectedTextInfo]);
-
 
   useEffect(() => {
     if (isAssistantOpen) {
@@ -202,10 +232,9 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
     }
   };
 
-
   // Handle text selection
   const handleTextSelection = () => {
-    if (!numPages) return;  // <--- guard until PDF is loaded
+    if (!numPages) return; // <--- guard until PDF is loaded
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
 
@@ -224,7 +253,10 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
     if (!pageElement) return;
 
     // Get the page number from the data-page-number attribute
-    const pageNumber = parseInt(pageElement.getAttribute("data-page-number"), 10);
+    const pageNumber = parseInt(
+      pageElement.getAttribute("data-page-number"),
+      10
+    );
     if (!pageNumber) return;
     console.log(pageNumber, "page number", numPages);
     // Calculate the cumulative character index up to the selected page
@@ -236,18 +268,21 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
         const prevPage = containerRef.current.querySelector(
           `.react-pdf__Page[data-page-number="${i}"]`
         );
-        const prevTextLayer = prevPage?.querySelector(".react-pdf__Page__textContent");
+        const prevTextLayer = prevPage?.querySelector(
+          ".react-pdf__Page__textContent"
+        );
         if (prevTextLayer) {
           const prevSpans = prevTextLayer.querySelectorAll("span");
           prevSpans.forEach((span) => {
             charIndex += span.textContent.length;
           });
         }
-
       } else if (i === pageNumber) {
         // Process the current page's text layer
-        console.log("processing current page text")
-        const textLayer = pageElement.querySelector(".react-pdf__Page__textContent");
+        console.log("processing current page text");
+        const textLayer = pageElement.querySelector(
+          ".react-pdf__Page__textContent"
+        );
         if (textLayer) {
           const spans = textLayer.querySelectorAll("span");
           let found = false;
@@ -256,7 +291,9 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
             if (!found && range.intersectsNode(span)) {
               // Get the start and end offsets within the span
               const startContainer = range.startContainer;
-              const isSpanTextNode = startContainer.nodeType === Node.TEXT_NODE && startContainer.parentNode === span;
+              const isSpanTextNode =
+                startContainer.nodeType === Node.TEXT_NODE &&
+                startContainer.parentNode === span;
               const startOffset = isSpanTextNode ? range.startOffset : 0;
               // Calculate start and end indices
               const startIndex = charIndex + startOffset;
@@ -267,7 +304,7 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
                 pageNumber: pageNumber,
                 startIndex: startIndex,
                 endIndex: endIndex,
-                itemIndex: startOffset
+                itemIndex: startOffset,
               });
               found = true;
               // console.log("Text Selection Info:", {
@@ -279,7 +316,6 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
             }
             charIndex += span.textContent.length;
           });
-
         }
         break; // No need to process further pages
       }
@@ -288,7 +324,6 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
     // console.log("Selected Text:", selectedText);
     // console.log("Page Number:", pageNumber);
   };
-
 
   // Add event listener for text selection
   useEffect(() => {
@@ -300,7 +335,6 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
       document.removeEventListener("selectionchange", listener);
     };
   }, [numPages]);
-
 
   return (
     <div className="mobile-pdf-viewer">
@@ -322,8 +356,10 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
               onClick={() => {
                 setIsOCRMode(!isOCRMode);
               }}
-
-              style={{ backgroundColor: isOCRMode ? "#0056b3" : "white", color: isOCRMode ? "white" : "black" }}
+              style={{
+                backgroundColor: isOCRMode ? "#0056b3" : "white",
+                color: isOCRMode ? "white" : "black",
+              }}
             >
               Select Text
             </button>
@@ -338,7 +374,6 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
           loading={<p>Loading…</p>}
         >
           <PdfPage
-
             pageNumber={currentPage}
             width={width}
             renderTextLayer
@@ -347,7 +382,10 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
         </Document>
 
         {isOCRMode && (
-          <SelectionBox containerRef={containerRef} onBoxReady={handleRectangleComplete} />
+          <SelectionBox
+            containerRef={containerRef}
+            onBoxReady={handleRectangleComplete}
+          />
         )}
 
         {selectedBox && (
@@ -384,7 +422,7 @@ export default function PdfFlipBookMobile({ pdfUrl, width, onOCRText, isAssistan
             >
               ◀ Prev
             </button>
-            <span style={{ color: "#fff", fontSize: "14px" }}>
+            <span style={{ color: "#000", fontSize: "14px", margin: "0 11px" }}>
               {currentPage} / {numPages}
             </span>
             <button

@@ -22,7 +22,8 @@ const Tabs = () => {
   const [showQuizzPage, setShowQuizzPage] = useState(false);
   const [showTrueFalseQuiz, setShowTrueFalseQuiz] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const BACKEND_URL_Summary = "https://immersive-reader-realtime-tts-server.onrender.com"; // Your Flask backend URL
+  const BACKEND_URL_Summary =
+    "https://immersive-reader-realtime-tts-server.onrender.com"; // Your Flask backend URL
   const BACKEND_URL_Chat = "https://chat-with-your-books-server.onrender.com"; // Your Flask backend URL
   // Summary state
   const [summaryConfig, setSummaryConfig] = useState({
@@ -38,8 +39,8 @@ const Tabs = () => {
     type: "Both",
     count: 5,
     note: "",
-    difficulty:'easy',
-    scope:'current_page'
+    difficulty: "easy",
+    scope: "current_page",
   });
 
   // Page range state
@@ -579,7 +580,7 @@ const Tabs = () => {
       note: `Quiz request: { type: ${quizConfig.type}, count: ${quizConfig.count} }`,
     }));
 
-    if (quizConfig.type === "MCQ" || quizConfig.type === 'Both') {
+    if (quizConfig.type === "MCQ" || quizConfig.type === "Both") {
       setShowQuizzPage(true);
       setShowTrueFalseQuiz(false);
     } else if (quizConfig.type === "True/False") {
@@ -628,6 +629,7 @@ const Tabs = () => {
       <nav className="tabs-bar" role="tablist" aria-orientation="horizontal">
         <TabButton
           id="summary-tab"
+          className="active"
           label="Summarize"
           isActive={activeTab === "summary"}
           onClick={openSummary}
@@ -743,17 +745,19 @@ const SummaryPanel = ({
 
   return (
     <div className="glass-card" role="region" aria-labelledby="summary-tab">
-      <button
-        className="card-close"
-        aria-label="Close summarize"
-        title="Close"
-        onClick={onClose}
-      >
-        ✕
-      </button>
-
-      <h3 className="panel-title">Generate Summary</h3>
-
+      <div className="crose-box">
+        <h3 className="panel-title">Generate Summary</h3>
+        <div className="">
+          <button
+            className="card-close"
+            aria-label="Close summarize"
+            title="Close"
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
       <Dropdown
         label="Length"
         value={config.length}
