@@ -1,4 +1,5 @@
 /* ===== Fullscreen Canvas ===== */
+/* ===== Fullscreen Canvas ===== */
 .quiz-stage {
   width: 100vw;
   height: 100vh;
@@ -7,6 +8,7 @@
   grid-template-rows: 64px 1fr;
 }
 
+/* ===== Top Bar ===== */
 /* ===== Top Bar ===== */
 .quiz-topbar {
   height: 64px;
@@ -44,6 +46,7 @@
 }
 
 /* ===== Main & Card ===== */
+/* ===== Main & Card ===== */
 .quiz-main {
   display: grid;
   place-items: start center;
@@ -63,6 +66,7 @@
   padding: 24px;
 }
 
+/* ===== Progress (like screenshot) ===== */
 /* ===== Progress (like screenshot) ===== */
 .quiz-progress {
   margin-bottom: 18px;
@@ -236,6 +240,7 @@
   margin-top: 8px;
 }
 
+/* Subtle scrollbars */
 /* Subtle scrollbars */
 .quiz-main::-webkit-scrollbar {
   height: 8px;
