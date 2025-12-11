@@ -44,7 +44,19 @@ CORS(app, resources={
         "allow_headers": ["Content-Type", "Authorization"],
         "expose_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
-    }
+    },
+      r"/auth/register": {
+            "origins": [
+                "https://ivf-virtual-training-assistant-dsah.onrender.com",
+                "http://localhost:3000",
+            ],
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Session-Id"],
+            "expose_headers": ["Content-Type"],
+            "supports_credentials": True,
+            "max_age": 86400,
+        },
+
 })
 
 # Ensure consistent CORS headers on all responses, including errors/preflights.
