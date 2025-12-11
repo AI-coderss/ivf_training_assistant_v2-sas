@@ -26,3 +26,6 @@ gunicorn
 
 # OCR Dependencies
 numpy
+
+# Auth
+PyJWT>=2.9.0

@@ -9,9 +9,18 @@ const AudioButton = ({ text }) => {
     setBusy(true);
 
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setBusy(false);
+        window.location.href = "/auth";
+        return;
+      }
       const res   = await fetch("https://ivf-backend-server.onrender.com/tts", {
         method : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body   : JSON.stringify({ text })
       });
 
@@ -58,5 +67,3 @@ const AudioButton = ({ text }) => {
 };
 
 export default AudioButton;
-
-

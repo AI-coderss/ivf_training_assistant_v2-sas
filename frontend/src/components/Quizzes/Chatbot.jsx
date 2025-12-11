@@ -103,6 +103,11 @@ export default function ChatBot({
 
   /* ---------- Stream from backend (AI text unescaped => Markdown renders) ---------- */
   const streamAI = async (userText) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/auth";
+      return;
+    }
     setTyping(true);
     // placeholder bubble to progressively update
     setMessages((prev) => [
@@ -119,12 +124,23 @@ export default function ChatBot({
         "https://ivf-backend-server.onrender.com/quiz-feedback-stream",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ message: userText, session_id: sessionId }),
           signal: ctrl.signal,
         }
       );
-      if (!res.ok || !res.body) throw new Error("stream failed");
+      if (!res.ok || !res.body) {
+        if (res.status === 401) {
+          setTyping(false);
+          setMessages((prev) => prev.filter((m) => !m._ph));
+          window.location.href = "/auth";
+          return;
+        }
+        throw new Error("stream failed");
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();

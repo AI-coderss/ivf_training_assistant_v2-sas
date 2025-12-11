@@ -120,14 +120,29 @@ const ChatInputWidget = ({ onSendMessage, inputText, setInputText }) => {
       setIsLoading(true);
       setErr(null);
       try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setErr("Session expired. Please sign in again.");
+          setIsLoading(false);
+          window.location.href = "/auth";
+          return;
+        }
         const form = new FormData();
         // FIELD NAME MUST BE 'audio_data' to match your backend
         form.append("audio_data", blob, `recording.${ext || "webm"}`);
         const res = await fetch(BACKEND_TRANSCRIBE_URL, {
           method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
           body: form,
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+          if (res.status === 401) {
+            setErr("Session expired. Please sign in again.");
+            window.location.href = "/auth";
+            return;
+          }
+          throw new Error(await res.text());
+        }
         const data = await res.json();
 
         const newText = (data?.transcript || "").trim();

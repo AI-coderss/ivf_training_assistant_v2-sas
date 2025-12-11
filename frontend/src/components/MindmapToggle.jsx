@@ -12,11 +12,24 @@ const MindmapToggle = ({ handleNewMessage, topic = "IVF", sessionId }) => {
   const fetchMindmap = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setLoading(false);
+        window.location.href = "/auth";
+        return;
+      }
       const res = await fetch(`${BACKEND_URL}/mindmap`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ topic, session_id: sessionId }),
       });
+      if (res.status === 401) {
+        window.location.href = "/auth";
+        return;
+      }
       const data = await res.json();
 
       // 🧩 Convert server JSON -> Mindmap format
@@ -83,4 +96,3 @@ const MindmapToggle = ({ handleNewMessage, topic = "IVF", sessionId }) => {
 };
 
 export default MindmapToggle;
-

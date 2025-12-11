@@ -13,12 +13,23 @@ const Dashboard = ({ userId }) => {
 
   useEffect(() => {
     // Fetch data once on mount (after quiz submission)
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoading(false);
+      window.location.href = "/auth";
+      return;
+    }
     axios
       .get(BACKEND_URL, {
         params: { user_id: userId }, // If you want to filter per user, adjust as needed
+        headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setData(res.data))
       .catch((err) => {
+        if (err?.response?.status === 401) {
+          window.location.href = "/auth";
+          return;
+        }
         setData(null);
         console.error("Failed to load performance data:", err);
       })
@@ -92,4 +103,3 @@ const Dashboard = ({ userId }) => {
 };
 
 export default Dashboard;
-
