@@ -42,9 +42,26 @@ CORS(app, resources={
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
     }
 })
+
+# Ensure consistent CORS headers on all responses, including errors/preflights.
+@app.after_request
+def add_cors_headers(resp):
+    origin = request.headers.get("Origin")
+    allowed = {
+        "https://ivf-virtual-training-assistant-dsah.onrender.com",
+        "http://localhost:3000",
+    }
+    if origin in allowed:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Vary"] = "Origin"
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return resp
 
 # --- Simple file-backed user store + JWT helpers ---
 def _ensure_user_db():
@@ -645,5 +662,4 @@ def transcribe():
 # === Run ===
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)
-
 
