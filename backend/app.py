@@ -7,11 +7,13 @@ import re
 import base64
 import random
 from threading import Lock
+
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, Response, stream_with_context, g
+from flask import Flask, request, jsonify, Response, stream_with_context, g, make_response
 from flask_cors import CORS
 import jwt
 from werkzeug.security import generate_password_hash, check_password_hash
+
 import qdrant_client
 from openai import OpenAI
 from prompts.prompt import engineeredprompt
@@ -20,6 +22,7 @@ from langchain_qdrant import Qdrant
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+
 from routes.realtime import bp_realtime
 from routes.ocr_routes import ocr_bp
 
@@ -33,57 +36,61 @@ JWT_EXPIRES_MINUTES = int(os.getenv("JWT_EXPIRES_MINUTES", "1440"))
 USERS_DB_PATH = os.path.join(os.path.dirname(__file__), "users_db.json")
 users_lock = Lock()
 
-app = Flask(__name__)
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "https://ivf-virtual-training-assistant-dsah.onrender.com",
-            "http://localhost:3000"
-        ],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "expose_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    },
-      r"/auth/register": {
-            "origins": [
-                "https://ivf-virtual-training-assistant-dsah.onrender.com",
-                "http://localhost:3000",
-            ],
-            "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Session-Id"],
-            "expose_headers": ["Content-Type"],
-            "supports_credentials": True,
-            "max_age": 86400,
-        },
-        r"/auth/login": {
-            "origins": [
-                "https://ivf-virtual-training-assistant-dsah.onrender.com",
-                "http://localhost:3000",
-            ],  
-            "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Session-Id"],
-            "expose_headers": ["Content-Type"],
-            "supports_credentials": True,
-            "max_age": 86400,
-        },
-})
+# --- CORS configuration ---
+# NOTE: If you use credentials (cookies), you cannot use "*" for Allow-Origin.
+ALLOWED_ORIGINS = {
+    "https://ivf-virtual-training-assistant-dsah.onrender.com",
+    "http://localhost:3000",
+}
 
-# Ensure consistent CORS headers on all responses, including errors/preflights.
+ALLOWED_METHODS = "GET, POST, OPTIONS"
+ALLOWED_HEADERS = "Content-Type, Authorization, Accept, X-Requested-With, X-Session-Id"
+EXPOSE_HEADERS = "Content-Type, Authorization"
+
+app = Flask(__name__)
+app.url_map.strict_slashes = False  # prevents 308 redirects that often drop CORS headers on some setups
+
+# Let flask-cors attach headers where possible (still we'll enforce via after_request too)
+CORS(
+    app,
+    supports_credentials=True,
+    origins=list(ALLOWED_ORIGINS),
+    methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Session-Id"],
+    expose_headers=["Content-Type", "Authorization"],
+    max_age=86400,
+)
+
+# --- Hard guarantee: apply CORS headers to ALL responses (including errors / redirects) ---
 @app.after_request
 def add_cors_headers(resp):
     origin = request.headers.get("Origin")
-    allowed = {
-        "https://ivf-virtual-training-assistant-dsah.onrender.com",
-        "http://localhost:3000",
-    }
-    if origin in allowed:
+    if origin in ALLOWED_ORIGINS:
         resp.headers["Access-Control-Allow-Origin"] = origin
         resp.headers["Vary"] = "Origin"
         resp.headers["Access-Control-Allow-Credentials"] = "true"
-        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        resp.headers["Access-Control-Allow-Methods"] = ALLOWED_METHODS
+        resp.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS
+        resp.headers["Access-Control-Expose-Headers"] = EXPOSE_HEADERS
     return resp
+
+# --- Hard guarantee: clean preflight for ANY path ---
+@app.before_request
+def handle_preflight_globally():
+    if request.method == "OPTIONS":
+        resp = make_response("", 204)
+        # after_request will attach the CORS headers, but we also set explicitly:
+        origin = request.headers.get("Origin")
+        if origin in ALLOWED_ORIGINS:
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Vary"] = "Origin"
+            resp.headers["Access-Control-Allow-Credentials"] = "true"
+            resp.headers["Access-Control-Allow-Methods"] = ALLOWED_METHODS
+            resp.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS
+            resp.headers["Access-Control-Expose-Headers"] = EXPOSE_HEADERS
+            resp.headers["Access-Control-Max-Age"] = "86400"
+        return resp
+    return None
 
 # --- Simple file-backed user store + JWT helpers ---
 def _ensure_user_db():
@@ -92,7 +99,6 @@ def _ensure_user_db():
         if not os.path.exists(USERS_DB_PATH):
             with open(USERS_DB_PATH, "w", encoding="utf-8") as f:
                 json.dump([], f)
-
 
 def _load_users():
     with users_lock:
@@ -103,12 +109,10 @@ def _load_users():
             except json.JSONDecodeError:
                 return []
 
-
 def _save_users(users):
     with users_lock:
         with open(USERS_DB_PATH, "w", encoding="utf-8") as f:
             json.dump(users, f, indent=2)
-
 
 def _find_user_by_email(email):
     email_norm = (email or "").strip().lower()
@@ -116,7 +120,6 @@ def _find_user_by_email(email):
         if user.get("email") == email_norm:
             return user
     return None
-
 
 def _create_access_token(user):
     now = datetime.utcnow()
@@ -129,10 +132,8 @@ def _create_access_token(user):
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-
 def _decode_token(token):
     return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-
 
 def _get_bearer_token():
     auth_header = request.headers.get("Authorization", "")
@@ -140,13 +141,10 @@ def _get_bearer_token():
         return None
     return auth_header.split(" ", 1)[1].strip()
 
-
 def _auth_error(message="Unauthorized", status=401):
     return jsonify({"success": False, "message": message}), status
 
-
 PUBLIC_PATHS = {"/auth/login", "/auth/register", "/healthz"}
-
 
 @app.before_request
 def enforce_authentication():
@@ -154,9 +152,7 @@ def enforce_authentication():
     Require Bearer tokens for all routes except explicit public endpoints.
     Keeps g.current_user populated for downstream handlers.
     """
-    if request.method == "OPTIONS":
-        return None
-
+    # OPTIONS is handled above
     path = (request.path or "").rstrip("/") or "/"
     if path in PUBLIC_PATHS or path.startswith("/static") or path.startswith("/favicon") or path.startswith("/socket.io"):
         return None
@@ -167,7 +163,6 @@ def enforce_authentication():
 
     try:
         payload = _decode_token(token)
-        # Optional: ensure the user still exists in the store
         user_record = _find_user_by_email(payload.get("sub"))
         if not user_record:
             return _auth_error("User not found", status=401)
@@ -182,14 +177,9 @@ def enforce_authentication():
         return _auth_error("Invalid token", status=401)
     return None
 
-
-@app.route("/auth/register", methods=["POST"])
+# --- Auth routes ---
+@app.route("/auth/register", methods=["POST", "OPTIONS"])
 def register():
-    """
-    Standard email/password registration.
-    Body: { name, email, password }
-    Response: { success, message, access_token, user, roles, expires_in }
-    """
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
@@ -225,14 +215,8 @@ def register():
         "expires_in": JWT_EXPIRES_MINUTES * 60,
     }), 201
 
-
-@app.route("/auth/login", methods=["POST"])
+@app.route("/auth/login", methods=["POST", "OPTIONS"])
 def login():
-    """
-    Standard login.
-    Body: { email, password }
-    Response: { success, message, access_token, user, roles, expires_in }
-    """
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
@@ -251,10 +235,8 @@ def login():
         "expires_in": JWT_EXPIRES_MINUTES * 60,
     })
 
-
-@app.route("/auth/me", methods=["GET"])
+@app.route("/auth/me", methods=["GET", "OPTIONS"])
 def me():
-    """Return the current authenticated user based on the bearer token."""
     user = getattr(g, "current_user", None)
     if not user:
         return _auth_error("Unauthorized", status=401)
@@ -264,14 +246,16 @@ def me():
         "roles": user.get("roles", []),
     })
 
+# --- Blueprints ---
 app.register_blueprint(bp_realtime, url_prefix="/api")
+app.register_blueprint(ocr_bp)
+
+# --- RAG setup ---
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
 
-# Initialize OpenAI client
 client = OpenAI()
-app.register_blueprint(ocr_bp)
-# === VECTOR STORE ===
+
 def get_vector_store():
     qdrant = qdrant_client.QdrantClient(
         url=os.getenv("QDRANT_HOST"),
@@ -283,7 +267,6 @@ def get_vector_store():
 
 vector_store = get_vector_store()
 
-# === RAG Chain ===
 def get_context_retriever_chain():
     llm = ChatOpenAI(model="gpt-4o")
     retriever = vector_store.as_retriever()
@@ -307,9 +290,9 @@ def get_conversational_rag_chain():
 conversation_rag_chain = get_conversational_rag_chain()
 
 # === /stream ===
-@app.route("/stream", methods=["POST"])
+@app.route("/stream", methods=["POST", "OPTIONS"])
 def stream():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     session_id = data.get("session_id", str(uuid4()))
     user_input = data.get("message")
     if not user_input:
@@ -320,8 +303,6 @@ def stream():
 
     def generate():
         answer = ""
-
-        # === Pure RAG only ===
         try:
             for chunk in conversation_rag_chain.stream(
                 {"chat_history": chat_sessions[session_id], "input": user_input}
@@ -332,20 +313,15 @@ def stream():
         except Exception as e:
             yield f"\n[Vector error: {str(e)}]"
 
-        # Save session
         chat_sessions[session_id].append({"role": "user", "content": user_input})
         chat_sessions[session_id].append({"role": "assistant", "content": answer})
 
-    return Response(
-        stream_with_context(generate()),
-        content_type="text/plain",
-        headers={"Access-Control-Allow-Origin": "https://ivf-virtual-training-assistant-dsah.onrender.com"}
-    )
+    return Response(stream_with_context(generate()), content_type="text/plain")
 
 # === /generate ===
-@app.route("/generate", methods=["POST"])
+@app.route("/generate", methods=["POST", "OPTIONS"])
 def generate():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     session_id = data.get("session_id", str(uuid4()))
     user_input = data.get("message", "")
     if not user_input:
@@ -365,7 +341,7 @@ def generate():
     return jsonify({"response": answer, "session_id": session_id})
 
 # === /tts ===
-@app.route("/tts", methods=["POST"])
+@app.route("/tts", methods=["POST", "OPTIONS"])
 def tts():
     text = (request.json or {}).get("text", "").strip()
     if not text:
@@ -384,17 +360,17 @@ def tts():
     return jsonify({"audio_base64": audio_base64})
 
 # === /reset ===
-@app.route("/reset", methods=["POST"])
+@app.route("/reset", methods=["POST", "OPTIONS"])
 def reset():
-    session_id = request.json.get("session_id")
+    session_id = (request.json or {}).get("session_id")
     if session_id in chat_sessions:
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
 
 # === /start-quiz ===
-@app.route("/start-quiz", methods=["POST"])
+@app.route("/start-quiz", methods=["POST", "OPTIONS"])
 def start_quiz():
-    data = request.json
+    data = request.json or {}
     session_id = data.get("session_id", str(uuid4()))
     topic = data.get("topic", "IVF")
     difficulty = data.get("difficulty", "mixed")
@@ -406,7 +382,6 @@ def start_quiz():
         '{ "id": "q1", "text": "...", "options": ["A", "B", "C", "D"], "correct": "B", "difficulty": "easy" }\n'
         "Respond ONLY with valid JSON, no markdown, commentary, or explanations."
     )
-    
 
     response = conversation_rag_chain.invoke(
         {"chat_history": chat_sessions.get(session_id, []), "input": rag_prompt}
@@ -423,11 +398,11 @@ def start_quiz():
     return jsonify({"questions": questions, "session_id": session_id})
 
 # === /quiz-feedback-stream ===
-@app.route("/quiz-feedback-stream", methods=["POST"])
+@app.route("/quiz-feedback-stream", methods=["POST", "OPTIONS"])
 def quiz_feedback_stream():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     session_id = data.get("session_id", str(uuid4()))
-    prompt = data.get("prompt") or data.get("message", "").strip()
+    prompt = (data.get("prompt") or data.get("message", "")).strip()
     context_items = data.get("context", [])
 
     context_string = "\n".join([
@@ -436,7 +411,7 @@ def quiz_feedback_stream():
     ]) if context_items else ""
 
     full_prompt = (
-        f"You are a helpful IVF tutor. The following questions were answered incorrectly by the trainee:\n\n"
+        "You are a helpful IVF tutor. The following questions were answered incorrectly by the trainee:\n\n"
         f"{context_string}\n\nNow answer this question:\n{prompt}"
     )
 
@@ -451,9 +426,9 @@ def quiz_feedback_stream():
 # === /submit-quiz ===
 performance_log = []
 
-@app.route("/submit-quiz", methods=["POST"])
+@app.route("/submit-quiz", methods=["POST", "OPTIONS"])
 def submit_quiz():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     attempt_number = len(performance_log) + 1
     entry = {
         "attempt": attempt_number,
@@ -465,7 +440,7 @@ def submit_quiz():
     performance_log.append(entry)
     return jsonify({"status": "success", "attempt": attempt_number}), 200
 
-@app.route("/quiz-performance", methods=["GET"])
+@app.route("/quiz-performance", methods=["GET", "OPTIONS"])
 def quiz_performance():
     return jsonify({
         "attempt": [e["attempt"] for e in performance_log],
@@ -476,10 +451,8 @@ def quiz_performance():
     })
 
 # === /suggestions ===
-@app.route("/suggestions", methods=["GET"])
+@app.route("/suggestions", methods=["GET", "OPTIONS"])
 def suggestions():
-    # --- SOLUTION ---
-    # 1. Create a list of different prompts
     prompt_templates = [
         "Please suggest 25 common and helpful questions a patient might ask about IVF, IVF protocols, and ESHREE guidelines. Format them as a numbered list.",
         "Generate a list of 25 essential questions for someone considering IVF treatment, covering protocols and ESHREE guidelines. Present as a numbered list.",
@@ -488,26 +461,25 @@ def suggestions():
         "As an AI assistant, list 25 insightful questions about the financial, emotional, and medical aspects of IVF and its protocols. Return as a numbered list."
     ]
 
-    # 2. Select a random prompt from the list
     random_prompt = random.choice(prompt_templates)
-    # --- END SOLUTION ---
 
     response = conversation_rag_chain.invoke({
         "chat_history": [],
-        "input": random_prompt # Use the randomized prompt here
+        "input": random_prompt
     })
-    
+
     raw = response.get("answer", "")
     lines = raw.split("\n")
     questions = [re.sub(r"^[\sƒ?½\-\d\.\)]+", "", line).strip() for line in lines if line.strip()]
-    
+
     return jsonify({"suggested_questions": questions[:25]})
 
 # === /mindmap ===
-@app.route("/mindmap", methods=["POST"])
+@app.route("/mindmap", methods=["POST", "OPTIONS"])
 def mindmap():
-    session_id = request.json.get("session_id", str(uuid4()))
-    topic = request.json.get("topic", "IVF")
+    payload = request.get_json(silent=True) or {}
+    session_id = payload.get("session_id", str(uuid4()))
+    topic = payload.get("topic", "IVF")
 
     rag_prompt = (
         f"You are an IVF training mind map assistant. Generate a JSON mind map for topic '{topic}'. "
@@ -523,19 +495,14 @@ def mindmap():
     return jsonify({"nodes": nodes, "session_id": session_id})
 
 # === /diagram ===
-@app.route("/diagram", methods=["POST"])
+@app.route("/diagram", methods=["POST", "OPTIONS"])
 def diagram():
-    """
-    Generates valid Mermaid code using OpenAI,
-    extracts only the mermaid block,
-    removes numbers inside square brackets.
-    """
-    session_id = request.json.get("session_id", str(uuid4()))
-    topic = request.json.get("topic", "IVF Process Diagram")
+    payload = request.get_json(silent=True) or {}
+    session_id = payload.get("session_id", str(uuid4()))
+    topic = payload.get("topic", "IVF Process Diagram")
 
-    # Strict prompt for Mermaid syntax only
     prompt = (
-        f"You are a diagram assistant for IVF related topics and training for IVF fellowships using diagrams and flowcharts to explain concepts. "
+        "You are a diagram assistant for IVF related topics and training for IVF fellowships using diagrams and flowcharts to explain concepts. "
         f"For the topic '{topic}', produce a clear Mermaid diagram in this format:\n"
         "```mermaid\n"
         "graph TD\n"
@@ -545,18 +512,15 @@ def diagram():
         "Ensure that your mermaid syntax is clean"
     )
 
-    # Call OpenAI chat completion
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}]
     )
     raw_answer = response.choices[0].message.content
 
-    # Extract Mermaid code
     match = re.search(r"```mermaid([\s\S]+?)```", raw_answer, re.IGNORECASE)
     mermaid_code = match.group(1).strip() if match else "graph TD\nA[Error] --> B[No diagram]"
 
-    # Remove numbers inside [ ... ] brackets (e.g., [Step 1] -> [Step ])
     cleaned_mermaid = re.sub(r'\[([^\[\]]*?)\d+([^\[\]]*?)\]', r'[\1\2]', mermaid_code)
 
     return jsonify({
@@ -565,16 +529,14 @@ def diagram():
         "topic": topic
     })
 
-@app.route("/websearch_trend", methods=["POST"])
+@app.route("/websearch_trend", methods=["POST", "OPTIONS"])
 def websearch_trend():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         user_input = data.get("query", "")
-
         if not user_input:
             return jsonify({"error": "No query provided"}), 400
 
-        # Use OpenAI Responses API with web search tool
         stream = client.responses.create(
             model="gpt-4o",
             tools=[{"type": "web_search_preview"}],
@@ -587,33 +549,31 @@ def websearch_trend():
             )
         )
 
-        # Convert the result to usable JSON
         raw_output = stream.output_text.strip()
-        try:
-            # Attempt to parse directly
-            json_match = re.search(r"{.*}", raw_output, re.DOTALL)
-            if json_match:
-                parsed = json.loads(json_match.group())
-                return jsonify(parsed), 200
-            else:
-                return jsonify({"error": "No JSON found in response", "raw": raw_output}), 400
-        except json.JSONDecodeError:
-            return jsonify({"error": "Malformed JSON in response", "raw": raw_output}), 400
+        json_match = re.search(r"{.*}", raw_output, re.DOTALL)
+        if json_match:
+            parsed = json.loads(json_match.group())
+            return jsonify(parsed), 200
+        return jsonify({"error": "No JSON found in response", "raw": raw_output}), 400
 
+    except json.JSONDecodeError:
+        return jsonify({"error": "Malformed JSON in response"}), 400
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
+
 # === /generate-followups ===
-@app.route("/generate-followups", methods=["POST"])
+@app.route("/generate-followups", methods=["POST", "OPTIONS"])
 def generate_followups():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     last_answer = data.get("last_answer", "")
     if not last_answer:
         return jsonify({"followups": []})
 
     followup_prompt = (
-        f"Based on the following assistant response, generate 3 short and helpful follow-up questions "
-        f"that the user might want to ask next, analyze the last answer :\n\n{last_answer}\n\n and provide a set of follow-up questions that are relevant to the topic discussed. "
-        f"Format the response as a JSON array of strings."
+        "Based on the following assistant response, generate 3 short and helpful follow-up questions "
+        "that the user might want to ask next.\n\n"
+        f"{last_answer}\n\n"
+        "Format the response as a JSON array of strings."
     )
 
     try:
@@ -631,9 +591,9 @@ def generate_followups():
         questions = json.loads(f"[{match.group(1)}]") if match else []
         return jsonify({"followups": questions})
 
-    except Exception as e:
-        print(f"Error generating followups: {e}")
+    except Exception:
         return jsonify({"followups": []})
+
 @app.get("/healthz")
 def healthz():
     return jsonify({"ok": True, "model": "whisper-1"}), 200
@@ -645,15 +605,14 @@ def speech_to_text(path: str) -> dict:
         res = client.audio.transcriptions.create(
             model="whisper-1",
             file=f,
-            response_format="text"   # simplest: returns raw text string
+            response_format="text"
         )
-    # Some SDKs return a str directly for response_format="text"
     text = getattr(res, "text", None)
     if isinstance(res, str) and not text:
         text = res
     return {"text": (text or "").strip()}
 
-@app.route("/transcribe", methods=["POST"])
+@app.route("/transcribe", methods=["POST", "OPTIONS"])
 def transcribe():
     if "audio_data" not in request.files:
         return jsonify({"error": "No audio file provided"}), 400
@@ -663,8 +622,7 @@ def transcribe():
 
     if file_extension not in SUPPORTED_FORMATS:
         return jsonify({
-            "error": f"Unsupported file format: {file_extension}. "
-                     f"Supported formats: {SUPPORTED_FORMATS}"
+            "error": f"Unsupported file format: {file_extension}. Supported formats: {SUPPORTED_FORMATS}"
         }), 400
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as tmp:
@@ -681,7 +639,8 @@ def transcribe():
 
     return jsonify({"transcript": transcript_result.get("text", "")})
 
-# === Run ===
+# --- Run local ---
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)
+
 
