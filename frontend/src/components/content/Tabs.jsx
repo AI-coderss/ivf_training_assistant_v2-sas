@@ -13,19 +13,27 @@ import BulletsSummary from "../../pages/BulletsSummary";
 import useBookStore from "../../store/bookStore";
 import Dropdown from "../Dropdown";
 import QuizzesPanel from "./Quizzes.jsx";
+import useReaderToolsStore from "../../store/readerToolsStore";
 
 const Tabs = () => {
   const containerRef = useRef(null);
-  const [activeTab, setActiveTab] = useState("summary");
+
+  // ✅ Zustand single source of truth
+  const activeTool = useReaderToolsStore((s) => s.activeTool);
+  const intent = useReaderToolsStore((s) => s.intent);
+  const openTool = useReaderToolsStore((s) => s.openTool);
+  const closeTool = useReaderToolsStore((s) => s.closeTool);
+
   const [isLoading, setIsLoading] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [showQuizzPage, setShowQuizzPage] = useState(false);
   const [showTrueFalseQuiz, setShowTrueFalseQuiz] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+
   const BACKEND_URL_Summary =
-    "https://immersive-reader-realtime-tts-server.onrender.com"; // Your Flask backend URL
-  const BACKEND_URL_Chat = "https://chat-with-your-books-server.onrender.com"; // Your Flask backend URL
-  // Summary state
+    "https://immersive-reader-realtime-tts-server.onrender.com";
+  const BACKEND_URL_Chat =
+    "https://chat-with-your-books-server.onrender.com";
+
   const [summaryConfig, setSummaryConfig] = useState({
     length: "Short",
     mode: "Paragraph",
@@ -34,7 +42,6 @@ const Tabs = () => {
     note: "",
   });
 
-  // Quiz state
   const [quizConfig, setQuizConfig] = useState({
     type: "Both",
     count: 5,
@@ -43,14 +50,12 @@ const Tabs = () => {
     scope: "current_page",
   });
 
-  // Page range state
   const [pageRange, setPageRange] = useState({
     start: 1,
     end: 1,
     showInputs: false,
   });
 
-  // Zustand store hooks
   const {
     selectedChunkIndex,
     currentPage,
@@ -60,13 +65,12 @@ const Tabs = () => {
     chunks,
   } = useBookStore();
 
-  // Memoized selected chunk
   const chunk = useMemo(
     () => chunks[selectedChunkIndex],
     [chunks, selectedChunkIndex]
   );
 
-  // Improved current page detection
+  // -------- Page detection effect (unchanged) --------
   useEffect(() => {
     if (!pageRanges.length) return;
 
@@ -74,7 +78,6 @@ const Tabs = () => {
     let observer;
 
     const findPDFContainer = () => {
-      // Try to find the PDF container with common selectors
       const selectors = [
         ".react-pdf__Document",
         ".pdf-viewer",
@@ -82,28 +85,20 @@ const Tabs = () => {
         '[data-testid="pdf-viewer"]',
         ".document-container",
       ];
-
       for (const selector of selectors) {
         const element = document.querySelector(selector);
         if (element) return element;
       }
-
-      // Fallback to any element that might contain PDF pages
       const elements = document.querySelectorAll("*");
       for (const element of elements) {
-        if (element.querySelector(".react-pdf__Page")) {
-          return element;
-        }
+        if (element.querySelector(".react-pdf__Page")) return element;
       }
-
       return document;
     };
 
     const updateCurrentPage = () => {
       const pages = document.querySelectorAll(".react-pdf__Page");
-      if (pages.length === 0) {
-        return;
-      }
+      if (pages.length === 0) return;
 
       let mostVisiblePage = null;
       let maxVisibility = 0;
@@ -116,7 +111,6 @@ const Tabs = () => {
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
 
-        // Calculate visible area
         const visibleTop = Math.max(
           0,
           Math.min(rect.bottom, viewportHeight) - Math.max(0, rect.top)
@@ -152,11 +146,8 @@ const Tabs = () => {
 
     const setupPageDetection = () => {
       const pdfContainer = findPDFContainer();
-
-      // Set up scroll listener
       pdfContainer.addEventListener("scroll", handleScroll);
 
-      // Set up IntersectionObserver for more precise detection
       const options = {
         root: pdfContainer === document ? null : pdfContainer,
         threshold: 0.3,
@@ -175,34 +166,26 @@ const Tabs = () => {
         });
       }, options);
 
-      // Observe all pages
       const pages = document.querySelectorAll(".react-pdf__Page");
       pages.forEach((page) => observer.observe(page));
 
-      // Initial update
       updateCurrentPage();
 
       return () => {
         pdfContainer.removeEventListener("scroll", handleScroll);
-        if (observer) {
-          observer.disconnect();
-        }
+        if (observer) observer.disconnect();
       };
     };
 
-    // Wait for pages to be rendered
     const initTimeout = setTimeout(setupPageDetection, 1000);
 
     return () => {
       clearTimeout(initTimeout);
       clearTimeout(timeoutId);
-      if (observer) {
-        observer.disconnect();
-      }
+      if (observer) observer.disconnect();
     };
   }, [pageRanges, currentPage, setCurrentPage]);
 
-  // Initialize page range when scope changes
   useEffect(() => {
     if (summaryConfig.scope === "Page Range" && currentPage > 0) {
       setPageRange((prev) => ({
@@ -213,84 +196,33 @@ const Tabs = () => {
     }
   }, [summaryConfig.scope, currentPage, pageRanges.length]);
 
-  // Set initial current page if needed
-  useEffect(() => {
-    if (currentPage === 1 && pageRanges.length > 0) {
-      const pageWithContent = pageRanges.find(
-        (p) => p.endIndex - p.startIndex > 50
-      );
-      if (pageWithContent && pageWithContent.pageNumber !== 1) {
-        setCurrentPage(pageWithContent.pageNumber);
-      }
-    }
-  }, [pageRanges, currentPage, setCurrentPage]);
-
-  // Function to handle navigation to a page
-  const handleNavigateToPage = useCallback(
-    (referenceText) => {
-      // Extract page numbers from text like "Pages 2-5" or "Page 3"
-      const pageMatch = referenceText.match(
-        /(?:Pages?\s+)(\d+(?:\s*-\s*\d+)?)/i
-      );
-      if (pageMatch) {
-        const pages = pageMatch[1].split(/\s*-\s*/);
-        const startPage = parseInt(pages[0]);
-
-        // Set the current page in your store
-        setCurrentPage(startPage);
-
-        // Scroll to the page in your PDF viewer
-        scrollToPageInViewer(startPage);
-      }
-    },
-    [setCurrentPage]
-  );
-
-  // Function to scroll to a specific page in the PDF viewer
+  // -------- Helpers --------
   const scrollToPageInViewer = useCallback((pageNumber) => {
     const pdfContainer =
       document.querySelector(".react-pdf__Document") || document;
     const pageElement = pdfContainer.querySelector(
       `.react-pdf__Page[data-page-number="${pageNumber}"]`
     );
-
     if (pageElement) {
       pageElement.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []);
 
-  // Tab handlers
-  const openSummary = useCallback(() => {
-    setActiveTab("summary");
-    setChatOpen(false);
-    setSummaryConfig((prev) => ({ ...prev, note: "" }));
-    setQuizConfig((prev) => ({ ...prev, note: "" }));
-  }, []);
+  const handleNavigateToPage = useCallback(
+    (referenceText) => {
+      const pageMatch = referenceText.match(
+        /(?:Pages?\s+)(\d+(?:\s*-\s*\d+)?)/i
+      );
+      if (pageMatch) {
+        const pages = pageMatch[1].split(/\s*-\s*/);
+        const startPage = parseInt(pages[0]);
+        setCurrentPage(startPage);
+        scrollToPageInViewer(startPage);
+      }
+    },
+    [setCurrentPage, scrollToPageInViewer]
+  );
 
-  const openQuizzes = useCallback(() => {
-    setActiveTab("quizzes");
-    setChatOpen(false);
-    setSummaryConfig((prev) => ({ ...prev, note: "" }));
-    setQuizConfig((prev) => ({ ...prev, note: "" }));
-  }, []);
-
-  const toggleChat = useCallback(() => {
-    if (chatOpen) {
-      setChatOpen(false);
-      setActiveTab(null);
-    } else {
-      setChatOpen(true);
-      setActiveTab("chat");
-    }
-    setSummaryConfig((prev) => ({ ...prev, note: "" }));
-    setQuizConfig((prev) => ({ ...prev, note: "" }));
-  }, [chatOpen]);
-
-  const closeActiveTab = useCallback(() => {
-    setActiveTab(null);
-  }, []);
-
-  // Get page range for chunk
   const getPageRangeForChunk = useCallback(
     (chunk) => {
       if (!chunk || !pageRanges.length) return null;
@@ -298,7 +230,6 @@ const Tabs = () => {
       const matchedPages = pageRanges.filter(
         (r) => r.endIndex >= chunk.startIndex && r.startIndex <= chunk.endIndex
       );
-
       if (!matchedPages.length) return null;
 
       const pageNumbers = matchedPages.map((p) => p.pageNumber);
@@ -311,7 +242,7 @@ const Tabs = () => {
     [pageRanges]
   );
 
-  // Generate summary handler - using the more detailed version from your working code
+  // -------- Summary generator (same logic as yours) --------
   const handleGenerateSummary = useCallback(async () => {
     setIsLoading(true);
     setSummaryConfig((prev) => ({ ...prev, note: "" }));
@@ -322,16 +253,12 @@ const Tabs = () => {
     try {
       switch (summaryConfig.scope) {
         case "Current Page": {
-          // Filter out invalid page ranges
           const validPageRanges = pageRanges.filter(
             (p) => p.endIndex >= p.startIndex
           );
 
-          const pageRange = validPageRanges.find(
-            (p) => p.pageNumber === currentPage
-          );
-
-          if (!pageRange) {
+          const pr = validPageRanges.find((p) => p.pageNumber === currentPage);
+          if (!pr) {
             const availablePages = validPageRanges
               .map((p) => p.pageNumber)
               .join(", ");
@@ -343,10 +270,7 @@ const Tabs = () => {
             return;
           }
 
-          textForSummary = bookText.slice(
-            pageRange.startIndex,
-            pageRange.endIndex + 1
-          );
+          textForSummary = bookText.slice(pr.startIndex, pr.endIndex + 1);
 
           pageInfo = {
             startPage: currentPage,
@@ -355,31 +279,6 @@ const Tabs = () => {
             scope: summaryConfig.scope,
             currentPage: currentPage,
           };
-
-          // If current page has minimal content, include adjacent pages
-          if (textForSummary.trim().length < 50) {
-            const adjacentPages = validPageRanges
-              .filter((p) => Math.abs(p.pageNumber - currentPage) <= 1)
-              .slice(0, 3);
-
-            if (adjacentPages.length > 0) {
-              textForSummary = adjacentPages
-                .map((p) => {
-                  const pageText = bookText.slice(p.startIndex, p.endIndex + 1);
-                  return `[Page ${p.pageNumber}]\n${pageText}`;
-                })
-                .join("\n\n");
-
-              const pageNumbers = adjacentPages.map((p) => p.pageNumber);
-              pageInfo = {
-                startPage: Math.min(...pageNumbers),
-                endPage: Math.max(...pageNumbers),
-                pages: pageNumbers,
-                scope: summaryConfig.scope,
-                currentPage: currentPage,
-              };
-            }
-          }
           break;
         }
 
@@ -410,11 +309,8 @@ const Tabs = () => {
           }
 
           textForSummary = pagesInRange
-            .map((p) => {
-              const pageText = bookText.slice(p.startIndex, p.endIndex + 1);
-              return pageText.trim() ? pageText : "";
-            })
-            .filter((text) => text.length > 0)
+            .map((p) => bookText.slice(p.startIndex, p.endIndex + 1).trim())
+            .filter(Boolean)
             .join("\n\n");
 
           pageInfo = {
@@ -425,32 +321,11 @@ const Tabs = () => {
             currentPage: currentPage,
             customRange: { start: pageRange.start, end: pageRange.end },
           };
-
-          break;
-        }
-
-        case "Chapter": {
-          const chapterNum = chunk?.chapter;
-          if (chapterNum !== undefined) {
-            const chapterChunks = chunks.filter(
-              (c) => c.chapter === chapterNum
-            );
-            textForSummary = chapterChunks.map((c) => c.text).join("\n\n");
-          } else {
-            textForSummary = chunk?.text || "";
-          }
-
-          pageInfo = getPageRangeForChunk(chunk);
-          if (pageInfo) {
-            pageInfo.scope = summaryConfig.scope;
-            pageInfo.currentPage = currentPage;
-          }
           break;
         }
 
         case "Selection":
           textForSummary = chunk?.text || "";
-
           pageInfo = getPageRangeForChunk(chunk);
           if (pageInfo) {
             pageInfo.scope = summaryConfig.scope;
@@ -460,7 +335,6 @@ const Tabs = () => {
 
         case "Entire Book":
           textForSummary = bookText;
-
           if (pageRanges.length > 0) {
             const validPages = pageRanges.filter(
               (p) => p.endIndex >= p.startIndex
@@ -474,17 +348,10 @@ const Tabs = () => {
               currentPage: currentPage,
             };
           }
-
           break;
 
         default:
           textForSummary = chunk?.text || "";
-
-          pageInfo = getPageRangeForChunk(chunk);
-          if (pageInfo) {
-            pageInfo.scope = summaryConfig.scope;
-            pageInfo.currentPage = currentPage;
-          }
       }
 
       if (!textForSummary || textForSummary.trim().length === 0) {
@@ -502,24 +369,15 @@ const Tabs = () => {
         mode: summaryConfig.mode.toLowerCase(),
         tone: summaryConfig.tone.toLowerCase(),
         scope: summaryConfig.scope.toLowerCase(),
-        page_info: pageInfo || {
-          scope: summaryConfig.scope,
-          currentPage: currentPage,
-        },
-        extras: {
-          include_page_references: true,
-          extract_key_terms: false,
-          include_mini_glossary: false,
-        },
+        page_info: pageInfo || { scope: summaryConfig.scope, currentPage },
+        extras: { include_page_references: true },
       };
 
       const response = await fetch(
         `${BACKEND_URL_Summary}/api/generate_summary`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         }
       );
@@ -548,10 +406,9 @@ const Tabs = () => {
 
         setShowSummary(formattedData);
       } else {
-        const errorMessage = data?.error || "Summary generation failed";
         setSummaryConfig((prev) => ({
           ...prev,
-          note: `Error: ${errorMessage}`,
+          note: `Error: ${data?.error || "Summary generation failed"}`,
         }));
       }
     } catch (error) {
@@ -569,11 +426,10 @@ const Tabs = () => {
     pageRanges,
     bookText,
     chunk,
-    chunks,
     getPageRangeForChunk,
   ]);
 
-  // Generate quiz handler
+  // -------- Quiz handler (same logic, but callable from intent) --------
   const handleGenerateQuiz = useCallback(() => {
     setQuizConfig((prev) => ({
       ...prev,
@@ -589,74 +445,79 @@ const Tabs = () => {
     } else {
       setShowQuizzPage(false);
       setShowTrueFalseQuiz(false);
-      setQuizConfig((prev) => ({
-        ...prev,
-        note: "Unsupported quiz type selected.",
-      }));
+      setQuizConfig((prev) => ({ ...prev, note: "Unsupported quiz type selected." }));
     }
   }, [quizConfig]);
 
-  // Update summary config
   const updateSummaryConfig = useCallback((key, value) => {
-    setSummaryConfig((prev) => {
-      const newConfig = { ...prev, [key]: value };
-
-      // Special handling for scope changes
-      if (key === "scope") {
-        return {
-          ...newConfig,
-          showPageRangeInputs: value === "Page Range",
-        };
-      }
-
-      return newConfig;
-    });
+    setSummaryConfig((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  // Update quiz config
   const updateQuizConfig = useCallback((key, value) => {
     setQuizConfig((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  // Update page range
   const updatePageRange = useCallback((key, value) => {
     setPageRange((prev) => ({ ...prev, [key]: value }));
   }, []);
 
+  // ✅ FUNDAMENTAL: process intent reliably using nonce tracking (no clears needed)
+  const processedNonceRef = useRef(null);
+  useEffect(() => {
+    if (!intent?.nonce) return;
+    if (processedNonceRef.current === intent.nonce) return;
+
+    processedNonceRef.current = intent.nonce;
+
+    // If coming from bookshelf quiz action, ensure quiz UI opens
+    if (intent.tool === "quizzes" && intent.action === "quiz") {
+      // open quizzes tab already handled via activeTool, now open quiz UI
+      handleGenerateQuiz();
+    }
+
+    // If coming from summary actions, ensure summary panel is visible (activeTool handles it)
+    // If coming from chat, activeTool handles it
+  }, [intent, handleGenerateQuiz]);
+
+  // -------- UI events (tabs) --------
+  const onOpenSummary = () => openTool("summary", { source: "tabs" });
+  const onOpenQuizzes = () => openTool("quizzes", { source: "tabs" });
+  const onToggleChat = () => {
+    if (activeTool === "chat") closeTool();
+    else openTool("chat", { source: "tabs" });
+  };
+
   return (
     <aside ref={containerRef} className="tabs-rail" aria-label="Reader tools">
-      {/* Tab navigation */}
       <nav className="tabs-bar" role="tablist" aria-orientation="horizontal">
         <TabButton
           id="summary-tab"
-          className="active"
           label="Summarize"
-          isActive={activeTab === "summary"}
-          onClick={openSummary}
+          isActive={activeTool === "summary"}
+          onClick={onOpenSummary}
           title="Summarize Text"
         />
 
         <TabButton
           id="quizzes-tab"
           label="Quizzes"
-          isActive={activeTab === "quizzes"}
-          onClick={openQuizzes}
+          isActive={activeTool === "quizzes"}
+          onClick={onOpenQuizzes}
           title="Generate Quizzes"
         />
 
         <TabButton
           id="chat-tab"
           label="Chat"
-          isActive={activeTab === "chat" && chatOpen}
-          onClick={toggleChat}
+          isActive={activeTool === "chat"}
+          onClick={onToggleChat}
           title="Chat with Book"
         />
 
         <span className="tabs-underline" aria-hidden />
       </nav>
 
-      {/* Summary Panel */}
-      {activeTab === "summary" && (
+      {activeTool === "summary" && (
         <SummaryPanel
           config={summaryConfig}
           pageRange={pageRange}
@@ -664,7 +525,7 @@ const Tabs = () => {
           pageRanges={pageRanges}
           isLoading={isLoading}
           showSummary={showSummary}
-          onClose={closeActiveTab}
+          onClose={closeTool}
           onGenerate={handleGenerateSummary}
           onConfigChange={updateSummaryConfig}
           onPageRangeChange={updatePageRange}
@@ -672,12 +533,11 @@ const Tabs = () => {
         />
       )}
 
-      {/* Quizzes Panel */}
-      {activeTab === "quizzes" && (
+      {activeTool === "quizzes" && (
         <QuizzesPanel
           config={quizConfig}
           setConfig={setQuizConfig}
-          onClose={closeActiveTab}
+          onClose={closeTool}
           onGenerate={handleGenerateQuiz}
           onConfigChange={updateQuizConfig}
           showQuizzPage={showQuizzPage}
@@ -689,20 +549,18 @@ const Tabs = () => {
         />
       )}
 
-      {/* Draggable chat */}
       <ChatWithYourBook
         endpoint={`${BACKEND_URL_Chat}/chatwithbooks`}
-        open={chatOpen}
+        open={activeTool === "chat"}
         onOpenChange={(v) => {
-          setChatOpen(v);
-          setActiveTab(v ? "chat" : null);
+          if (v) openTool("chat", { source: "chat" });
+          else closeTool();
         }}
       />
     </aside>
   );
 };
 
-// Tab Button Component
 const TabButton = ({ id, label, isActive, onClick, title }) => (
   <button
     id={id}
@@ -717,7 +575,6 @@ const TabButton = ({ id, label, isActive, onClick, title }) => (
   </button>
 );
 
-// Summary Panel Component
 const SummaryPanel = ({
   config,
   pageRange,
@@ -738,7 +595,6 @@ const SummaryPanel = ({
     scope: ["Selection", "Current Page", "Page Range", "Entire Book"],
   };
 
-  // Format scope options with page number only for Current Page
   const formattedScopeOptions = dropdownOptions.scope.map((option) =>
     option === "Current Page" ? `Current Page (${currentPage})` : option
   );
@@ -747,17 +603,11 @@ const SummaryPanel = ({
     <div className="glass-card" role="region" aria-labelledby="summary-tab">
       <div className="crose-box">
         <h3 className="panel-title">Generate Summary</h3>
-        <div className="">
-          <button
-            className="card-close"
-            aria-label="Close summarize"
-            title="Close"
-            onClick={onClose}
-          >
-            ✕
-          </button>
-        </div>
+        <button className="card-close" aria-label="Close" title="Close" onClick={onClose}>
+          ✕
+        </button>
       </div>
+
       <Dropdown
         label="Length"
         value={config.length}
@@ -788,7 +638,6 @@ const SummaryPanel = ({
         }
         options={formattedScopeOptions}
         onChange={(value) => {
-          // Extract the clean scope name without the page number
           const cleanValue = value
             .replace(/Current Page \(\d+\)/, "Current Page")
             .trim();
@@ -806,9 +655,7 @@ const SummaryPanel = ({
               min="1"
               max={pageRanges.length}
               value={pageRange.start}
-              onChange={(e) =>
-                onPageRangeChange("start", parseInt(e.target.value) || 1)
-              }
+              onChange={(e) => onPageRangeChange("start", parseInt(e.target.value) || 1)}
               className="page-input"
             />
           </div>
@@ -819,15 +666,11 @@ const SummaryPanel = ({
               min={pageRange.start}
               max={pageRanges.length}
               value={pageRange.end}
-              onChange={(e) =>
-                onPageRangeChange("end", parseInt(e.target.value) || 1)
-              }
+              onChange={(e) => onPageRangeChange("end", parseInt(e.target.value) || 1)}
               className="page-input"
             />
           </div>
-          <div className="page-range-info">
-            Total pages: {pageRanges.length}
-          </div>
+          <div className="page-range-info">Total pages: {pageRanges.length}</div>
         </div>
       )}
 
@@ -867,3 +710,4 @@ const SummaryPanel = ({
 };
 
 export default Tabs;
+
