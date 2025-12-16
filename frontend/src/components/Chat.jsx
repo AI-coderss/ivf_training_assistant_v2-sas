@@ -53,17 +53,8 @@ const Chat = () => {
     const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
     // fetch("http://localhost:5050/suggestions")
     fetch(`${BACKEND_BASE}/suggestions`, { headers: authHeaders })
-      .then((res) => {
-        if (res.status === 401) {
-          window.location.href = "/auth";
-          return null;
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (!data) return;
-        setSuggestedQuestions(data.suggested_questions || []);
-      })
+      .then((res) => res.json())
+      .then((data) => setSuggestedQuestions(data.suggested_questions || []))
       .catch((err) => console.error("Failed to fetch suggestions:", err));
   }, []);
 
@@ -82,11 +73,11 @@ const Chat = () => {
   const { audioScale } = useAudioForVisualizerStore();
   const startWebRTC = async () => {
     if (peerConnection || connectionStatus === "connecting") {
-      console.warn("ƒsÿ‹÷? Already connecting or connected.");
+      console.warn("⚠️ Already connecting or connected.");
       return;
     }
 
-    //console.log("ÐY"O Initializing WebRTC connection...");
+    //console.log("🔌 Initializing WebRTC connection...");
     setConnectionStatus("connecting");
     setIsMicActive(false);
 
@@ -116,14 +107,14 @@ const Chat = () => {
 
       pc.oniceconnectionstatechange = () => {
         if (pc.iceConnectionState === "failed") {
-          console.error("ÐYs® ICE connection failed.");
+          console.error("🚫 ICE connection failed.");
           pc.close();
           setConnectionStatus("error");
         }
       };
 
       pc.onicecandidateerror = (e) => {
-        console.error("ÐYsù ICE candidate error:", e);
+        console.error("🚨 ICE candidate error:", e);
       };
 
       pc.onnegotiationneeded = (event) => {
@@ -131,19 +122,19 @@ const Chat = () => {
       };
 
       pc.onconnectionstatechange = () => {
-        // //console.log("ÐY"? Connection state:", pc.connectionState);
+        // //console.log("🔁 Connection state:", pc.connectionState);
         if (
           pc.connectionState === "closed" ||
           pc.connectionState === "failed"
         ) {
-          // console.error("ĐYs® Connection closed unexpectedly. ICE state:", pc.iceConnectionState, "Signaling state:", pc.signalingState);
+          // console.error("🚫 Connection closed unexpectedly. ICE state:", pc.iceConnectionState, "Signaling state:", pc.signalingState);
           setConnectionStatus("error");
           setIsMicActive(false);
         }
       };
 
       if (!localStream) {
-        console.error("ĐYs® localStream is undefined when adding track.");
+        console.error("🚫 localStream is undefined when adding track.");
       }
       // 2. ADD TRACKS PROPERLY USING addTrack INSTEAD OF addTransceiver and add after creating channel
       stream.getAudioTracks().forEach((track) => {
@@ -170,15 +161,15 @@ const Chat = () => {
         channel.send(JSON.stringify({ type: "response.create" }));
         micStream?.getAudioTracks().forEach((track) => {
           track.enabled = true;
-          //console.log("ĐYZÏ Microphone track enabled:", track.label);
+          //console.log("🎤 Microphone track enabled:", track.label);
         });
       };
 
       channel.onclose = () => {
-        //console.log("ĐY"O Data channel closed.");
+        //console.log("🔌 Data channel closed.");
         if (pc.connectionState !== "closed") {
           console.warn(
-            "ƒsÿ‹÷? Data channel closed unexpectedly. Peer connection state:",
+            "⚠️ Data channel closed unexpectedly. Peer connection state:",
             pc.connectionState
           );
         }
@@ -187,7 +178,7 @@ const Chat = () => {
       };
 
       channel.onerror = (error) => {
-        console.error("ƒ?O Data channel error:", error);
+        console.error("❌ Data channel error:", error);
         setConnectionStatus("error");
         setIsMicActive(false);
       };
@@ -195,7 +186,7 @@ const Chat = () => {
       let pcmBuffer = new ArrayBuffer(0);
 
       channel.onmessage = async (event) => {
-        //console.log("ĐY"ù Data channel message received:", event.data);
+        //console.log("📨 Data channel message received:", event.data);
         const msg = JSON.parse(event.data);
         switch (msg.type) {
           case "response.audio.delta":
@@ -253,9 +244,9 @@ const Chat = () => {
             monitorBotVolume();
             setAudioWave(true);
             el.play()
-              .then(() => console.log("ƒo. play promise resolved"))
+              .then(() => console.log("✅ play promise resolved"))
               .catch((err) =>
-                console.error("ƒ?O play error:", err.name, err.message)
+                console.error("❌ play error:", err.name, err.message)
               );
 
             pcmBuffer = new ArrayBuffer(0); // reset for next turn
@@ -263,22 +254,22 @@ const Chat = () => {
           }
 
           case "response.audio_transcript.delta":
-            //console.log("ĐY"? Transcript streaming update received.");
+            //console.log("📝 Transcript streaming update received.");
             break;
           case "output_audio_buffer.stopped":
-            //console.log("ĐY>' Audio buffer stopped. Clearing audio...");
+            //console.log("🛑 Audio buffer stopped. Clearing audio...");
             setAudioWave(false);
             stopAudio();
             break;
           default:
-            console.warn("ƒ?", "Unhandled message type:", msg.type);
+            console.warn("❓ Unhandled message type:", msg.type);
         }
       };
 
       // 3. CREATE OFFER AFTER SETTING UP ALL TRACKS AND HANDLERS
       let offer;
       try {
-        // //console.log("ĐY"­ Creating offer...");
+        // //console.log("📡 Creating offer...");
         offer = await pc.createOffer({
           offerToReceiveAudio: true,
           offerToReceiveVideo: false,
@@ -293,12 +284,12 @@ const Chat = () => {
               "a=fmtp:111 minptime=10;useinbandfec=1"
           ),
         };
-        // //console.log("ĐY"? Offer created:", offer.type);
+        // //console.log("📝 Offer created:", offer.type);
 
         await pc.setLocalDescription(modifiedOffer);
-        // //console.log("ĐY"Ï Local SDP offer set:", pc.signalingState);
+        // //console.log("📤 Local SDP offer set:", pc.signalingState);
       } catch (e) {
-        console.error("ƒ?O Failed to create/set offer:", e);
+        console.error("❌ Failed to create/set offer:", e);
         pc.close();
         setPeerConnection(null);
         setDataChannel(null);
@@ -309,7 +300,7 @@ const Chat = () => {
         setConnectionStatus("error");
         throw e;
       }
-      // //console.log("ĐY"ù Sending offer to signaling server...");
+      // //console.log("📨 Sending offer to signaling server...");
       const res = await fetch(
         "https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect",
         {
@@ -320,7 +311,7 @@ const Chat = () => {
       );
 
       if (!res.ok) {
-        throw new Error(`ƒ?O Server responded with status ${res.status}`);
+        throw new Error(`❌ Server responded with status ${res.status}`);
       }
 
       const answer = await res.text();
@@ -328,7 +319,7 @@ const Chat = () => {
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
      
     } catch (error) {
-      console.error("ĐYs® WebRTC setup failed:", error);
+      console.error("🚫 WebRTC setup failed:", error);
       setConnectionStatus("error");
       setIsMicActive(false);
     }
@@ -364,7 +355,7 @@ const Chat = () => {
       return;
     }
     setChats((prev) => [...prev, { msg: text, who: "me" }]);
-    setSuggestedQuestions((prev) => prev.filter((q) => q !== text)); // ĐYơ¬ remove from list
+    setSuggestedQuestions((prev) => prev.filter((q) => q !== text)); // 🧼 remove from list
 
     const res = await fetch(`${BACKEND_BASE}/stream`, {
       method: "POST",
@@ -454,7 +445,7 @@ const Chat = () => {
         </div>
         <div className="mic-controls">
           {connectionStatus === "connecting" && (
-            <div className="connection-status connecting">ĐY"" Connecting...</div>
+            <div className="connection-status connecting">🔄 Connecting...</div>
           )}
           <div>
             {/* {audioWave && ( */}
@@ -473,7 +464,7 @@ const Chat = () => {
               className="closed-btn"
               onClick={() => setIsVoiceMode(false)}
             >
-              ƒo-
+              ✖
             </button>
           </div>
         </div>
@@ -507,7 +498,7 @@ const Chat = () => {
       </div>
 
       <div className="suggestion-column">
-        <h4 className="suggestion-title">ĐY'­ Suggested Questions</h4>
+        <h4 className="suggestion-title">💡 Suggested Questions</h4>
         <div className="suggestion-list">
           {suggestedQuestions.map((q, idx) => (
             <button
@@ -522,7 +513,7 @@ const Chat = () => {
       </div>
 
       <button className="voice-toggle-button" onClick={handleEnterVoiceMode}>
-        ĐYZT‹÷?
+        🎙️
       </button>
     </div>
   );
@@ -538,7 +529,7 @@ const CollapsibleDiagram = ({ chart }) => {
         className="collapsible-header"
         onClick={() => setIsOpen((prev) => !prev)}
       >
-        <span className="toggle-icon">{isOpen ? "ƒ?" : "+"}</span> View Diagram
+        <span className="toggle-icon">{isOpen ? "–" : "+"}</span> View Diagram
       </div>
       <AnimatePresence initial={false}>
         {isOpen && (
@@ -565,7 +556,7 @@ const SuggestedQuestionsAccordion = ({ questions, onQuestionClick }) => {
   return (
     <div className="suggested-questions-accordion">
       <button className="accordion-toggle" onClick={() => setIsOpen(!isOpen)}>
-        <span className="accordion-toggle-icon">{isOpen ? "ƒ^'" : "+"}</span>
+        <span className="accordion-toggle-icon">{isOpen ? "−" : "+"}</span>
         Suggested Questions
       </button>
       <AnimatePresence>
