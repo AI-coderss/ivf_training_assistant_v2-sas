@@ -3,6 +3,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../../styles/content/BookShelf.css";
 import useReaderToolsStore from "../../store/readerToolsStore";
 
+// ✅ pdf.js via react-pdf's pdfjs, with ZERO CDN worker
+import { pdfjs } from "react-pdf";
+
+// ✅ Serve worker locally from /public (no CDN dependency)
+pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.mjs`;
+
 // Book image paths are in /public/images/
 const STATIC_BOOKS = [
   {
@@ -60,7 +66,6 @@ const LS_KEY = "bookshelf_uploaded_books_v1";
 
 const BookShelf = ({ onSelectBook, selectedBookUrl }) => {
   const fileRef = useRef(null);
-
   const openTool = useReaderToolsStore((s) => s.openTool);
 
   const [uploadedBooks, setUploadedBooks] = useState([]);
@@ -88,7 +93,56 @@ const BookShelf = ({ onSelectBook, selectedBookUrl }) => {
 
   const handleUploadClick = () => fileRef.current?.click();
 
-  const handleUpload = (file) => {
+  // ---------- Helpers ----------
+  const readAsArrayBuffer = (file) =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsArrayBuffer(file);
+    });
+
+  const readAsDataURL = (file) =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+
+  // ✅ Render FIRST PAGE of PDF as image cover (NO placeholder)
+  const renderFirstPageAsCover = async (arrayBuffer) => {
+    const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+
+    const page = await pdf.getPage(1);
+
+    // target width for crisp covers
+    const targetWidth = 520;
+
+    const viewport1 = page.getViewport({ scale: 1 });
+    const scale = targetWidth / viewport1.width;
+    const viewport = page.getViewport({ scale });
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { alpha: false });
+
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    // JPEG reduces storage pressure vs PNG
+    const coverDataUrl = canvas.toDataURL("image/jpeg", 0.9);
+
+    // cleanup
+    canvas.width = 1;
+    canvas.height = 1;
+
+    return coverDataUrl;
+  };
+
+  const handleUpload = async (file) => {
     if (!file) return;
 
     if (file.type !== "application/pdf") {
@@ -96,30 +150,41 @@ const BookShelf = ({ onSelectBook, selectedBookUrl }) => {
       return;
     }
 
-    // NOTE: Storing PDFs as data URLs can exceed localStorage limits for big PDFs.
-    const reader = new FileReader();
-    reader.onload = () => {
-      const pdfDataUrl = reader.result;
+    try {
+      // 1) Load PDF bytes for cover render
+      const arrayBuffer = await readAsArrayBuffer(file);
+
+      // 2) Generate cover from page 1 (NO placeholders)
+      const coverDataUrl = await renderFirstPageAsCover(arrayBuffer);
+
+      // 3) Store full PDF as data URL (same behavior as before)
+      const pdfDataUrl = await readAsDataURL(file);
 
       const newBook = {
         id: crypto.randomUUID(),
         title: file.name.replace(/\.pdf$/i, ""),
-        image: "/images/pdf-placeholder.png", // keep your placeholder cover image
+        image: coverDataUrl, // ✅ real cover from page 1
         url: pdfDataUrl,
         static: false,
       };
 
       persistUploaded([newBook, ...uploadedBooks]);
-    };
-    reader.onerror = () => alert("Upload failed. Please try again.");
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error(err);
+      alert(
+        "Could not generate a cover from this PDF (page 1). Please try another PDF."
+      );
+    }
   };
 
   const removeUploaded = (id) => {
     persistUploaded(uploadedBooks.filter((b) => b.id !== id));
   };
 
-  const books = useMemo(() => [...uploadedBooks, ...STATIC_BOOKS], [uploadedBooks]);
+  const books = useMemo(
+    () => [...uploadedBooks, ...STATIC_BOOKS],
+    [uploadedBooks]
+  );
 
   const openToolFromBook = (action, book) => {
     if (book?.url) onSelectBook(book.url);
@@ -138,16 +203,18 @@ const BookShelf = ({ onSelectBook, selectedBookUrl }) => {
     <div className="bookshelf">
       <h3 className="shelf-title">📚 Digital Books</h3>
 
-      {/* ✅ Add Book is now a REAL button (no image) but sized as a 3D book */}
+      {/* ✅ Add Book is a REAL button (no image) sized as a 3D book */}
       <div className="book-item add-book" title="Upload PDF">
-        <button type="button" className="add-book-btn" onClick={handleUploadClick}>
+        <button
+          type="button"
+          className="add-book-btn"
+          onClick={handleUploadClick}
+        >
           <span className="add-book-plus" aria-hidden>
             +
           </span>
           <span className="add-book-title">Add Book</span>
           <span className="add-book-subtitle">Upload PDF</span>
-
-          {/* Optional subtle ring for “premium” feel */}
           <span className="add-book-ring" aria-hidden />
         </button>
       </div>
@@ -163,7 +230,9 @@ const BookShelf = ({ onSelectBook, selectedBookUrl }) => {
       {books.map((book) => (
         <div
           key={book.id}
-          className={`book-item ${selectedBookUrl === book.url ? "selected" : ""}`}
+          className={`book-item ${
+            selectedBookUrl === book.url ? "selected" : ""
+          }`}
           onClick={() => onSelectBook(book.url)}
           title={book.title}
         >
@@ -183,7 +252,7 @@ const BookShelf = ({ onSelectBook, selectedBookUrl }) => {
             </button>
           )}
 
-          {/* ✅ AI menu (clickable + stable hover) */}
+          {/* ✅ AI menu */}
           <div
             className="ai-badge"
             tabIndex={0}
@@ -194,10 +263,16 @@ const BookShelf = ({ onSelectBook, selectedBookUrl }) => {
           >
             🤖 AI
             <div className="ai-menu" onClick={(e) => e.stopPropagation()}>
-              <button type="button" onClick={() => openToolFromBook("summarize", book)}>
+              <button
+                type="button"
+                onClick={() => openToolFromBook("summarize", book)}
+              >
                 Summarize
               </button>
-              <button type="button" onClick={() => openToolFromBook("explain", book)}>
+              <button
+                type="button"
+                onClick={() => openToolFromBook("explain", book)}
+              >
                 Explain
               </button>
               <button type="button" onClick={() => openToolFromBook("quiz", book)}>
@@ -215,6 +290,7 @@ const BookShelf = ({ onSelectBook, selectedBookUrl }) => {
 };
 
 export default BookShelf;
+
 
 
 
