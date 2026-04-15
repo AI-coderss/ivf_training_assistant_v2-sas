@@ -3,9 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Navbar from "./components/Navbar";
 import "./App.css";
 import ChatPage from "./pages/ChatPage";
-import QuizzesPage from "./pages/QuizzesPage";
 import ContentPage from "./pages/ContentPage";
-import AvatarPage from "./pages/AvatarPage";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -16,9 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/chat" replace />} />
         <Route path="/chat" element={<ChatPage />} />
-        <Route path="/quizzes" element={<QuizzesPage />} />
         <Route path="/content" element={<ContentPage />} />
-        <Route path="/avatar" element={<AvatarPage />} />
         <Route path="*" element={<Navigate to="/chat" replace />} />
       </Routes>
 

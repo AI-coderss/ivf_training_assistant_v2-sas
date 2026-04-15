@@ -13,7 +13,9 @@ PyMuPDF
 # PDF + Utils
 pypdf
 python-dotenv
-
+langchain-classic
+langchain-qdrant
+qdrant_client
 # Web Server
 flask
 flask-cors
@@ -27,5 +29,4 @@ gunicorn
 # OCR Dependencies
 numpy
 
-# Auth
-PyJWT>=2.9.0
+
