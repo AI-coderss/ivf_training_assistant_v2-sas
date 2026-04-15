@@ -494,7 +494,7 @@ const Chat = () => {
           questions={suggestedQuestions}
           onQuestionClick={handleNewMessage}
         />
-        <ChatInputWidget onSendMessage={handleNewMessage} />
+    <ChatInputWidget onSendMessage={handleNewMessage} />
       </div>
 
       <div className="suggestion-column">
